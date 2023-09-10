@@ -1,3 +1,11 @@
+---
+layout: post
+title: "ShaderModel"
+categories: [Unity, 豆知识]
+tags: PBR着色器豆知识
+---
+
+
 # ShaderModel
 
 ## 相关页面
