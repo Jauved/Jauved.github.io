@@ -1,0 +1,17 @@
+# URP管线
+
+## 可编程渲染管线
+
+- [可编程渲染管线简介 - Unity 手册 (unity3d.com)](https://docs.unity3d.com/cn/current/Manual/scriptable-render-pipeline-introduction.html)
+
+- 两个关键的自定义元素
+
+  - **渲染管线实例**
+
+    继承自[RenderPipeline](https://docs.unity3d.com/cn/current/ScriptReference/Rendering.RenderPipeline.html)并覆盖其```Render()```方法.
+
+  - **渲染管线资源**
+
+    用于存储有关所使用的渲染管线实例以及如何对其进行配置的数据. 它的脚本继承自 [RenderPipelineAsset](https://docs.unity3d.com/cn/current/ScriptReference/Rendering.RenderPipelineAsset.html) 并覆盖其 `CreatePipeline()` 方法。
+
+    
