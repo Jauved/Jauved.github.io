@@ -1,3 +1,10 @@
+---
+layout: post
+title: "基于Jekyll和Github的Blog搭建"
+categories: [其他, Blog]
+tags: Jekyll blog
+---
+
 # 基于Jekyll和Github的Blog搭建
 
 ## 0. 起因
