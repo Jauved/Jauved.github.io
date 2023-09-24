@@ -1,0 +1,114 @@
+---
+layout: post
+title: "基于URP14的后处理"
+categories: [URP, 后处理]
+tags: URP 后处理 RendererFeature
+---
+
+# 基于URP14的后处理
+
+## 00 前言
+
+URP14引入了RTHadle作为RenderTexture的替代进行管理, 写法上也有很多的不同.
+
+## 01 整体结构
+
+整体结构仍旧由4部分构成
+
+- RendererFeature
+- RenderPass
+- Volume
+- Shader
+
+## 02 RendererFeature
+
+RendererFeature作为向Render中添加Pass的一个容器来进行运作. 因为直接向Renderer中添加Pass意味着对源码进行修改, 为了解耦和增加定制, Unity提供了RendererFeature来向Renderer中添加Pass.
+
+RendererFeature通常做三件事情, 都是针对RenderPass本身
+
+- Create()
+
+  - 通过RenderPass的构造函数创建RenderPass实例
+
+    ```c++
+    public override void Create()
+    {
+        _Pass = new Pass(RenderPassEvent.BeforeRenderingPostProcessing);
+    }
+    ```
+
+    
+
+- AddRenderPasses()
+
+  - 将该实例加入renderer的Pass队列
+
+    ```c++
+    public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+    {
+        renderer.EnqueuePass(_Pass);
+    }
+    ```
+
+- Dispose()
+
+  - 善后工作
+
+    ```c++
+    protected override void Dispose(bool disposing)
+    {
+        _bloomPass.Dispose();
+        _bloomPass.CleanUp();
+    }
+    ```
+
+    
+
+## 03 RenderPass
+
+真正要加入的RenderPass本身.
+
+- 构造函数
+  - 通过构造函数进行初始值的设置:
+    - 实例化RTHandle
+    - 给RenderPassEvent赋值
+    - 实例化Material
+- Excute()
+  - 实例化CommandBuffer
+  - 调用CommandBuffer进行渲染
+  - 释放CommandBuffer
+  - 因为CommandBuffer的一套操作基本是相同的, 所以会单独用一个```Render()```函数去处理渲染相关的部分
+- Dispose()
+  - 一般来说, 在构造函数中实例化的RTHandle和材质球都需要进行销毁和释放
+  - 本着自己实例化, 自己销毁/释放的原则, 将这部分操作写在Dispose中供RendererFeature调用.
+
+## 04 Volume
+
+面板, 参数, 除了渲染实机之外, 都建议在这里进行管理
+
+## 05 Shader
+
+负责渲染的着色器
+
+注意以下几点
+
+- 主贴图:  TEXTURE2D_X(_BlitTexture);
+
+- 对应的Size: float4 _BlitTexture_TexelSize;
+
+- 顶点着色器使用```Blit.hlsl```文件中的Vert进行扩展和改写.
+
+- 片元着色器记得加入以下两行
+
+  ```c++
+  UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+  float2 uv = UnityStereoTransformScreenSpaceTex(input.texcoord);
+  ```
+
+  
+
+## 06 研究
+
+### RenderTargetBufferSystem.cs
+
+该系统关系到```_CameraColorAttachmentA```和```_CameraColorAttachmentB```的交换问题, 如果能利用, 能减少一次全屏Blit.

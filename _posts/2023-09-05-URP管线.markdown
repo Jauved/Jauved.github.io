@@ -2,7 +2,7 @@
 layout: post
 title: "URP管线"
 categories: [Unity, URP]
-tags: URP管线
+tags: URP URP管线
 ---
 
 # URP管线

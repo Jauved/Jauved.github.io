@@ -154,6 +154,7 @@ tags: Jekyll blog
 - [Getting Started \| Chirpy (cotes.page)](https://chirpy.cotes.page/posts/getting-started/)
 - [Writing a New Post \| Chirpy (cotes.page)](https://chirpy.cotes.page/posts/write-a-new-post/)
 - [Jekyll模板升级笔记 \| 不太皮的九叔 (ny9s.com)](https://github.ny9s.com/JekyllfastStart/)
+- [無痛轉移 Medium 到自架網站. 將 Medium 內容搬遷至 Github Pages (with… \| by ZhgChgLi \| ZRealm Dev. \| Medium](https://medium.com/zrealm-ios-dev/無痛轉移-medium-到自架網站-a0c08d579ab1)
 - [kukisama/kukisama.github.io at gh-pages](https://github.com/kukisama/kukisama.github.io/tree/gh-pages)
 - [Markdown 基本语法 \| Markdown指南中文版](https://www.markdown.xyz/basic-syntax/#code)
 - [关于博客搭建过程的一些总结和吐槽 \| Sharzy](https://sharzy.in/posts/2019-08-08-pitfall/)
