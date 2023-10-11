@@ -81,11 +81,11 @@ RendererFeature通常做三件事情, 都是针对RenderPass本身
 - Dispose()
   - 一般来说, 在构造函数中实例化的RTHandle和材质球都需要进行销毁和释放
   - 本着自己实例化, 自己销毁/释放的原则, 将这部分操作写在Dispose中供RendererFeature调用.
-- ```cmd.blit```替换为```Bitter```API
+- ```cmd.blit```替换为```Blitter```API
 
 ## 04 Volume
 
-面板, 参数, 除了渲染实机之外, 都建议在这里进行管理
+面板, 参数, 除了渲染时机之外, 都建议在这里进行管理
 
 ## 05 Shader
 
