@@ -148,3 +148,4 @@ half4 FragPrefilter(Varyings input) : SV_Target
 
 ###### 参考
 
+[Gather Texture 2D Node \| Shader Graph | 12.0.0 (unity.cn)](https://docs.unity.cn/Packages/com.unity.shadergraph@12.0/manual/Gather-Texture-2D-Node.html)
