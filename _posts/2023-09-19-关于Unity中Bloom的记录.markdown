@@ -8,6 +8,8 @@ math: true
 
 # 关于Unity中Bloom的记录
 
+## 1. 提取亮部
+
 其中, 提取亮部的部分, 只看代码完全不知道做了什么.
 
 ```c++
@@ -28,7 +30,7 @@ color *= multiplier;
 
 目前的关键在于<font color=purple>紫色线</font>的函数如何得到.
 
-## Step1
+### Step1
 
 首先, 对于一个折线内做一个曲线并相交, 函数应该形如
 
@@ -62,3 +64,9 @@ $$
 此时, $x=j$ , 则交点 $p$ 的值为$2 \cdot j$ 即```2.0 * ThresholdKnee```.
 
 当然, Unity在```E:\Projects\LeiCanYRenderCore\Library\PackageCache\com.unity.render-pipelines.universal@14.0.8\Runtime\Passes\PostProcessPass.cs```中, 直接强制定义了```float thresholdKnee = threshold * 0.5f;```, 我们也可以借此做简化工作.
+
+## 2. 高斯模糊
+
+解释一下采样部分的"神奇数字"的来源.
+
+参考网页: [高质量泛光Bloom改进以及高斯核采样的优化 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/630726865)

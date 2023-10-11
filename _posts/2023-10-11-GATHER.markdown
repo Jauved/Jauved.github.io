@@ -1,0 +1,150 @@
+---
+layout: post
+title: "Texture2D：：Gather 方法"
+categories: [URP, HLSL]
+tags: URP 后处理 Unity
+---
+
+# Texture2D：：Gather 方法
+
+## 00 前言
+
+URP版本14, Unity版本2022, 在分析官方的BokehDepthOfField.shader时发现了以下代码
+```c++
+half4 FragPrefilter(Varyings input) : SV_Target
+        {
+            UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+            float2 uv = UnityStereoTransformScreenSpaceTex(input.texcoord);
+
+        #if SHADER_TARGET >= 45 && defined(PLATFORM_SUPPORT_GATHER)
+
+            // Sample source colors
+            half4 cr = GATHER_RED_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);//留意此处
+            half4 cg = GATHER_GREEN_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);//留意此处
+            half4 cb = GATHER_BLUE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv);//留意此处
+
+            half3 c0 = half3(cr.x, cg.x, cb.x);
+            half3 c1 = half3(cr.y, cg.y, cb.y);
+            half3 c2 = half3(cr.z, cg.z, cb.z);
+            half3 c3 = half3(cr.w, cg.w, cb.w);
+
+            // Sample CoCs
+            half4 cocs = GATHER_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv) * 2.0 - 1.0;//留意此处
+            half coc0 = cocs.x;
+            half coc1 = cocs.y;
+            half coc2 = cocs.z;
+            half coc3 = cocs.w;
+
+        #else
+
+            float3 duv = _SourceSize.zwz * float3(0.5, 0.5, -0.5);
+            float2 uv0 = uv - duv.xy;
+            float2 uv1 = uv - duv.zy;
+            float2 uv2 = uv + duv.zy;
+            float2 uv3 = uv + duv.xy;
+
+            // Sample source colors
+            half3 c0 = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv0).xyz;
+            half3 c1 = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv1).xyz;
+            half3 c2 = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv2).xyz;
+            half3 c3 = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv3).xyz;
+
+            // Sample CoCs
+            half coc0 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv0).x * 2.0 - 1.0;
+            half coc1 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv1).x * 2.0 - 1.0;
+            half coc2 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv2).x * 2.0 - 1.0;
+            half coc3 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv3).x * 2.0 - 1.0;
+
+        #endif
+
+        #if COC_LUMA_WEIGHTING
+
+            // Apply CoC and luma weights to reduce bleeding and flickering
+            half w0 = abs(coc0) / (Max3(c0.x, c0.y, c0.z) + 1.0);
+            half w1 = abs(coc1) / (Max3(c1.x, c1.y, c1.z) + 1.0);
+            half w2 = abs(coc2) / (Max3(c2.x, c2.y, c2.z) + 1.0);
+            half w3 = abs(coc3) / (Max3(c3.x, c3.y, c3.z) + 1.0);
+
+            // Weighted average of the color samples
+            half3 avg = c0 * w0 + c1 * w1 + c2 * w2 + c3 * w3;
+            avg /= max(w0 + w1 + w2 + w3, 1e-5);
+
+        #else
+
+            half3 avg = (c0 + c1 + c2 + c3) / 4.0;
+
+        #endif
+
+            // Select the largest CoC value
+            half cocMin = min(coc0, Min3(coc1, coc2, coc3));
+            half cocMax = max(coc0, Max3(coc1, coc2, coc3));
+            half coc = (-cocMin > cocMax ? cocMin : cocMax) * MaxRadius;
+
+            // Premultiply CoC
+            avg *= smoothstep(0, _SourceSize.w * 2.0, abs(coc));
+
+        #if defined(UNITY_COLORSPACE_GAMMA)
+            avg = GetSRGBToLinear(avg);
+        #endif
+
+            return half4(avg, coc);
+        }
+```
+
+看起来, 使用类似```GATHER_RED_TEXTURE2D_X()```的宏, 可以不用进行再使用uv移动而采样到4次uv偏转后的值?
+
+其中```GATHER_RED_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv)```宏进行跳转后, 来到了```Library/PackageCache/com.unity.render-pipelines.core@14.0.8/ShaderLibrary/API/D3D11.hlsl```文件中的以下代码位置
+
+```c++
+#define PLATFORM_SUPPORT_GATHER
+#define GATHER_TEXTURE2D(textureName, samplerName, coord2)                textureName.Gather(samplerName, coord2)
+#define GATHER_TEXTURE2D_ARRAY(textureName, samplerName, coord2, index)   textureName.Gather(samplerName, float3(coord2, index))
+#define GATHER_TEXTURECUBE(textureName, samplerName, coord3)              textureName.Gather(samplerName, coord3)
+#define GATHER_TEXTURECUBE_ARRAY(textureName, samplerName, coord3, index) textureName.Gather(samplerName, float4(coord3, index))
+#define GATHER_RED_TEXTURE2D(textureName, samplerName, coord2)            textureName.GatherRed(samplerName, coord2)
+#define GATHER_GREEN_TEXTURE2D(textureName, samplerName, coord2)          textureName.GatherGreen(samplerName, coord2)
+#define GATHER_BLUE_TEXTURE2D(textureName, samplerName, coord2)           textureName.GatherBlue(samplerName, coord2)
+#define GATHER_ALPHA_TEXTURE2D(textureName, samplerName, coord2)          textureName.GatherAlpha(samplerName, coord2)
+```
+
+
+
+## 01 查找资料
+
+- [Texture2D：：Texture2D Gather 方法 - Win32 apps \| Microsoft Learn](https://learn.microsoft.com/zh-cn/windows/win32/direct3dhlsl/texture2d-gather)
+- [gather4 (sm5 - asm) - Win32 apps \| Microsoft Learn](https://learn.microsoft.com/zh-cn/windows/win32/direct3dhlsl/gather4--sm5---asm-)
+- [sample (sm4 - asm) - Win32 apps \| Microsoft Learn](https://learn.microsoft.com/zh-cn/windows/win32/direct3dhlsl/sample--sm4---asm-)
+- [Gather (DirectX HLSL Texture Object) - Win32 apps \| Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-to-gather)
+
+按照以上文档的说法, 有如下信息:
+
+- ```Texture2D：：Gather (S，float，int) 函数```作用是```返回将在双线性筛选操作中使用的四个纹素值```.
+
+- 语法为
+  ```c++
+  TemplateType Gather(
+    in sampler s,
+    in float2 location,
+    in int2 offset
+  );
+  ```
+
+  
+
+- s-采样器, location-(u,v), offset-采样前作为纹理坐标的偏移量
+
+- TemplateType-一个四分量值，其类型与模板类型相同
+
+- 此指令的行为与 [**sample**](https://learn.microsoft.com/zh-cn/windows/win32/direct3dhlsl/sample--sm4---asm-) 指令类似，但不会生成筛选的示例。 有助于筛选的四个样本按逆时针顺序放置在 xyzw 中，从样本开始到查询位置的左下角。 这与以下位置 (u，v) 纹理坐标增量的点采样相同： (-、+) 、 (+、+) 、 (+、-) 、 (-,-) ，其中增量的幅度始终为纹素一半。
+
+## 02 疑惑
+
+- 按照文档中的说法````Gather```方法是有三个参, 而Unity中最终的函数是```textureName.Gather(samplerName, coord2)```是两参.
+- 按照[Gather (DirectX HLSL Texture Object) - Win32 apps \| Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-to-gather)中的, 又提到, ```Offset```是可选的参.
+
+## 03 研究-TODO
+
+
+
+###### 参考
+
