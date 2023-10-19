@@ -1,0 +1,39 @@
+---
+layout: post
+title: "Unity启动参数"
+categories: [Unity, 图形API]
+tags: Unity 启动参数 图形API
+math: true
+---
+
+# Unity启动参数
+
+## 00 前言
+
+Unity中, 如果以```Android```平台使用```BuildAssetBundles```建立着色器的```assetbundle```后, 通常这类资源在编辑器中加载是无法正常工作的, 原因是在```Windows```系统下Unity编辑器默认的显示API是```DX11```, 而```Android```的着色器API需要是```gles```.
+
+## 01 处理方法
+
+通过启动参数的方式, 强制使用gles的API进行渲染. 
+
+- 点击项目后的```...```, 选择```添加命令行参数```
+
+![image-20231019154433199](/assets/image/image-20231019154433199.png)
+
+- 添加```-force-gles```参数, 并```保存```.
+
+![image-20231019154555040](/assets/image/image-20231019154555040.png)
+
+- 启动后, 在Unity编辑器窗口的Title可以看到图形API已经变更为```OpenGL ES 3.2```. 此时加载```Android```的```assetbundle```即可正常渲染.
+
+![image-20231019154643960](/assets/image/image-20231019154643960.png)
+
+###### 参考网页
+
+[Command-line arguments - Unity 手册](https://docs.unity.cn/cn/2023.2/Manual/CommandLineArguments.html)
+
+[Unity Editor command line arguments - Unity 手册](https://docs.unity.cn/cn/2023.2/Manual/EditorCommandLineArguments.html)
+
+[命令行参数 - Unity 手册](https://docs.unity.cn/cn/2019.4/Manual/CommandLineArguments.html)
+
+[OpenGL Core - Unity 手册 (unity3d.com)](https://docs.unity3d.com/cn/2023.2/Manual/OpenGLCoreDetails.html)
