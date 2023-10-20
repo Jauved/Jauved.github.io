@@ -90,13 +90,23 @@ public class LoadAb : MonoBehaviour
 }
 ```
 
+## 03 彩色石头
 
+Unity还有一个名为Addressable的打包用的扩展. 具体用法看[这篇文章](https://blog.csdn.net/linxinfa/article/details/122390621).
 
 ###### 参考网页
 
-[Unity新版AssetBundle打包API以及使用策略 - 简书 (jianshu.com)
+[Unity新版AssetBundle打包API以及使用策略 - 简书 (jianshu.com)](https://www.jianshu.com/p/565d02b180ff)
 
 [[实力封装：Unity打包AssetBundle（一）_unity打包package-CSDN博客](https://blog.csdn.net/puss0/article/details/79681013)](https://www.jianshu.com/p/565d02b180ff)
 
 [实力封装：Unity打包AssetBundle（二）-CSDN博客](https://blog.csdn.net/puss0/article/details/79684185)
+
+[AssetBundle 工作流程 - Unity 手册](https://docs.unity.cn/cn/2023.1/Manual/AssetBundles-Workflow.html)
+
+[BuildPipeline-BuildAssetBundles - Unity 脚本 API](https://docs.unity.cn/cn/2023.1/ScriptReference/BuildPipeline.BuildAssetBundles.html)
+
+[AssetBundleBuild - Unity 脚本 API](https://docs.unity.cn/cn/2023.1/ScriptReference/AssetBundleBuild.html)
+
+[【精选】【游戏开发探究】Unity Addressables资源管理方式用起来太爽了，资源打包、加载、热更变得如此轻松（Addressable Asset System | 简称AA）_player content must be built before entering play -CSDN博客](https://blog.csdn.net/linxinfa/article/details/122390621)
 
