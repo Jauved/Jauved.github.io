@@ -1,0 +1,90 @@
+---
+layout: post
+title: "Unity官方电子书或工程导航"
+categories: [Unity, 电子书]
+tags: Unity 电子书
+math: true
+---
+
+# Unity官方电子书或工程导航
+
+## 00 前言
+
+<font color=orange>Unity官方</font>经常会在Blog中附带电子书用来介绍新的管线或系统. Unity官方的Github账号中也会发布一些工程案例. 但没有一个整合的地方. 所以这里以Blog的形式进行整合归类.
+
+## 01 [电子书](https://blog.unity.com/search?q=E-book)
+
+---
+
+### 管线
+
+- [Updated for 2021 LTS: The definitive guide to lighting in the High Definition Render Pipeline | Unity Blog](https://blog.unity.com/engine-platform/updated-for-2021-lts-the-definitive-guide-to-lighting-in-the-high-definition-render)
+
+  关于HDRP渲染的电子书, 相关案例通过UnityHub在新建工程时选择```3D Sample Scene (HDRP)```即可建立相关工程.
+
+- [Move on over to the Universal Render Pipeline with our advanced guide | Unity Blog](https://blog.unity.com/engine-platform/move-on-over-to-the-universal-render-pipeline-with-our-advanced-guide)
+
+  关于URP的电子书.
+
+---
+
+### 工作流
+
+- [Speed up your programmer workflows | Unity Blog](https://blog.unity.com/engine-platform/speed-up-your-programmer-workflows)
+
+  关于编程和编译方面的工作流建议, 以及[.gitignore](https://github.com/github/gitignore/blob/main/Unity.gitignore)的下载, 以及电子书.
+
+- [Speed up your artist workflows | Unity Blog](https://blog.unity.com/engine-platform/speed-up-your-artist-workflows)
+
+  关于美术工作流建议, 其中[网格对齐](https://docs.unity3d.com/cn/2021.1/Manual/GridSnapping.html)和[自定义Editor工具](https://docs.unity3d.com/cn/2021.1/Manual/UsingCustomEditorTools.html)和[自定义工具的API](https://docs.unity3d.com/2019.1/Documentation/ScriptReference/EditorTools.EditorTool.html)可以研究一下.  然后Lightmap烘焙加速也有一些无关痛痒的设置建议.
+
+- [5 ways to speed up your workflows in the Editor | Unity Blog](https://blog.unity.com/engine-platform/5-ways-to-speed-up-workflows-in-unity-editor)
+
+  关于Unity编辑器操作的工作流建议, 其中[快捷键的设置](https://docs.unity3d.com/2020.1/Documentation/Manual/ShortcutsManager.html)部分是没有了解过的, **Edit > Shortcuts**可以打开快捷键窗口.
+
+---
+
+### 代码
+
+- [Clean up your code: How to create your own C# code style | Unity Blog](https://blog.unity.com/engine-platform/clean-up-your-code-how-to-create-your-own-c-code-style)
+
+  关于代码规范的一些建议.
+
+- [Level up your code with game programming patterns | Unity Blog](https://blog.unity.com/games/level-up-your-code-with-game-programming-patterns)
+
+  设计模式, 以及[案例](https://github.com/Unity-Technologies/game-programming-patterns-demo).
+
+
+---
+
+### 优化
+
+- [Optimize game performance | Unity Blog](https://blog.unity.com/reading-list/optimize-game-performance)
+
+  游戏优化.
+
+- [Games Focus: Profiling and performance optimization | Unity Blog](https://blog.unity.com/engine-platform/games-focus-profiling-and-performance-optimization)
+
+  游戏内存优化.
+
+- [Optimize your mobile game performance: Get expert tips on physics, UI, and audio settings | Unity Blog](https://blog.unity.com/games/optimize-your-mobile-game-performance-get-expert-tips-on-physics-ui-and-audio-settings)
+
+  移动端优化
+
+---
+
+### UI
+
+- [It’s all in here: The ultimate guide to creating UI interfaces in Unity | Unity Blog](https://blog.unity.com/games/ultimate-guide-to-creating-ui-interfaces)
+
+  关于UI toolkit做界面的电子书.
+
+---
+
+### 项目管理
+
+- [Boost your game’s ROI by avoiding hidden costs | Unity Blog](https://blog.unity.com/games/boost-your-games-roi-by-avoiding-hidden-costs)
+
+  关于通过避免潜在的花销提升ROI(投资回报率)? 指导经营的电子书.
+
+###### 参考网页
