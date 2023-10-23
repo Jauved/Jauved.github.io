@@ -1,0 +1,28 @@
+---
+layout: post
+title: "学习其他游戏的代码"
+categories: [代码, C#]
+tags: 代码 C# 参考
+math: true
+---
+
+# 学习其他游戏的代码
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[(38 封私信 / 98 条消息) 哪些开源游戏和开源引擎的代码比较好？求推荐? - 知乎 (zhihu.com)](https://www.zhihu.com/question/33526170)
+
+[Rimworld的MOD教程#7#简单的逻辑定义 - 哔哩哔哩 (bilibili.com)](https://www.bilibili.com/read/cv741203/)
+
+[Perfare/Il2CppDumper: Unity il2cpp reverse engineer (github.com)](https://github.com/Perfare/Il2CppDumper/tree/master)
+
+[Il2CppDumper/README.zh-CN.md at master · Perfare/Il2CppDumper (github.com)](https://github.com/Perfare/Il2CppDumper/blob/master/README.zh-CN.md)
+
+[TA后备隐藏能源(持续更新嗷) - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/265590519)
+
+[killop/anything_about_game: A wonderful list of Game Development resources. (github.com)](https://github.com/killop/anything_about_game#papers)
+
