@@ -1,0 +1,187 @@
+---
+layout: post
+title: "调用xlua读取lua脚本"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+---
+
+# 调用xlua读取lua脚本
+
+## 00 前言
+
+对于一些形如以下格式的数据, 可能需要通过c#去读取这些lua数据.
+
+![image-20231025203246616](/assets/image/image-20231025203246616.png)
+
+## 01 处理方法
+
+首先, 安装[xlua](https://github.com/Tencent/xLua), 将```Assets```和```Tools```保持路径覆盖到Unity工程中即可. 然后打开工程运行"XLua->Generate Code".
+
+之后, 编写以下主类脚本
+
+```c++
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using XLua;
+
+[Serializable]
+public class LuaLoader<T>
+{
+    public TextAsset luaScript; // 从Resources加载的Lua脚本
+    [HideInInspector]
+    public Dictionary<int, T> DataDictionary;
+
+    private LuaEnv _luaEnv;
+    public Dictionary<int, T> GetData()
+    {
+        // TextAsset luaScript = Resources.Load<TextAsset>("Cfg_Effect.lua");
+        // Debug.Log(luaScript.text);
+        _luaEnv = _luaEnv ?? new LuaEnv();
+
+        // 执行Lua脚本
+        _luaEnv.DoString(luaScript.text);
+
+        // 获取Lua表中的数据
+        // var data = _luaEnv.Global.Get<Dictionary<int,Dictionary<string,object>>>("data");
+        var data2 = _luaEnv.Global.Get<Dictionary<int, T>>("data");
+
+        // Debug.Log(data2[1].Path);
+        // 将数组赋值给到CfgEffects以便外部调用.
+        DataDictionary = data2;
+        return data2;
+    }
+
+    public void Dispose()
+    {
+        _luaEnv.Dispose();
+    }
+}
+```
+
+然后, 根据数据结构编写以下子类和对应的结构体即可:
+
+```c++
+using System;
+using UnityEngine;
+
+[Serializable]
+public class LuaEffectLoader : LuaLoader<CfgEffect>
+{
+
+    public void Check()
+    {
+        DataDictionary[1].DebugLog();
+    }
+
+}
+
+public struct CfgEffect
+{
+    public int EffectId;
+    public string Path;
+    public string Path2;
+    public int DestoryTime;
+    public int PreLoadEff;
+    public int FlowBones;
+    public int Direction;
+    public int FollowScale;
+    public int Mirror;
+    public int Scaling;
+
+    public void DebugLog()
+    {
+        Debug.Log($"EffectId:   {EffectId}\nPath:   {Path}");
+    }
+}
+```
+
+并用一个统一的单例来管理
+
+```c++
+public class SkillPreviewerDataManager : MonoSingleton<SkillPreviewerDataManager>
+{
+    public LuaEffectLoader luaEffectLoader = new LuaEffectLoader();
+    public LuaSkillLoader luaSkillLoader = new LuaSkillLoader();
+
+    protected override void Awake()
+    {
+        base.Awake();
+    }
+    void Start()
+    {
+        luaEffectLoader.GetData();
+        luaSkillLoader.GetData();
+        luaEffectLoader.Check();
+        luaSkillLoader.Check();
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
+    }
+    
+    private void OnDestroy()
+    {
+        // 释放LuaEnv
+        luaEffectLoader.Dispose();
+        luaSkillLoader.Dispose();
+    }
+}
+```
+
+单例的父类
+
+```c++
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public abstract class MonoSingleton<T> : MonoBehaviour where T : MonoSingleton<T>
+{
+    private static T _instance;
+    public static T instance
+    {
+        get
+        {
+            if (_instance==null)
+            {
+                Debug.Log(typeof(T).ToString()+"is Null");
+                // Do Something
+            }
+            return _instance;
+        }
+    }
+
+    protected virtual void Awake()
+    {
+        _instance = this as T;
+    }
+
+}
+```
+
+
+
+###### 参考网页
+
+[让unity识别.lua文件，不用修改为.lua.txt_Listenlsls的博客-CSDN博客](https://blog.csdn.net/Listenlsls/article/details/113773772)
+
+[VS Code隐藏Unity工程中meta文件以及将后缀为lua.txt或者lua.bytes识别为lua的方法_unity自定义后缀名识别-CSDN博客](https://blog.csdn.net/zhoumf/article/details/88982675)
+
+[【精选】XLua系列讲解_C#访问Lua中的table类型 _c# 解析 lua表_DaLiangChen的博客-CSDN博客](https://blog.csdn.net/a451319296/article/details/113874062)
+
+[[Unity实战\]Xlua插件安装步骤(基于2018.3Unity)_mscorlib.dll unity_学生董格的博客-CSDN博客](https://zld126126.blog.csdn.net/article/details/118242671)
+
+[XLua官方教程目录 总结篇(配置XLua开发环境、安装EmmyLua插件、xLua文档、xLua热补丁、xLua示例教程)_xlua教程-CSDN博客](https://blog.csdn.net/yhx956058885/article/details/109047646)
+
+[xLua C#访问lua，获取lua全局变量，获取table并调用lua内函数（四）_xlua 获得lua table-CSDN博客](https://blog.csdn.net/Liu_ChangC/article/details/107033649)
+
+[Unity Lua 之 在 Unity中 通过 文件加载的方式，读取执行文件中的 lua 内容，实现 Hello Lua_unity lua读取文本-CSDN博客](https://blog.csdn.net/u014361280/article/details/104827833)
+
+[xlua学习之Unity里C#访问Lua的table - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/79340749)
+
+[XLua中C#读取lua配置表数据 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/384760575)
