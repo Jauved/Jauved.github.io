@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "Rider如何加入特定的缩写"
-categories: [URP, 后处理]
-tags: URP 后处理 DepthOfField
+categories: [IDE, Rider]
+tags: IDE Rider 缩写
 math: true
 ---
 
