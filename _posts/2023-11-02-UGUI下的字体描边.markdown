@@ -1,0 +1,553 @@
+---
+layout: post
+title: "UGUI下的字体描边(附录UI优化和TextMeshPro字体教程)"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+---
+
+# UGUI下的字体描边(附录UI优化和TextMeshPro字体教程)
+
+## 00 前言
+
+先说结论, 请直接使用TextMeshPro. 
+
+如果一定要使用UGUI的Text控件. 那么请接着往下看.
+
+UGUI默认的Outline描边, 是采取的复制Mesh并偏移的方式来完成的, 默认只复制4次, 向左上右上左下右下四个方向进行偏移. 这种处理方式的弊端在于, 顶点数的增加. 同时, 要获得好的效果, 势必会更多的增加顶点. 此方案消耗的是带宽和采样数.
+
+如果能够通过着色器中"偏移采样"(其实本质是类似高斯模糊)的方式来解决, 那么可以降低一定的Mesh带宽消耗.
+
+## 01 处理方法
+
+脚本制作, 关键是计算出UV限制的范围, 并传入顶点属性中, 用来防止采样到临近的字符. 
+
+```c++
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections.Generic;
+using UnityEngine.Rendering;
+using UnityEditor;
+// ReSharper disable InconsistentNaming
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable CheckNamespace
+
+/// <summary>
+/// UGUI描边
+/// </summary>
+public class OutlineGPU : BaseMeshEffect
+{
+    [SerializeField] protected Color outlineColor = new Color(1, 1, 1, 1.0f);
+
+    private Canvas cur_canvas;
+    public Color OutlineColor
+    {
+        get => outlineColor;
+        set
+        {
+            outlineColor = value;
+            if (graphic != null)
+                graphic.SetVerticesDirty();
+        }
+    }
+
+    [SerializeField] [Range(0, 3)] protected int outlineWidth = 1;
+
+    public int OutlineWidth
+    {
+        get
+        {
+            return outlineWidth;
+        }
+        set
+        {
+            outlineWidth = value;
+            this._Refresh();
+        }
+    }
+    void OnBecameInvisible()
+    {
+        enabled = false;
+    }
+    void OnBecameVisible()
+    {
+        enabled = true;
+    }
+
+    #region 材质球部分, 需要改写GetDefaultOutlineMaterial方法和其调用, 统一管理.
+
+#if UNITY_EDITOR
+    private static Material GetDefaultOutlineMaterial()
+    {
+        var shader = Shader.Find("Render/URP/UI/OutlineGPU");
+        Material material = new Material(shader);
+        // Material material;
+        //
+        // material = AssetDatabase.LoadAssetAtPath<Material>("Assets/Objects/Prefabs/Material/Outline.mat");
+        return material;
+    }
+    protected static Material s_defaultOutlineMaterial;
+    public static Material defaultOutlineMaterial
+    {
+        get
+        {
+            if (s_defaultOutlineMaterial == null)
+            {
+                s_defaultOutlineMaterial = GetDefaultOutlineMaterial();
+            }
+
+            return s_defaultOutlineMaterial;
+        }
+    }
+#endif
+    [SerializeField] protected Material material;
+
+    public Material Material
+    {
+        get
+        {
+            if (material != null)
+                return material;
+
+#if UNITY_EDITOR
+            material = defaultOutlineMaterial;
+#endif
+            return material;
+        }
+        set
+        {
+            if (material == value)
+                return;
+            material = value;
+            graphic.SetMaterialDirty();
+        }
+    }
+
+    #endregion
+
+    private static readonly Vector2 _VRight = Vector2.right;
+    private static readonly Vector2 _VUp = Vector2.up;
+
+    protected override void Start()
+    {
+        base.Start();
+        graphic.material = Material;
+        if (graphic.canvas != null && graphic.canvas != cur_canvas)
+        {
+            AddShaderChannels();
+            cur_canvas = graphic.canvas;
+            _Refresh();
+        }
+    }
+    protected override void OnTransformParentChanged()
+    {
+        base.OnTransformParentChanged();
+        if (graphic.canvas != null && graphic.canvas != cur_canvas)
+        {
+            AddShaderChannels();
+            cur_canvas = graphic.canvas;
+            _Refresh();
+        }
+    }
+
+    private void AddShaderChannels()
+    {
+        AddShaderChannel(AdditionalCanvasShaderChannels.TexCoord1);
+        AddShaderChannel(AdditionalCanvasShaderChannels.TexCoord2);
+        AddShaderChannel(AdditionalCanvasShaderChannels.TexCoord3);
+        AddShaderChannel(AdditionalCanvasShaderChannels.Tangent);
+    }
+
+    private void AddShaderChannel(AdditionalCanvasShaderChannels additionalCanvasShaderChannel)
+    {
+
+        if ((graphic.canvas.additionalShaderChannels & additionalCanvasShaderChannel) !=
+            additionalCanvasShaderChannel)
+        {
+            graphic.canvas.additionalShaderChannels |= additionalCanvasShaderChannel;
+        }
+
+
+    }
+
+#if UNITY_EDITOR
+    protected override void OnValidate()
+    {
+        base.OnValidate();
+        _Refresh();
+    }
+#endif
+
+
+    private void _Refresh()
+    {
+        if (graphic.material != null)
+        {
+            graphic.SetVerticesDirty();
+        }
+    }
+
+    public override void ModifyMesh(VertexHelper vh)
+    {
+        if (!IsActive())
+            return;
+
+        List<UIVertex> vertexList = ListPool<UIVertex>.Get();
+        vh.GetUIVertexStream(vertexList);
+
+        this._ProcessVertices(vertexList);
+
+        vh.Clear();
+        vh.AddUIVertexTriangleStream(vertexList);
+        ListPool<UIVertex>.Release(vertexList);
+    }
+
+    /// <summary>
+    /// 计算UV限制的范围, 传入Shader中避免采样到临近的字符.
+    /// </summary>
+    private void _ProcessVertices(List<UIVertex> vertexList)
+    {
+        for (int i = 0, count = vertexList.Count - 3; i <= count; i += 3)
+        {
+            var v1 = vertexList[i];
+            var v2 = vertexList[i + 1];
+            var v3 = vertexList[i + 2];
+            // 计算原顶点坐标中心点
+            var minX = _Min(v1.position.x, v2.position.x, v3.position.x);
+            var minY = _Min(v1.position.y, v2.position.y, v3.position.y);
+            var maxX = _Max(v1.position.x, v2.position.x, v3.position.x);
+            var maxY = _Max(v1.position.y, v2.position.y, v3.position.y);
+            var posCenter = new Vector2(minX + maxX, minY + maxY) * 0.5f;
+            // 计算原始顶点坐标和UV的方向
+            Vector2 triX, triY, uvX, uvY;
+            Vector2 pos1 = v1.position;
+            Vector2 pos2 = v2.position;
+            Vector2 pos3 = v3.position;
+            if (Mathf.Abs(Vector2.Dot((pos2 - pos1).normalized, Vector2.right))
+                > Mathf.Abs(Vector2.Dot((pos3 - pos2).normalized, Vector2.right)))
+            {
+                triX = pos2 - pos1;
+                triY = pos3 - pos2;
+                uvX = v2.uv0 - v1.uv0;
+                uvY = v3.uv0 - v2.uv0;
+            }
+            else
+            {
+                triX = pos3 - pos2;
+                triY = pos2 - pos1;
+                uvX = v3.uv0 - v2.uv0;
+                uvY = v2.uv0 - v1.uv0;
+            }
+
+            // 计算原始UV框
+            var uvMin = _Min(v1.uv0, v2.uv0, v3.uv0);
+            var uvMax = _Max(v1.uv0, v2.uv0, v3.uv0);
+            var uvOrigin = new Vector4(uvMin.x, uvMin.y, uvMax.x, uvMax.y);
+            // 为每个顶点设置新的Position和UV，并传入原始UV框
+            v1 = _SetNewPosAndUV(v1, this.outlineWidth, posCenter, triX, triY, uvX, uvY, uvOrigin);
+            v2 = _SetNewPosAndUV(v2, this.outlineWidth, posCenter, triX, triY, uvX, uvY, uvOrigin);
+            v3 = _SetNewPosAndUV(v3, this.outlineWidth, posCenter, triX, triY, uvX, uvY, uvOrigin);
+
+            // 应用设置后的UIVertex
+            vertexList[i] = v1;
+            vertexList[i + 1] = v2;
+            vertexList[i + 2] = v3;
+        }
+    }
+
+    private UIVertex _SetNewPosAndUV(
+        UIVertex pVertex,
+        float pOutLineWidth,
+        Vector2 pPosCenter,
+        Vector2 pTriangleX, Vector2 pTriangleY,
+        Vector2 pUVX, Vector2 pUVY,
+        Vector4 pUVOrigin)
+    {
+        // Position
+        var pos = pVertex.position;
+        var posXOffset = pos.x > pPosCenter.x ? pOutLineWidth : -pOutLineWidth;
+        var posYOffset = pos.y > pPosCenter.y ? pOutLineWidth : -pOutLineWidth;
+        pos.x += posXOffset;
+        pos.y += posYOffset;
+        pVertex.position = pos;
+        // UV (縮小回原來大小)
+        var uv = pVertex.uv0;
+        uv += pUVX / pTriangleX.magnitude * (posXOffset * (Vector2.Dot(pTriangleX, _VRight) > 0 ? 1 : -1));
+        uv += pUVY / pTriangleY.magnitude * (posYOffset * (Vector2.Dot(pTriangleY, _VUp) > 0 ? 1 : -1));
+        pVertex.uv0 = uv;
+        // 原始UV框
+        pVertex.uv1.x = pUVOrigin.x;
+        pVertex.uv1.y = pUVOrigin.y;
+        pVertex.uv2.x = pUVOrigin.z;
+        pVertex.uv2.y = pUVOrigin.w;
+        pVertex.tangent = OutlineColor;
+        pVertex.uv3.x = OutlineWidth;
+
+        return pVertex;
+    }
+
+    private static float _Min(float pA, float pB, float pC)
+    {
+        //会做很多次 为了效能
+        if (pA <= pB && pA <= pC)
+        {
+            return pA;
+        }
+
+        if (pB <= pA && pB <= pC)
+        {
+            return pB;
+        }
+
+        return pC;
+    }
+
+
+    private static float _Max(float pA, float pB, float pC)
+    {
+        //会做很多次 为了效能
+        if (pA >= pB && pA >= pC)
+        {
+            return pA;
+        }
+
+        if (pB >= pA && pB >= pC)
+        {
+            return pB;
+        }
+
+        return pC;
+    }
+
+
+    private static Vector2 _Min(Vector2 pA, Vector2 pB, Vector2 pC)
+    {
+        return new Vector2(_Min(pA.x, pB.x, pC.x), _Min(pA.y, pB.y, pC.y));
+    }
+
+
+    private static Vector2 _Max(Vector2 pA, Vector2 pB, Vector2 pC)
+    {
+        return new Vector2(_Max(pA.x, pB.x, pC.x), _Max(pA.y, pB.y, pC.y));
+    }
+}
+
+```
+
+着色器, 类似高斯模糊的扩边算法.
+
+```c++
+Shader "Render/URP/UI/OutlineGPU"
+{
+    Properties
+    {
+        [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
+        _Color ("Tint", Color) = (1, 1, 1, 1)
+
+        _StencilComp ("Stencil Comparison", Float) = 8
+        _Stencil ("Stencil ID", Float) = 0
+        _StencilOp ("Stencil Operation", Float) = 0
+        _StencilWriteMask ("Stencil Write Mask", Float) = 255
+        _StencilReadMask ("Stencil Read Mask", Float) = 255
+
+        _ColorMask ("Color Mask", Float) = 15
+
+        [Toggle(UNITY_UI_ALPHACLIP)] _UseUIAlphaClip ("Use Alpha Clip", Float) = 0
+    }
+
+    SubShader
+    {
+        Tags
+        {
+            "Queue"="Transparent"
+            "IgnoreProjector"="True"
+            "RenderType"="Transparent"
+            "PreviewType"="Plane"
+            "CanUseSpriteAtlas"="True"
+        }
+
+        Stencil
+        {
+            Ref [_Stencil]
+            Comp [_StencilComp]
+            Pass [_StencilOp]
+            ReadMask [_StencilReadMask]
+            WriteMask [_StencilWriteMask]
+        }
+
+        Cull Off
+        Lighting Off
+        ZWrite Off
+        ZTest [unity_GUIZTestMode]
+        Blend One OneMinusSrcAlpha
+        ColorMask [_ColorMask]
+
+
+        Pass
+        {
+            Name "OUTLINE"
+
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+            #pragma multi_compile_local _ UNITY_UI_CLIP_RECT
+            #pragma multi_compile_local _ UNITY_UI_ALPHACLIP
+
+            TEXTURE2D(_MainTex);
+            SAMPLER(sampler_MainTex);
+            half4 _Color;
+            half4 _TextureSampleAdd;
+            float4 _ClipRect;
+            float4 _MainTex_TexelSize;
+            float _UIMaskSoftnessX;
+            float _UIMaskSoftnessY;
+            
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                half4 color : COLOR;
+                half4 tangentOS : TANGENT;
+                float2 texcoord : TEXCOORD0;
+                float2 texcoord1 : TEXCOORD1;
+                float2 texcoord2 : TEXCOORD2;
+                float texcoord3 : TEXCOORD3;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                half4 color : COLOR;
+                float2 texcoord : TEXCOORD0;
+                float4 positionWS : TEXCOORD1;
+                half4 mask : TEXCOORD2;
+                half4 outlineColor : TEXCOORD3;
+                float4 uvOrigin : TEXCOORD4;
+                half outlineWidth : TEXCOORD5;
+            };
+
+            Varyings vert(Attributes input)
+            {
+                Varyings output;
+
+                output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
+                output.positionWS = input.positionOS;
+                output.texcoord = input.texcoord;
+                output.uvOrigin.xy = input.texcoord1;
+                output.uvOrigin.zw = input.texcoord2;
+                output.color = input.color * _Color;
+                float2 pixelSize = output.positionCS.w;
+                pixelSize /= float2(1, 1) * abs(mul((float2x2)UNITY_MATRIX_P, _ScreenParams.xy));
+                float4 clampedRect = clamp(_ClipRect, -2e10, 2e10);
+                output.mask = half4(input.positionOS.xy * 2 - clampedRect.xy - clampedRect.zw,
+                                    0.25 / (0.25 * half2(_UIMaskSoftnessX, _UIMaskSoftnessY) + abs(pixelSize.xy)));
+                output.outlineColor = input.tangentOS;
+                output.outlineWidth = input.texcoord3;
+                return output;
+            }
+
+            half IsInRect(float2 pPos, float4 pClipRect)
+            {
+                //pClipRect.xy => rect.min 
+                //pClipRect.zw => rect.max
+                //判斷 pPos 是不是在 pClipRect 內
+                pPos = step(pClipRect.xy, pPos) * step(pPos, pClipRect.zw);
+                return pPos.x * pPos.y;
+            }
+
+            half SampleAlpha(int pIndex, Varyings input)
+            {
+                //使用越多方向越清楚 ( 原本UGUI只用了四個方向 )
+                const half sinArray[8] = {0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707};
+                const half cosArray[8] = {1, 0.707, 0, -0.707, -1, -0.707, 0, 0.707};
+                //const half sinArray[12] = { 0, 0.5, 0.866, 1, 0.866, 0.5, 0, -0.5, -0.866, -1, -0.866, -0.5 };
+                //const half cosArray[12] = { 1, 0.866, 0.5, 0, -0.5, -0.866, -1, -0.866, -0.5, 0, 0.5, 0.866 };
+
+                float2 pos = input.texcoord + _MainTex_TexelSize.xy * float2(cosArray[pIndex], sinArray[pIndex]) * input
+                    .outlineWidth;
+                return IsInRect(pos, input.uvOrigin) * (SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, pos) + _TextureSampleAdd)
+                    .w * input.outlineColor.a;
+            }
+
+            half4 frag(Varyings input) : SV_Target
+            {
+                half4 color = (SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.texcoord) + _TextureSampleAdd);
+                half4 colorText = color * input.color;
+                colorText.a *= IsInRect(input.texcoord, input.uvOrigin);
+                half4 colorOutline = input.outlineColor;
+
+                half4 val = half4(colorOutline.rgb, 0); //(r,g,b,0)
+
+                //取四个方向(跟Outline取樣數量一樣), 1,3,5,7
+                //取八个方向, 0,1,2,3,4,5,6,7
+                //取12个方向，不要取12个方向，消耗过高
+                val.a += SampleAlpha(0, input);
+                val.a += SampleAlpha(1, input);
+                val.a += SampleAlpha(2, input);
+                val.a += SampleAlpha(3, input);
+                val.a += SampleAlpha(4, input);
+                val.a += SampleAlpha(5, input);
+                val.a += SampleAlpha(6, input);
+                val.a += SampleAlpha(7, input);
+                //val.a += SampleAlpha(8, input);
+                //val.a += SampleAlpha(9, input);
+                //val.a += SampleAlpha(10, input);
+                //val.a += SampleAlpha(11, input);
+
+                val.a = val.a*0.125;
+                val.a = sqrt(val.a)*2.0;
+                val.a = clamp(val.a, 0, 1);
+                val.a *= colorOutline.a;
+
+                color.rgb = val.rgb * (1.0 - colorText.a) + (colorText.rgb * colorText.a);
+
+                color.a = val.a * (1.0 - colorText.a) + colorText.a; //文字半透明同样影响描边//Todo
+                //裁剪超出范围的临近字体Alpha
+                color.a *= IsInRect(input.texcoord, input.uvOrigin);
+
+                #ifdef UNITY_UI_CLIP_RECT
+                half2 m = saturate((_ClipRect.zw - _ClipRect.xy - abs(input.mask.xy)) * input.mask.zw);
+                color.a *= m.x * m.y;
+                #endif
+
+                #ifdef UNITY_UI_ALPHACLIP
+                clip (color.a - 0.001);
+                #endif
+                
+                color.rgb *= color.a;
+                color = LinearToGamma22(color);	
+
+                return color;
+            }
+            ENDHLSL
+        }
+    }
+}
+```
+
+
+
+###### 参考网页
+
+[基于Shader实现的UGUI描边解决方案 - GuyaWeiren - 博客园 (cnblogs.com)](https://www.cnblogs.com/GuyaWeiren/p/9665106.html)
+
+[tim12332000/UguiTextOutlineOptimization: Ugui Text Outline Optimization (github.com)](https://github.com/tim12332000/UguiTextOutlineOptimization/tree/master/)
+
+[TextMeshPro制作字体教程 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/651150748)
+
+[Unity性能优化基础篇——UI优化小技巧 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/363306154)
+
+[关于Unity中的UGUI优化，你可能遇到这些问题 - UWA问答 \| 博客 \| 游戏及VR应用性能优化记录分享 \| 侑虎科技 (uwa4d.com)](https://blog.uwa4d.com/archives/QA_UGUI-1.html)
+
+[Unity 之 UGUI优化（Optimizing UGUI）---当最专业的拖拖拽拽 - 简书 (jianshu.com)](https://www.jianshu.com/p/9bd461de19a7)
+
+[在Shader中处理Atlas的uv以及一点小优化 - GT的博客 \| GT Blog (caogtaa.github.io)](https://caogtaa.github.io/2020/08/05/shader-remap-optimize/)
+
+[SLG《乱世王者》深度优化方案 \| indienova 独立游戏](https://indienova.com/indie-game-development/deep-optimization-of-luanshiwangzhe/)
+
+[【unity shader】基于UGUI字体的outline优化_一种ugui的outline描边优化方案-CSDN博客](https://blog.csdn.net/HelloCLanguage/article/details/105836309)
+
+[用Shader做UGUI字体描边的算法改进 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/503076993)
+
+[Unity UGUI 文字描边与渐变 - ZTianming - 博客园 (cnblogs.com)](https://www.cnblogs.com/ZTianming/p/15966034.html)
