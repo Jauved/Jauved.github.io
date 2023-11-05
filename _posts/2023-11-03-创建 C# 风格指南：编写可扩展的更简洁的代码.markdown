@@ -1,0 +1,1344 @@
+---
+layout: post
+title: "创建 C# 风格指南：编写可扩展的更简洁的代码"
+categories: [Unity, c#]
+tags: Unity 代码 风格
+math: true
+---
+
+# 创建 C# 风格指南：编写可扩展的更简洁的代码
+
+## 00 前言
+
+本文内容来自[创建 C# 风格指南：编写可扩展的更简洁的代码\| Unity](https://resources.unity.com/games/create-code-style-guide-e-book), c#的代码风格的设置建议.
+
+---
+
+---
+
+## 01 简介
+
+格式化 Unity C# 代码是否只有一种正确的方法？也许不是, 但就项目一致的代码风格达成一致可以使您的团队开发出干净、可读且可扩展的代码库. 
+
+这本电子书汇集了行业专家关于如何创建代码风格指南的建议. 为团队的每个成员建立一个遵循的指南将有助于确保您的代码库可以将您的项目发展到商业规模的生产.  
+
+下载[电子书](https://content.cdntwrk.com/files/aT0xNDc4MTU1JnY9MSZpc3N1ZU5hbWU9Y3JlYXRlLWEtYy1zdHlsZS1ndWlkZS13cml0ZS1jbGVhbmVyLWNvZGUtdGhhdC1zY2FsZXMmY21kPWQmc2lnPTU5NjljY2NjZmUwYWM3YjUzNTlmNjAyMGVmOGY5MmQ3)以获取基于行业最佳实践的提示, 包括： 
+
+- 命名约定
+- 格式化
+- 类
+- 方法
+- 注释
+
+从长远来看, 使用代码风格指南设置标准将有助于您的开发过程, 即使这会花费您预先付出额外的努力. 
+
+---
+
+---
+
+## 02 内容
+
+---
+
+### 引言
+
+创造力可能会带来混乱。 
+
+灵感一现，便迅速转化为飞扬的代码，进而催生出一个运行中的原型。成功！恭喜你跨过了第一个障碍。然而，仅仅让你的代码运行起来是不够的。 游戏开发还有很多工作要做.
+
+一旦您的(代码)逻辑正常运行, 那么重构和清理的过程就开始了.
+
+ 本指南汇集了行业专家关于如何创建代码风格的指南. 为团队的成员确立这样的指南将有助于确保您的代码库将您的项目发展为商业规模的产品.
+
+这些技巧和窍门将在长期内帮助你的开发过程, 即使它们最初需要你付出额外的努力. 一个更清晰、更可扩展的代码库也有助于在你扩大团队时高效地引入新的开发者. 保持代码整洁, 让你自己和项目中的每个人的生活都更加轻松. 
+
+"干净的代码"究竟是什么？
+
+大多数游戏开发者都会同意，干净的代码是指那些易于阅读和维护的代码。
+
+干净的代码是优雅的、高效的、可读的。
+
+这种一致性有其充分的理由。对你作为原作者来说可能显而易见的东西，对另一个开发者来说可能就不那么明显。同样地，当你现在实现某些逻辑时，三个月后你可能不会记得那段代码片段是做什么的。
+
+干净的代码旨在使开发更具可扩展性，并遵循一系列生产标准，包括：
+
+- 遵循一致的命名约定
+- 格式化你的代码以提高可读性
+- 组织类和方法，保持它们小巧和易读
+- 对任何不是自解释的代码进行注释
+
+无论你是在为移动设备构建一个益智游戏，还是针对游戏机开发一个庞大的MMORPG，保持你的代码库干净可以减少软件维护的总成本。然后，你可以更容易地实现新功能或修补现有软件。 你未来的团队成员——以及你未来的自己——都会感激这一点。
+
+---
+
+### 1. 团队开发(Developing as a team)
+
+>*"任何傻瓜都能写出计算机能理解的代码。*
+>*好的程序员写出人类能理解的代码。"*
+>*– Martin Fowler, author of Refactoring*
+
+没有哪个开发者是孤岛。随着你的游戏应用的技术需求增长，你将需要帮助。不可避免地，你将增加更多具有多样技能集的团队成员。干净的代码为你不断扩大的团队引入编码标准，以便每个人都在同一页面上。现在每个人都可以根据更统一的指导方针来共同开发同一个项目。
+
+在探讨如何创建风格指南之前，让我们先回顾一些通用规则，以帮助你扩展你的Unity开发。
+
+#### **KISS**(keep it simple, stupid)（保持简单，愚蠢）
+
+面对现实吧：工程师和开发者可能会使事情变得复杂，尽管计算和编程已经足够难了。使用[KISS原则](https://en.wikipedia.org/wiki/KISS_principle)——“保持简单，愚蠢”，作为寻找手头问题最简单解决方案的指南。
+
+如果一个经过验证且简单的技术可以解决你的挑战，就没有必要重新发明轮子。为什么仅仅为了使用它而使用一项花哨的新技术呢？Unity已经在其脚本API中包含了众多解决方案。例如，如果现有的[六边形Tilemap](https://docs.unity3d.com/Manual/Tilemap-Hexagonal.html?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)适用于你的策略游戏，就跳过编写你自己的Tilemap。**你能写的最好的代码就是根本不写代码**。
+
+>### **KISS原则**
+>
+>广为流传的KISS原则强调设计的简单性，这一理念在不同的时代都很流行，以下这些名言可以证明这一点：
+>
+> “简约是最终的复杂。”
+>-莱昂纳多·达·芬奇
+>
+>“让简单的任务保持简单！”
+>-比亚尼·斯特劳斯特鲁普
+>
+>“简单是可靠的前提。”
+>-艾兹格·W·迪杰斯特拉
+>
+>“一切都应该尽可能简单，但不要过于简单。”
+>-阿尔伯特·爱因斯坦
+>
+>在编程中，这意味着要尽可能保持代码的精简。 避免增加不必要的复杂性。
+>
+>#### **YAGNI原则**
+>
+>与KISS原则相关的[YAGNI原则](https://en.wikipedia.org/wiki/You_aren%27t_gonna_need_it)(“you aren’t gonna need it”)（“你不会需要它”）指导你只在需要时实现功能。不要花费心思去构建那些只有在未来某个特定时刻你可能需要的功能(因为功能在变, 即便是现在构建了, 但未来为了实现该功能仍旧会改动这部分代码, 译者注)。构建你现在需要的最简单的东西，并确保它能正常工作。
+
+#### 不要绕过问题编码(理解问题的本质而不是仅仅让代码运行)
+
+软件开发的第一步是理解你试图解决的问题。这个想法看起来像是常识，但开发者往往太过于沉迷于实现代码本身，而没有理解实际的问题，或者他们会不断修改代码直到它工作为止，却没有完全理解为什么。
+
+例如，如果你通过在方法顶部添加一个快速的if-null语句来修复一个Null Reference Exception，你确定那就是真正的罪魁祸首吗，还是问题出在更深层次的另一个方法的调用上？
+
+与其添加代码来修复问题，不如调查问题的根本原因。问问自己为什么会发生这种情况，而不是应用权宜之计.
+
+#### 每天逐步改进(持续的Review)
+
+编写干净的代码是一个不断发展的过程。让整个团队进入这种思维模式。期望代码清理成为开发者日常生活的一部分。
+大多数人并不打算写出有问题的代码。它只是随着时间的推移而逐渐演变成那样。你的代码库需要持续的维护和保养。为此预留时间，并确保这一切能够发生。
+
+#### 写出好的代码，而不是完美的代码
+
+另一方面，不要追求完美。当你的代码达到生产标准时，就是提交它并继续前进的时候了。
+
+最终你的代码需要完成某些功能。在实现新功能与代码清理之间找到平衡。不要仅仅为了重构而重构。当你认为它会给你或其他人带来好处时再重构。
+
+#### 计划，同时适应变化
+
+在《程序员修炼之道》中，Andy Hunt和Dave Thomas写道：“编程与其说是建筑，不如说更像是园艺。”软件工程是一个有机的过程。如果一切不按计划进行，要做好准备。
+
+即使你做了最详尽的图纸，纸上设计一个花园也不能保证结果。你的植物可能会与你预期的不同。你需要修剪、移植和替换代码的某些部分，才能使这个花园成功。
+
+软件设计并不完全像建筑师绘制蓝图那样，因为它更具可塑性，不那么机械化。随着代码库的增长，你需要做出反应。
+
+#### 保持一致性
+
+一旦你决定了如何解决问题，就应该以相同的方式处理类似的事情。这并不难，但需要持续的努力。将这个原则应用到从命名（类和方法、大小写等）到组织项目文件夹和资源的一切事物上。
+
+最重要的是，让你的团队就一个风格指南达成一致，然后遵循它。
+
+#### 养成习惯
+
+虽然保持代码干净和简单符合每个人的最佳利益，但“干净和简单”并不等同于“容易”。干净和简单需要努力，对于初学者和经验丰富的开发者来说都是艰苦的工作。
+
+如果放任不管，你的项目将变得混乱。这是许多人在项目的不同部分工作的自然后果。每个人都有责任参与进来，防止代码混乱，每个团队成员都需要阅读并遵循风格指南。清理是一个团队的努力。
+
+#### 为你和你的团队制定风格指南
+
+这份指南关注于你在Unity开发过程中最常遇到的编码约定。这些是微软框架设计指南的一个子集，它包括的规则远远超出了这里所呈现的。
+
+这些指南是建议，而不是硬性规则。根据你的团队的偏好来定制它们。选择一个适合所有人的风格，并确保他们应用它。
+
+一致性至关重要。如果你遵循这些建议，并且需要在将来修改你的风格指南，一些查找和替换操作可以快速迁移你的代码库。
+
+当你的风格指南与本文档或[微软框架设计指南](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/)发生冲突时，它应该优先于后两者，因为这将允许你的团队在整个项目中保持统一的风格。
+
+---
+
+### 2. 创建风格指南(Create a style guide)
+
+>计算机科学中只有两件难事：
+>缓存失效和命名。”
+>
+>-Phil Karlton，软件工程师
+
+你的应用程序是由可能彼此思考方式不同的个体共同创造的产品。风格指南有助于控制这些差异，以创造一个统一的最终产品。无论有多少贡献者参与Unity项目的工作，它都应该给人一种由单一作者开发的感觉。
+
+微软和谷歌都提供了全面的示例指南：
+- [微软C#编码约定](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions)
+- [谷歌C#风格指南](https://google.github.io/styleguide/csharp-style.html)
+
+这些都是管理Unity开发的绝佳起点。每个指南都为命名、格式化和注释提供了解决方案。如果你是一名独立开发者，起初这可能感觉像是一种限制，但在团队工作中遵循风格指南是至关重要的。
+
+将风格指南视为一项最初的投资，它将在以后带来回报。维护一套统一的标准可以减少如果你将某人转移到另一个项目时重新学习所花费的时间。
+
+风格指南消除了关于编码约定和格式化的猜测。一致的风格然后就变成了遵循指导方针的问题。
+
+我们创建了一个[示例C#风格表](https://github.com/thomasjacobsen-unity/Unity-Code-Style-Guide)，你也可以在组建自己的指南时将其作为参考。随意复制并根据需要调整它。
+
+让我们深入了解一下。
+
+#### **命名约定**
+
+给某物命名涉及深层心理学。一个名字告诉我们该实体如何适应世界。它是什么？它是谁？它能为我们做什么？
+
+你的变量、类和方法的名称不仅仅是标签。它们承载着重量和意义。良好的命名风格影响着阅读你的程序的人如何理解你试图传达的想法。
+
+以下是一些命名的指导原则。
+
+#### **标识符名称**
+
+[标识符](https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/identifier-names)是你分配给类型（类、接口、结构、委托或枚举）、成员、变量或命名空间的任何名称。标识符必须以**字母**或**下划线（_）**开头。
+
+避免在标识符中使用特殊字符（反斜杠、符号、Unicode字符），即使C#允许它们。这些可能会干扰某些Unity命令行工具。避免使用不寻常的字符以确保与大多数平台的兼容性。
+
+#### **大小写术语**
+
+>在C#中，你不能定义名称中带有空格的变量，因为C#使用空格字符来分隔标识符。大小写方案可以缓解在源代码中使用复合名称或短语的问题。有几种众所周知的命名和大小写约定。
+>
+>*驼峰式大小写*（Camel Case）
+>也被称为小驼峰式大小写，驼峰式大小写是一种写作习惯，不使用空格或标点符号，而是用一个大写字母来分隔单词。最初的字母是小写的。局部变量和方法参数使用驼峰式大小写。
+>例如： 
+>```examplePlayerController```
+>```maxHealthPoints endOfFile```
+>
+>帕斯卡式大小写（Pascal Case）
+>帕斯卡式大小写是驼峰式大小写的变体，其中初始字母大写。在Unity开发中用于**类**和**方法**名称。**公共字段**也可以使用帕斯卡式大小写。
+>例如：
+>```ExamplePlayerController```
+>```MaxHealthPoints EndOfFile```
+>
+>下划线大小写（Snake Case）
+>在这种情况下，单词之间的空格被下划线字符替代。
+>例如：
+>```example_player_controller```
+>```max_health_points end_of_file```
+>
+>短横线大小写（Kebab Case）
+>在这里，单词之间的空格被短横线替代。单词看起来像是串在一串短横线上。
+>例如：
+>```example-player-controller```
+>```max-health-points```
+>```end-of-file```
+>```naming-conventions-methodology```
+>短横线大小写（Kebab Case）的问题在于，许多编程语言将短横线用作减号。一些语言会将由短横线分隔的数字解释为日历日期。
+>
+>匈牙利命名法（Hungarian Notation）
+>变量或函数名称通常表明其意图或类型。
+>例如：
+>```int iCounter```
+>```string strPlayerName```
+>匈牙利命名法是一种较老的约定，在Unity开发中并不常见。
+
+
+
+#### 字段和变量(Fields and variables)
+
+考虑以下规则来命名你的变量和字段：
+
+- **使用名词命名变量**：变量名称必须是描述性的、清晰的和不含糊的，因为它们代表一个事物或状态。所以在命名它们时使用名词，除非变量的类型是布尔型（见下文）。
+
+- **布尔型变量前缀使用动词**：这些变量表示真或假的值。它们通常是一个问题的答案，例如 - 玩家是否在跑？游戏结束了吗？用一个动词作为前缀可以使它们的含义更明显。这通常与描述或条件配对，例如，```isDead```（是否死亡），```isWalking```（是否行走），```hasDamageMultiplier```（是否有伤害倍增器）等。
+
+- **使用有意义的名称，不要缩写（除非是数学相关）**：你的变量名称应该揭示它们的意图。选择容易发音和搜索的名称。
+  - 对于循环和数学表达式，单个字母变量是可以的，但在其他情况下，不要缩写。清晰性比节省几个元音字母的时间更重要。
+  - 在快速原型设计时，你可以使用短的“垃圾”名称，然后稍后重构为有意义的名称(前提是你要记得去重构)。
+
+| 反例                                                         | 使用                                                         | 备注                                                   |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | :----------------------------------------------------- |
+| ```int d```                                                  | ```int elapsedTimeInDays```                                  | 避免使用单字母缩写，除非是计数器或表达式。             |
+| ```int hp```,<br/>```string tName```,<br/>```int mvmtSpeed``` | ```int healthPoints```,<br/>```string teamName```,<br/>```int movementSpeed``` | 变量名称应揭示意图。命名要便于搜索和发音。             |
+| ```int getMovemementSpeed```                                 | ```int movementSpeed```                                      | 使用名词。保留动词用于方法，除非它是布尔型（见下文）。 |
+| ```bool dead```                                              | ```bool isDead```,<br/>```bool isPlayerDead```               | 布尔值提出一个可以用真或假回答的问题。                 |
+
+- **[使用帕斯卡式大小写](#大小写术语)命名公共字段**：对于私有变量，使用[驼峰式大小写](#大小写术语)。作为公共字段的另一种选择，使用带有公共获取器的属性（见下文[格式化](#格式化(Formatting))）。
+- **避免过多的前缀或特殊编码**：你可以在私有成员变量前加下划线（\_）以区分它们和局部变量。或者，在上下文中使用`this`关键字来区分成员变量和局部变量，并省略前缀。公共字段和属性通常没有前缀。一些风格指南对私有成员变量（m\_）、常量（k\_）或静态变量（s\_）使用前缀，这样可以一眼看出变量的更多信息。许多开发者不使用这些前缀，而是依赖编辑器。然而，并非所有的IDE都支持高亮和颜色编码，有些工具根本无法显示丰富的上下文。在决定如何（或是否）作为一个团队一起应用前缀时要考虑这一点。
+- **一致地指定（或省略）访问级别修饰符**：如果你省略了访问修饰符，编译器将假定访问级别为私有。这样做很好，但在省略默认访问修饰符时要保持一致。记住，如果你稍后想在子类中使用它，你需要使用`protected`。
+
+#### 示例代码片段
+
+本指南中的代码片段是非功能性的且简略的。它们在这里展示的是风格和格式。
+
+你也可以参考这个为Unity开发者准备的[示例C#风格表](https://github.com/thomasjacobsen-unity/Unity-Code-Style-Guide)，它基于[微软框架设计指南](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/)的修改版。这只是展示你如何为你的团队设置风格指南的一个例子。
+
+注意这些代码示例中的特定风格规则：
+- 默认的私有访问修饰符没有省略。
+- 公共成员变量使用帕斯卡式大小写。
+- 私有成员变量使用驼峰式大小写，并使用下划线（_）作为前缀。
+- 局部变量和参数使用驼峰式大小写，没有前缀。
+- 公共和私有成员变量被分组在一起。
+
+审查示例风格指南中的每条规则，并根据你的团队偏好进行定制。个别规则的具体内容不如大家一致同意并持续遵循它重要。当有疑问时，依靠你团队自己的指南来解决任何风格上的分歧。
+
+```c#
+// EXAMPLE: public and private variables
+public float DamageMultiplier = 1.5f;
+public float MaxHealth;
+public bool IsInvincible;
+private bool _isDead;
+private float _currentHealth;
+// parameters
+public void InflictDamage(float damage, bool isSpecialDamage)
+{
+    // local variable
+    int totalDamage = damage;
+    // local variable versus public member variable
+    if (isSpecialDamage)
+    {
+    	totalDamage *= DamageMultiplier;
+    }
+    // local variable versus private member variable
+    if (totalDamage > _currentHealth)
+    {
+    	/// ...
+    }
+}
+```
+
+- **每行声明一个变量**：这样做虽然不紧凑，但增强了可读性。
+- **避免冗余命名**：如果你的类叫`Player`，你不需要创建叫`PlayerScore`或`PlayerTarget`的成员变量。简化它们为`Score`或`Target`。
+- **避免笑话或双关语**：虽然它们现在可能会引起一笑，但是`infiniteMonkeys`或`dudeWheresMyChar`这样的变量在多次阅读后可能就不那么有趣了。
+- **如果有助于可读性并且类型明显，使用`var`关键字声明隐式类型的局部变量**：在你的风格指南中指定何时使用`var`。例如，许多开发者避免在变量类型不明显或在循环外使用原始类型时使用`var`。
+- 通常，在代码更易读时使用`var`（例如，对于长类型名称）并且类型不含糊。
+
+```c#
+// 例子: var用得好, 因为这里明显能够知道var代表什么.
+var powerUps = new List<PowerUps>();
+var dictionary = new Dictionary<string, List<GameObject>>();
+// 避免(反例)：潜在的歧义, 这里的var并不能告诉程序员这个powerUps的类型是什么.
+var powerUps = PowerUpManager.GetPowerUps();
+```
+
+
+
+#### 枚举（Enums）
+
+枚举是由一组命名常量定义的特殊值类型。默认情况下，这些常量是整数，从0开始计数。
+
+- 使用帕斯卡式大小写命名枚举的名称和值。
+- 你可以将公共枚举放置在类的外部，使它们成为全局可用。
+- 对于枚举名称，使用单数名词。
+
+> 注意：标有[`System.FlagsAttribute`](https://docs.microsoft.com/en-us/dotnet/api/system.flagsattribute?view=net-5.0)属性的位枚举是此规则的例外。通常会将这些枚举复数化，因为它们代表不止一种类型。
+
+```c#
+// 示例：枚举使用单数名词, 比如下方的WeaponType和FireMode
+public enum WeaponType
+{
+    Knife,
+    Gun,
+    RocketLauncher,
+    BFG
+}
+public enum FireMode
+{
+    None = 0,
+    Single = 5,
+    Burst = 7,
+    Auto = 8,
+}
+// 示例：但按位枚举(即可以多选的)是复数形式, 比如下方的AttackModes
+[Flags]
+public enum AttackModes
+{
+    // Decimal // Binary
+    None = 0, // 000000
+    Melee = 1, // 000001
+    Ranged = 2, // 000010
+    Special = 4, // 000100
+    MeleeAndSpecial = Melee | Special // 000101
+}
+```
+
+
+
+#### 类和接口(Classes and interfaces)
+
+在命名你的类和接口时，遵循以下标准规则：
+
+- **对类名使用帕斯卡式大小写名词**。
+- **如果文件中有一个`Monobehaviour`，源文件名必须匹配**：文件中可能有其他内部类，但每个文件中只应存在一个`Monobehaviour`。
+- **接口名称前缀使用大写字母`I`**：其后跟一个形容词来描述其功能。
+
+```c#
+// 示例：类格式
+public class ExampleClass : MonoBehaviour
+{
+    public int PublicField;
+    public static int MyStaticField;
+    private int _packagePrivate;
+    private int _myPrivate;
+    private static int _myPrivate;
+    protected int _myProtected;
+    public void DoSomething()
+    {
+    }
+}
+// 示例：接口
+public interface IKillable
+{
+	void Kill();
+}
+public interface IDamageable<T>
+{
+	void Damage(T damageTaken);
+}
+```
+
+
+
+#### 方法(Methods)
+
+在C#中，每个执行的指令都在方法的上下文中进行。
+
+> 注意：“函数”和“方法”在Unity开发中经常可以互换使用。然而，因为在C#中你不能写一个函数而不将其纳入一个类，所以一般来说在C#中我们统一称之为“方法”。
+>
+
+方法执行动作，因此按照以下规则命名它们：
+
+- **名称以动词开始**：必要时添加上下文，例如，`GetDirection`（获取方向），`FindTarget`（找到目标）等。
+
+- **对参数使用驼峰式大小写**：像局部变量一样格式化传递给方法的参数。
+
+- **返回布尔值的方法应该提问**：就像布尔变量本身一样，如果方法返回一个真-假条件，用一个动词作为前缀。这样将它们表述为一个问题，例如，`IsGameOver`（游戏是否结束），`HasStartedTurn`（轮次是否已开始）。
+
+  ```c#
+  // 示例: 通常的方法以动词开头
+  public void SetInitialPosition(float x, float y, float z)
+  {
+  	transform.position = new Vector3(x, y, z);
+  }
+  // 示例: 返回bool值的方法以提问的形式命名
+  public bool IsNewPosition(Vector3 currentPosition)
+  {
+  	return (transform.position == newPosition);
+  }
+  ```
+
+  
+
+#### 事件和事件处理(Events and event handlers)
+
+C#中的事件实现了[观察者模式](https://en.wikipedia.org/wiki/Observer_pattern)。这种软件设计模式定义了一种关系，其中一个对象，即主体（或发布者），可以通知一系列称为观察者（或订阅者）的依赖对象。因此，主体可以向其观察者广播状态变化，而不需要将对象紧密耦合。
+
+对于主体和观察者中的事件及其相关方法，存在几种命名方案。尝试以下实践：
+
+- **用动词短语命名事件**：选择一个能准确传达状态变化的名称。使用现在分词或过去分词来指示“之前”或“之后”的事件。例如，指定“OpeningDoor”作为打开门之前的事件，或者“DoorOpened”作为之后的事件。
+- **对事件使用`System.Action`委托**：在大多数情况下，`Action<T>`委托可以处理游戏玩法所需的事件。你可以传递从0到16个不同类型的输入参数，返回类型为void。使用预定义的委托可以节省代码。
+
+> 注意：你也可以使用`EventHandler`或`EventHandler<TEventArgs>`委托。团队成员之间应该达成一致，就如何实现事件达成共识。
+
+```c#
+// EXAMPLE: Events
+// using System.Action delegate
+public event Action OpeningDoor; // event before
+public event Action DoorOpened; // event after
+public event Action<int> PointsScored;
+public event Action<CustomEventArgs> ThingHappened;
+```
+
+- **用“On”前缀来修饰事件触发后调用的方法（在主体中）**：通常，调用事件的主体是从一个以“On”为前缀的方法中进行的，例如“OnOpeningDoor”（在打开门之前）或“OnDoorOpened”（门打开后）。这种命名约定清晰地表明了方法是在特定事件发生时被调用的。
+
+  ```c#
+  // 如果您有订阅者，则引发事件
+  public void OnDoorOpened()
+  {
+  	DoorOpened?.Invoke();
+  }
+  public void OnPointsScored(int points)
+  {
+  	PointsScored?.Invoke(points);
+  }
+  ```
+
+  
+
+- **用主体的名称和下划线（_）作为前缀来命名观察者中的事件处理方法**：如果主体被命名为“GameEvents”，那么你的观察者可以有一个叫做“GameEvents_OpeningDoor”或“GameEvents_DoorOpened”的方法。注意这被称为“事件处理方法”，不要与`EventHandler`委托混淆。
+
+- 为你的团队决定一个一致的命名方案，并在你的风格指南中实施这些规则。
+
+- **仅在必要时创建自定义的`EventArgs`**：如果你需要向你的事件传递自定义数据，创建一个新的`EventArgs`类型，可以是继承自[`System.EventArgs`](https://docs.microsoft.com/en-us/dotnet/api/system.eventargs?view=net-5.0)或来自自定义结构体。
+
+  ```c#
+  // 如果需要，定义一个 EventArgs
+  // 示例：只读的自定义结构，用于传递 ID 和 Color
+  public struct CustomEventArgs
+  {
+      public int ObjectID { get; }
+      public Color Color { get; }
+      public CustomEventArgs(int objectId, Color color)
+      {
+          this.ObjectID = objectId;
+          this.Color = color;
+      }
+  }
+  ```
+
+  
+
+#### 命名空间(Namespaces)
+
+使用命名空间可以确保你的类、接口、枚举等不会与其他命名空间或全局命名空间中现有的同名项冲突。命名空间还可以防止与Asset Store中的第三方资产发生冲突。
+
+应用命名空间时：
+
+- **使用帕斯卡式大小写**，不要使用特殊符号或下划线。
+
+- **在文件顶部添加`using`指令**，以避免重复键入命名空间前缀。
+
+- **创建子命名空间**。使用点（`.`）运算符来划分名称级别，允许你将脚本组织成层次化的类别。例如，你可以创建`MyApplication.GameFlow`、`MyApplication.AI`、`MyApplication.UI`等，以容纳游戏的不同逻辑组件。
+
+  ```c#
+  namespace Enemy
+  {
+      public class Controller1 : MonoBehaviour
+      {
+      	...
+      }
+      public class Controller2 : MonoBehaviour
+      {
+      	...
+      }
+  }
+  ```
+
+在代码中，这些类分别被引用为`Enemy.Controller1`和`Enemy.Controller2`。为了避免打出前缀，可以添加一个`using`行：
+
+```csharp
+using Enemy;
+```
+
+当编译器找到类名`Controller1`和`Controller2`时，它理解你指的是`Enemy.Controller1`和`Enemy.Controller2`。
+
+如果脚本需要引用来自不同命名空间的同名类，使用前缀来区分它们。例如，如果你在`Player`命名空间中也有一个`Controller1`和`Controller2`类，你可以写出`Player.Controller1`和`Player.Controller2`来避免任何冲突。
+
+否则，编译器将报告错误。
+
+---
+
+### 3. 格式化(Formatting)
+
+> "如果你想让你的代码易于编写，那就让它易于阅读。"
+> - 罗伯特·C·马丁（Robert C. Martin），《代码整洁之道》和《敏捷软件开发》的作者
+>
+> 这句话强调了代码可读性的重要性。代码的主要读者不是计算机，而是其他程序员，包括未来的你自己。因此，编写清晰、结构良好、易于理解的代码是非常重要的。这样做不仅可以减少维护成本，还可以提高团队协作的效率。
+
+在命名之外，格式化有助于减少猜测工作并提高代码清晰度。通过遵循标准化的风格指南，代码审查就不再是关于代码看起来如何，而是关于它做了什么。在构建风格指南时，个性化你的团队将如何格式化代码。在设置Unity开发风格指南时，考虑以下每一个代码格式化建议。根据团队的需求省略、扩展或修改这些示例规则。
+
+在所有情况下，考虑你的团队将如何实施每一个格式化规则，然后让每个人统一地应用它。在出现任何差异时，回顾团队的风格来解决它们。你越少考虑格式化，就越能在其他事情上工作。
+
+让我们来看看格式化指南。
+
+#### 属性（Properties）
+
+属性提供了一种灵活的机制来读取、写入或计算类值。属性的行为就像是公共成员变量，但实际上它们是称为[访问器(accessors)](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/using-properties)的特殊方法。每个属性都有一个get和set方法来访问一个私有字段，该私有字段也被称为称为[后备字段(backing field)](https://docs.microsoft.com/en-us/ef/core/modeling/backing-field?tabs=data-annotations)。
+
+通过这种方式，属性封装了数据，隐藏了它，防止用户或外部对象不希望的更改。getter和setter各有自己的访问修饰符，允许你的属性是可读写的、只读的或只写的。
+
+你还可以使用访问器来验证或转换数据（例如，验证数据是否符合你的首选格式或将值更改为特定单位）。
+
+属性的语法可以变化，因此你的风格指南应该定义如何格式化它们。使用这些提示来保持代码中属性的一致性：
+
+- **使用表达式主体属性对于单行只读属性（=>）**：这返回私有后备字段。
+
+  ```c#
+  // 示例：表达式主体属性
+  public class PlayerHealth
+  {
+      // 私有后备字段
+      private int maxHealth;
+      
+      // 只读，返回后备字段
+      public int MaxHealth => maxHealth;
+      
+      // 等同于：
+      // public int MaxHealth { get; private set; }
+  }
+  ```
+
+- **在其他情况下，使用传统的 `{ get; set; }` 语法**：如果你只是想公开一个公共属性而不指定后备字段，使用自动实现的属性（[Auto-Implemented Property](https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/auto-implemented-properties)）。
+  对于 set 和 get 访问器应用表达式主体语法。
+  如果你不想提供写入访问，请记得将 setter 设为私有。对于多行代码块，将结束大括号与开始大括号对齐。
+
+  ```c
+  // 示例：表达式主体属性
+  public class PlayerHealth
+  {
+      // 后备字段
+      [SerializeField]
+      private int _maxHealth;
+      
+      // 明确实现 getter 和 setter
+      public int MaxHealth
+      {
+          get => _maxHealth;
+          set => _maxHealth = value;
+      }
+      
+      // 只写（不使用后备字段）
+      public int Health { private get; set; }
+      
+      // 只写，没有显式的 setter
+      public void SetMaxHealth(int newMaxValue) => _maxHealth = newMaxValue;
+  }
+  ```
+
+  
+
+
+
+#### 序列化（Serialization）
+
+脚本序列化是将数据结构或对象状态自动转换为 Unity 可以存储并稍后重构的格式的过程。出于性能原因，Unity 处理序列化的方式与其他编程环境不同。
+
+序列化字段会显示在检视器（Inspector）中，但你不能序列化静态（static）、常量（constant）或只读（read-only）字段。序列化字段必须是公共的或者使用 `[SerializeField]` 属性标记过的。Unity 只序列化某些字段类型，因此请参考[文档页面](https://docs.unity3d.com/Manual/script-Serialization.html?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)以获取完整的序列化规则集。
+
+在处理序列化字段时，请遵守一些基本准则：
+
+- **使用 `[SerializeField]` 属性**：`[SerializeField]` 属性可以与私有(private)或受保护(protected)变量一起工作，使它们出现在检视器(Inspector)中。这比将变量标记为公共的更好地封装了数据，并防止外部对象覆盖其值。
+
+- 使用 `[Range]` 属性设置最小和最大值：如果你想限制用户可以分配给数值字段的内容，`[Range(min, max)]` 属性非常方便。它还将字段在检视器中方便地表示为滑块。
+
+  在可序列化的类或结构中分组数据以清理检视器：定义一个公共类或结构，并用 `[Serializable]` 属性标记它。为你想在检视器中公开的每种类型定义公共变量。
+
+  从另一个类引用这个可序列化的类。结果变量在检视器中出现在可折叠单元中。
+
+  ```csharp
+  // 示例：PlayerStats 的可序列化类
+  using System;
+  using UnityEngine;
+  
+  public class Player : MonoBehaviour
+  {
+      [Serializable]
+      public struct PlayerStats
+      {
+          public int MovementSpeed;
+          public int HitPoints;
+          public bool HasHealthPotion;
+      }
+  
+      // 示例：私有字段在检视器中可见
+      [SerializeField]
+      private PlayerStats _stats;
+  }
+  
+  // 可序列化的类或结构可以帮助组织检视器
+  ```
+
+  这个例子展示了如何使用 `[Serializable]` 属性和 `[SerializeField]` 属性来组织数据，使其在 Unity 的检视器中更加清晰和易于管理。通过这种方式，你可以将相关的数据组织在一起，使得在检视器中查看和编辑这些数据变得更加方便。
+
+  ![可序列化的类或结构可以帮助组织 Inspector](/assets/image/image-20231105165245279.png)
+
+
+
+#### 大括号或缩进风格(Brace or indentation style)
+
+在 C# 中有两种常见的缩进风格：
+
+- [Allman 风格](https://en.wikipedia.org/wiki/Indentation_style#Allman_style)将开放的大括号放在新的一行，也被称为 BSD 风格（来自 BSD Unix）。
+
+- [K&R 风格](https://en.wikipedia.org/wiki/Indentation_style#K&R_style)，或“唯一真正的大括号风格”，将开放的大括号保持在与前一个头部相同的行上。(建议采用此风格, 译者注)
+
+  ```c#
+  // 示例：Allman 或 BSD 风格将开放的大括号放在新的一行。
+  void DisplayMouseCursor(bool showMouse)
+  {
+      if (!showMouse)
+      {
+          Cursor.lockState = CursorLockMode.Locked;
+          Cursor.visible = false;
+      }
+      else
+      {
+          Cursor.lockState = CursorLockMode.None;
+          Cursor.visible = true;
+      }
+  }
+  
+  // 示例：K&R 风格将开放的大括号保持在前一个头部的同一行。
+  void DisplayMouseCursor(bool showMouse){
+      if (!showMouse) {
+          Cursor.lockState = CursorLockMode.Locked;
+          Cursor.visible = false;
+      }
+      else {
+          Cursor.lockState = CursorLockMode.None;
+          Cursor.visible = true;
+      }
+  }
+  ```
+
+  
+
+
+
+这些[缩进风格](https://en.wikipedia.org/wiki/Indentation_style)也有变体。本指南中的示例使用来自 [Microsoft Framework Design Guidelines](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/) 的 Allman 风格。无论你的团队选择哪一种，确保每个人都遵循相同的缩进和大括号风格。
+
+尝试以下提示：
+- **决定统一的缩进**：这通常是四个或两个空格。让你的团队中的每个人都同意在编辑器首选项中设置一个选项，而不引发关于[制表符与空格的争论](https://thenewstack.io/spaces-vs-tabs-a-20-year-debate-and-now-this-what-the-hell-is-wrong-with-go/)。注意，Visual Studio 提供了将制表符转换为空格的选项。
+
+- **即使对于单行语句，也尽可能不要省略大括号**：这增加了一致性，使您的代码更易于阅读和维护。在这个例子中，大括号清楚地将动作 `DoSomething` 与循环分开。
+
+  如果稍后您需要添加一个调试行或运行 `DoSomethingElse`，大括号已经就位。将子句保持在单独的行上，可以让您轻松地添加断点。
+
+  ```csharp
+  // 示例：为了清楚起见，请保留大括号...
+  for (int i = 0; i < 100; i++) { DoSomething(i); }
+  // ... 同时/或者将子句保持在单独的一行上。
+  for (int i = 0; i < 100; i++)
+  {
+  	DoSomething(i);
+  }
+  // 避免: 省略大括号
+  for (int i = 0; i < 100; i++) DoSomething(i);
+  ```
+
+  - **不要从嵌套的多行语句中移除大括号**：在这种情况下，即使不会引发错误，移除大括号也可能会导致混淆。即使它们是可选的，也应该为了清晰而使用大括号。
+
+  ```csharp
+  // EXAMPLE: keep braces for clarity
+  for (int i = 0; i < 10; i++)
+  {
+      for (int j = 0; j < 10; j++)
+      {
+      	ExampleAction();
+      }
+  }
+  // AVOID: removing braces from nested multi-line statements
+  for (int i = 0; i < 10; i++)
+  	for (int j = 0; j < 10; j++)
+  		ExampleAction();
+  ```
+
+  - **规范化你的 switch 语句**：格式化可能会有所不同，因此在你的风格指南中记录你的团队偏好。这里有一个例子，其中对 case 语句进行了缩进。
+
+  ```csharp
+  // 示例：switch 语句缩进
+  switch (someExpression)
+  {
+      case 0:
+          DoSomething();
+          break;
+      case 1:
+          DoSomethingElse();
+          break;
+      case 2:
+          int n = 1;
+          DoAnotherThing(n);
+      	break;
+  }
+  ```
+
+  
+
+#### EditorConfig是什么？
+
+如果你有多个开发者在同一个项目上使用不同的编辑器和IDE，可以考虑使用[EditorConfig](https://docs.microsoft.com/en-us/visualstudio/ide/create-portable-custom-editor-options?view=vs-2019)文件。
+
+EditorConfig文件可以帮助你定义一个全团队通用的编码风格。许多IDE，如Visual Studio和Rider，内置了对EditorConfig的支持，不需要安装额外的插件。
+
+[EditorConfig](https://editorconfig.org/)文件易于阅读，并且可以与版本控制系统一起工作。你可以在[这里](https://editorconfig.org/#example-file)看到一个[示例文件](https://editorconfig.org/#example-file)。EditorConfig中的代码风格可以随你的代码一起传播，并且即使在Visual Studio之外也能强制执行编码风格。
+
+EditorConfig设置优先于全局Visual Studio文本编辑器设置。当你在没有```.editorconfig```文件的代码库中工作，或者当```.editorconfig```文件不覆盖某个特定设置时，你的个人编辑器偏好仍然适用。查看GitHub仓库以获取一些现实世界中的[样本](https://github.com/editorconfig/editorconfig/wiki/Projects-Using-EditorConfig)。
+
+#### 水平间距
+
+像间距这样简单的东西可以增强你的代码在屏幕上的外观。你的个人格式偏好可能会有所不同，但尝试以下建议以提高可读性：
+
+- 添加空格以减少代码密度：额外的空白可以在行的各个部分之间提供视觉上的分隔。
+
+  ```c#
+  // 示例：添加空格使行更易于阅读
+  for (int i = 0; i < 100; i++) { DoSomething(i); }
+  // 避免：没有空格
+  for(inti=0;i<100;i++){DoSomething(i);}
+  ```
+
+- **在函数参数之间的逗号后使用单个空格**。
+
+  ```c#
+  // 示例：参数之间逗号后的单个空格
+  CollectItem(myObject, 0, 1);
+  // 避免：
+  CollectItem(myObject,0,1);
+  ```
+
+- **不要在括号和函数参数之后添加空格**。
+
+  ```c#
+  // 示例：在括号和函数参数之后不加空格
+  DropPowerUp(myPrefab, 0, 1);
+  // 避免：
+  DropPowerUp( myPrefab, 0, 1 );
+  ```
+
+  
+
+- **不要在函数名称和括号之间使用空格**。
+
+  ```c#
+  // 示例：在函数名称和括号之间省略空格。
+  DoSomething()
+  // 避免
+  DoSomething ()
+  ```
+
+  
+
+- **避免在方括号内使用空格**。
+
+  ```c#
+  // 示例：在方括号内省略空格
+  x = dataArray[index];
+  // 避免
+  x = dataArray[ index ];
+  ```
+
+  
+
+- **在流控制条件之前使用单个空格：在流比较操作符和括号之间添加空格**。
+
+  ```c#
+  // 示例：条件前有空格；括号之间有空格。
+  while (x == y)
+  // 避免
+  while(x==y)
+  ```
+
+  
+
+- **在比较操作符之前和之后使用单个空格**。
+
+  ```c#
+  // 示例：条件前有空格；括号之间有空格。
+  if (x == y)
+  // 避免
+  if (x==y)
+  ```
+
+  
+
+- **保持行短。考虑水平空白**：确定一个标准行宽（80-120个字符）。将长行分解为较小的语句，而不是让它溢出。
+
+- **保持缩进/层次结构**：缩进你的代码以提高可读性。
+
+- **除非出于可读性考虑，否则不要使用列对齐**：这种类型的间距对齐变量，但可能会使得将类型与名称配对变得困难。然而，对于位运算表达式或数据量大的结构体，列对齐可能是有用的。只是要意识到，随着你添加更多项目，维护列对齐可能会给你带来更多工作。一些自动格式化工具也可能改变哪部分列进行对齐。
+
+  ```c#
+  // 示例：类型和名称之间有一个空格
+  public float Speed = 12f;
+  public float Gravity = -10f;
+  public float JumpHeight = 2f;
+  public Transform GroundCheck;
+  public float GroundDistance = 0.4f;
+  public LayerMask GroundMask;
+  
+  // 避免：列对齐
+  public float 		Speed = 12f;
+  public float 		Gravity = -10f;
+  public float 		JumpHeight = 2f;
+  public 		        Transform GroundCheck;
+  public float 	    GroundDistance = 0.4f;
+  public LayerMask 	GroundMask;
+  ```
+
+  
+
+#### 垂直间距
+
+你也可以利用垂直间距。将脚本的相关部分保持在一起，并利用空白行。尝试以下建议来从上到下组织你的代码：
+
+- **将依赖和/或相似的方法组合在一起**：代码需要逻辑和连贯。将做相同事情的方法放在一起，这样阅读你的逻辑的人就不必在文件中跳来跳去。
+- **利用垂直空白来分隔你的类的不同部分**：例如，你可以在以下部分之间添加两个空行：
+  - 变量声明和方法
+  - 类和接口
+  - if-then-else块（如果有助于可读性）
+  尽量保持最小化，并在你的风格指南中适当注明。
+
+#### 域(Regions)
+
+`#region` 指令允许你在C#文件中折叠和隐藏代码段，使得大型文件更易于管理和阅读。
+
+然而，如果你遵循本指南中关于类的一般建议，你的类大小应该是可管理的，`#region` 指令就显得多余了。相比于使用区域隐藏代码块，不如将代码分解成更小的类。如果源文件较短，你就不太可能倾向于添加区域。
+
+> 注意：许多开发者认为区域是代码异味或反模式。作为一个团队，决定你们站在这个辩论的哪一边。
+
+---
+
+### 4. 类(Classes)
+
+> 在计算机的简短历史中，从来没有人写过一段完美的软件。你不太可能成为第一个。”
+>
+> -安迪·亨特，《实用程序员》(The Pragmatic Programmer) 作者
+
+根据罗伯特·C·马丁在《代码整洁之道》中的观点，类的第一条规则是它们应该小，第二条规则是它们应该比你想象的还要小。限制每个类的大小使其更加专注和内聚。很容易不断地在现有类的基础上添加功能，直到它功能过多。相反，应该有意识地保持类的简短。庞大、臃肿的类变得难以阅读和排错。
+
+#### 报纸隐喻
+
+想象一个类的源代码就像一篇新闻文章。你从顶部开始阅读，标题和作者名引起你的注意。引言段落给你一个大致的概要，然后随着你继续向下阅读，你会获得更多细节。记者们称这为倒金字塔结构。最重要的新闻内容出现在开头。你只有在阅读到最后才会得到故事的细微差别。
+
+你的类也应该遵循这个基本模式。自上而下组织，并将你的函数视为形成一个层次结构。一些方法服务于更高级别并为整体情况奠定基础。首先放置这些方法，然后，将实现细节的低级函数放在后面。
+
+例如，你可能会创建一个名为ThrowBall的方法，它引用了其他方法，如SetInitialVelocity和CalculateTrajectory。首先保持ThrowBall，因为它描述了主要动作。然后，将支持方法添加到它下面。
+
+尽管每篇新闻文章都很短，但一份报纸或新闻网站会有许多这样的故事集合。当这些文章结合在一起时，它们构成了一个统一的、功能完整的整体。以同样的方式思考你的Unity项目。它有许多类必须结合在一起，形成一个更大的、但仍然是连贯的应用程序。
+
+#### 类组织
+
+每个类都需要一些标准化。将类成员分组到不同的部分以组织它们：
+
+- 字段
+- 属性
+- 事件/委托
+- Monobehaviour方法（Awake, Start, OnEnable, OnDisable, OnDestroy等）
+- 公共方法
+- 私有方法
+
+回想一下Unity中推荐的类命名规则：源文件名必须与文件中的Monobehaviour名称匹配。文件中可能有其他内部类，但每个文件中只应存在一个Monobehaviour。
+
+#### 单一职责原则
+
+记住目标是保持每个类的简短。在软件设计中，[单一职责原则](https://en.wikipedia.org/wiki/Single-responsibility_principle)引导你朝着简单化方向发展。
+
+这个原则的思想是每个模块、类或函数负责一件事情。假设你想构建一个乒乓球游戏。你可能会从球拍、球和墙的类开始。
+
+![image-20231105192907682](/assets/image/image-20231105192907682.png)
+
+例如，一个Paddle类可能需要：
+- 存储关于它能移动多快的基本数据
+- 检查键盘输入
+- 响应移动球拍
+- 当与球碰撞时播放声音
+
+因为游戏设计很简单，你可以将所有这些功能合并到一个基本的Paddle类中。实际上，完全有可能创建一个Monobehaviour，它做你需要的一切。
+
+![image-20231105192927945](/assets/image/image-20231105192927945.png)
+
+然而，将所有内容保留为一个类，即使是一个"小"类，会通过混合职责来复杂化设计。数据与输入交织在一起，而类需要对两者应用逻辑。与KISS原则相反，你已经将一些简单的事情纠缠在一起。
+
+相反，将你的Paddle类分解为多个单一职责的小类。将数据分离到它自己的PaddleData类中，或使用[ScriptableObject](https://docs.unity3d.com/Manual/class-ScriptableObject.html?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)。然后将其他所有内容重构到PaddleInput类、PaddleMovement类和PaddleAudio类中。
+
+PaddleLogic类可以处理来自PaddleInput的输入。应用来自PaddleData的速度信息，它可以使用PaddleMovement移动球拍。最后，PaddleLogic可以通知PaddleAudio在球与球拍碰撞时播放声音。
+
+![image-20231105202243910](/assets/image/image-20231105202243910.png)
+
+在这次重新设计中，每个类都做一件事，并且适合于小的、易于消化的部分。你不需要滚动几个屏幕来跟随代码。
+
+你仍然需要一个Paddle脚本，但它的唯一工作是将这些其他类绑定在一起。大部分功能分散到其他类中。
+
+请注意，干净的代码并不总是最紧凑的代码。即使你使用更短的类，重构过程中总的代码行数可能会增加。然而，每个单独的类都变得更容易阅读。当需要调试或添加新功能时，这种简化的结构有助于保持一切井井有条。
+
+#### 重构示例
+
+要更深入地了解重构一个简单项目，请参阅[如何在项目扩展时架构代码](https://unity.com/how-to/how-architect-code-your-project-scales?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)。这篇文章展示了如何使用单一职责原则将较大的Monobehaviours分解成更小的部分。
+
+你也可以观看Mikael Kalms在Unite Berlin的原始演讲，“[从乒乓球到15人项目](https://www.youtube.com/watch?v=1le4vScG3gk?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)”。
+
+将一个Paddle类重构为单一职责。
+
+---
+
+### 5. 方法(Methods)
+
+> “当你阅读代码时，如果每个函数或方法的行为都符合你的预期，那么你就知道你正在处理的是清晰、整洁的代码。”
+> —— Ward Cunningham，Wiki的发明者和极限编程的共同创始人。
+
+像类一样，方法应该小而单一职责。每个方法应该描述一个动作或回答一个问题，不应该两者都做。
+
+一个好的方法名称反映了它的作用。例如，GetDistanceToTarget 是一个明确其预期目的的名称。
+
+当你为你的自定义类创建方法时，尝试以下建议：
+
+- **使用更少的参数**：参数可以增加方法的复杂性。减少它们的数量，使你的方法更易于阅读和测试。
+- **避免过度重载**：你可以生成无尽的方法重载排列。选择几个反映你将如何调用方法的重载并实现它们。如果你确实重载了一个方法，通过确保每个方法签名具有不同数量的参数来防止混淆。
+- **避免副作用**：一个方法只需要做它的名称所宣传的事情。避免修改其作用域之外的任何东西。尽可能通过值传递参数，而不是通过引用。如果通过 out 或 ref 关键字发送回结果，请确保这是你打算该方法要完成的唯一事情。
+  尽管副作用对某些任务有用，它们可能导致意外后果。编写没有副作用的方法，以减少意外行为。
+- **不要传入一个标志来设置你的方法基于标志的两种不同模式工作。创建两个具有不同名称的方法**：例如，不要制作一个基于标志设置返回度数或弧度的 GetAngle 方法。相反，制作 GetAngleInDegrees 和 GetAngleInRadians 的方法。
+
+虽然布尔标志作为参数看起来无害，但它可能导致[实现混乱](https://martinfowler.com/bliki/FlagArgument.html)或破坏单一职责原则。
+
+#### 扩展方法
+
+[扩展方法](https://learn.unity.com/tutorial/extension-methods?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)提供了一种向可能否则是封闭的类添加额外功能的方法，并且可以是扩展 UnityEngine API 的一种干净方式。要创建一个扩展方法，制作一个静态方法并在第一个参数之前使用 this 关键字，该参数将是你想要扩展的类型。
+
+例如，假设你想制作一个名为 ResetTransformation 的方法，以移除 GameObject 的任何缩放、旋转或平移。
+
+你可以创建一个静态方法，将 Transform 作为第一个参数，并使用 this 关键字：
+
+```csharp
+public static class TransformExtensions
+{
+    public static void ResetTransformation(this Transform transform)
+    {
+        transform.position = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+        transform.localScale = Vector3.one;
+    }
+}
+```
+
+然后，当你想使用它时，调用 ResetTransformation 方法。ResetOnStart 类在 Start 期间对当前 Transform 调用它。
+
+```csharp
+// 示例：调用扩展方法
+public class ResetOnStart : MonoBehaviour
+{
+    void Start()
+    {
+        transform.ResetTransformation();
+    }
+}
+```
+
+
+
+出于组织代码的目的，可以将你的扩展方法定义在一个静态类中。例如，你创建一个名为 TransformExtensions 的类，用于扩展 Transforms，Vector3Extensions 用于扩展 Vector3s 等等。
+
+扩展方法可以构建许多有用的工具，而不需要创建更多的 Monobehaviours。请参阅 [Unity Learn: Extension Methods](https://learn.unity.com/tutorial/extension-methods?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)，将它们添加到你的游戏开发技巧包中。
+
+DRY原则: 不要重复你自己(Don't repeat yourself)
+
+在《The Pragmatic Programmer》中，Andy Hunt 和 Dave Thomas 提出了 DRY 原则，即“不要重复自己”（Don't Repeat Yourself）。这个在软件工程中经常被提及的格言建议程序员避免重复或重复的逻辑。这样做可以减轻修复错误和维护成本。如果你遵循单一责任原则，每当你修改一个类或方法时，你不应该需要改变一个不相关的代码部分。在一个遵循 DRY 原则的程序中解决一个逻辑错误可以一劳永逸地解决它。
+
+DRY 的对立面是 WET（“我们喜欢打字”或“全都写两次”("we enjoy typing” or “write everything twice”)）。当代码中存在不必要的重复时，编程就是 WET 的。想象一下，有两个 ParticleSystems（explosionA 和 explosionB）和两个 AudioClips（soundA 和 soundB）。每个 ParticleSystem 需要与其各自的声音一起播放，你可以通过像这样的简单方法来实现：
+
+```csharp
+// 示例：全都写两次(write everything twice)
+private void PlayExplosionA(Vector3 hitPosition)
+{
+    explosionA.transform.position = hitPosition;
+    explosionA.Stop();
+    explosionA.Play();
+    AudioSource.PlayClipAtPoint(soundA, hitPosition);
+}
+
+private void PlayExplosionB(Vector3 hitPosition)
+{
+    explosionB.transform.position = hitPosition;
+    explosionB.Stop();
+    explosionB.Play();
+    AudioSource.PlayClipAtPoint(soundB, hitPosition);
+}
+```
+
+
+
+这里，每个方法都接受一个 Vector3 位置来移动 ParticleSystem 以便播放。首先，停止粒子（以防它们已经在播放），然后播放模拟。然后 AudioSource 的静态 PlayClipAtPoint 方法在同一位置创建一个声音效果。
+
+一个方法是另一个的剪切和粘贴版本，只是稍微替换了一些文本。虽然这样做是可行的，但每次你想要创建一个爆炸效果时，你都需要制作一个新方法——带有重复的逻辑。
+
+为了遵循 DRY 原则，你可以重构这些方法，将重复的逻辑提取到一个单独的方法中，然后传入不同的 ParticleSystem 和 AudioClip 作为参数。这样，你就可以避免重复代码，并且在需要修改逻辑时，只需要在一个地方进行更改。
+
+与之前的做法不同，通过将重复的代码重构为一个单一的方法，你可以遵循 DRY 原则，这样可以减少重复，简化维护，并提高代码的可读性。在这个例子中，`PlayFXWithSound` 方法接受一个 `ParticleSystem` 对象、一个 `AudioClip` 对象和一个 `Vector3` 位置作为参数，然后执行之前在 `PlayExplosionA` 和 `PlayExplosionB` 方法中重复的相同操作。
+
+这是重构后的方法示例：
+
+```csharp
+// 示例：重构后
+private void PlayFXWithSound(ParticleSystem particle, AudioClip clip, Vector3 hitPosition)
+{
+    particle.transform.position = hitPosition;
+    particle.Stop();
+    particle.Play();
+    AudioSource.PlayClipAtPoint(clip, hitPosition);
+}
+```
+
+现在，如果你有更多的 `ParticleSystem` 和 `AudioClip` 对象，你可以继续使用这个相同的方法来一起播放它们。这种方法的一个关键优势是，如果将来需要修改播放特效和声音的逻辑，你只需要在一个地方进行更改，而不是在每个单独的方法中都进行更改。这样做不仅节省了时间，而且减少了出错的可能性，因为你只需要关注一个方法的逻辑。
+
+---
+
+### 6. 注释(Comments)
+
+> 代码就像幽默。如果你必须解释它，那就糟糕了。
+> -Cory House，软件架构师和作家
+
+过多或无谓的注释可能会产生相反的效果。像所有事情一样，在使用注释时要找到平衡。
+
+如果你遵循KISS原则并将代码分解成容易理解的逻辑部分，大多数代码不需要注释。命名良好的变量和函数本身就是自解释的。
+
+与其回答“是什么”，有用的注释应该填补空白，告诉你“**为什么**”。你是否做出了一些不立即显而易见的特定决策？是否有需要澄清的棘手逻辑？有用的注释揭示了代码本身无法提供的信息。
+
+以下是一些关于注释的注意事项和禁忌：
+
+- **不要添加注释来替代糟糕的代码**：如果你需要添加注释来解释复杂的逻辑混乱，那么应该重构你的代码使其更明显。然后你就不需要那个注释了。
+
+- **适当命名的类、变量或方法可以代替注释**：如果代码是不是自解释的？那么通过命名减少不确定的信息并删掉注释。
+
+  ```csharp
+  // 避免：嘈杂、多余的注释
+  // 要射击的目标
+  Transform targetToShoot;
+  ```
+
+- **尽可能将注释放在单独的行上，而不是在代码行的末尾**：在大多数情况下，为了清晰起见，将每个注释保持在其自己的行上。
+
+- **在大多数情况下使用双斜线（//）注释标记**：将注释保持在它所解释的代码附近，而不是使用大的多行注释放在开头。将其保持在近处有助于读者将解释与逻辑联系起来。
+
+- **使用工具提示而不是注释来解释序列化字段**：如果你的字段在检视器中需要解释，添加一个工具提示属性并跳过单独的注释。工具提示将起到双重作用(即解释方便了使用工具的人, 同时也让你去掉了不必要的注释)。
+
+  ![image-20231105205826933](/assets/image/image-20231105205826933.png)
+
+  - 你也可以在公共方法或函数前使用summary [XML标签](https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/xmldoc/recommended-tags#summary)：Visual Studio可以为许多常见的XML风格的注释提供IntelliSense(智能提示)。
+
+    ```csharp
+    // 示例：
+    // 这是一个常见的注释。
+    // 使用它们来显示意图、逻辑流程和方法。
+    
+    // 你也可以使用summary XML标签。
+    //
+    /// <summary>
+    /// 开火
+    /// </summary>
+    public void Fire()
+    {
+    	...
+    }
+    ```
+
+  - **在注释分隔符（//）和注释文本之间插入一个空格**。
+
+  - **添加法律声明**：注释适用于许可或版权信息。然而，避免在代码中插入完整的法律简报，而是链接到一个包含完整法律信息的外部页面。
+
+  - **格式化你的注释**：为你的注释保持统一的外观，例如，每个注释以大写字母开头并以句号结束。无论你的团队决定什么，都将其作为风格指南的一部分并遵循它。
+
+  - **不要在注释周围创建由星号或特殊字符组成的格式化块**：这会降低可读性，并增加代码杂乱的普遍问题。
+
+  - **移除已注释的代码**：虽然在测试和开发期间注释掉语句可能是正常的，但不要留下已注释的代码。依赖你的源代码控制(比如Git)，然后勇敢地删除那两行代码。
+
+  - **保持你的TODO注释为最新**：当你完成任务时，确保清理你留下的TODO注释作为提醒。过时的注释是分心的来源。
+    你可以为TODO添加名字和日期，以获得更多的责任感和上下文。
+    同时，现实点吧。那个你五年前留在代码中的TODO？你永远不会去做它。记住YAGNI（你不会用到它），直到你需要实施它之前，删除TODO注释。
+
+  - **避免日志型注释**：注释不是你的开发日记的地方。当你开始一个新类时，没有必要在注释中记录你正在做的每件事。正确使用源代码控制使这变得多余。
+
+  - **避免归属型注释**：你不需要"add bylines"(那个谁谁谁添加的)，例如，```// 由devA或devB添加```，特别是如果你使用源代码控制(比如Git)。
+
+---
+
+### 7. 常见的坑(Common pitfalls)
+
+> “如果调试是移除软件错误的过程，那么编程一定是把它们放进去的过程。”
+>
+> -Edsger W. Dijkstra，计算机科学先驱
+
+代码的整洁不是偶然的。它是个体有意识地像团队一样思考和编码的结果。
+
+当然，并非一切都会按计划进行。无论你多么努力，不整洁的代码不可避免地会发生。你需要时刻寻找它们。
+
+[代码异味](https://en.wikipedia.org/wiki/Code_smell)是你可能在项目中潜藏着麻烦代码的明显迹象。尽管以下症状不一定指向潜在问题，但当它们出现时值得调查：
+
+- **神秘的命名**：每个人都喜欢一个好的谜团，除了在他们的编码标准中。**类、方法和变量需要直截了当、不含糊的名称**。
+- **不必要的复杂性**：当你试图预测一个类的每一个可能需求时，过度工程化就会发生。这可能表现为一个有着长方法或试图做太多事情的大型类，即所谓的“上帝对象”。将大型类分解为较小的专用部分，每个部分都有自己的责任。
+- **缺乏灵活性**：一个小的更改不应该要求你在其他地方进行多次更改。如果是这种情况，请仔细检查你是否没有打破单一责任原则。
+- **脆弱性**：如果你做了一个小改动，而一切都停止工作，这通常表明存在问题。
+- **不可移植性**：你经常会编写在不同上下文中可重用的代码。如果在其他地方部署它需要许多依赖，那么就需要解耦逻辑的工作方式。
+- **重复的代码**：如果很明显你已经复制和粘贴了代码，那么就是时候重构了。将核心逻辑提取到它自己的函数中，并从其他函数中调用它。复制和粘贴的代码难以维护，因为每次更改时你需要在多个位置更新逻辑。
+- **过多的注释**：注释可以帮助解释不直观的代码。然而，开发者可能会过度使用它们。对每个变量或语句的连续评论是不必要的。记住，最好的注释是一个命名良好的方法或类。如果你将逻辑分解成更小的部分，较短的代码片段需要较少的解释。
+
+---
+
+### 8. 结论(Conclusion)
+
+> “编程不是零和游戏(*（Zero-sum game）是一个经济学和博弈论中的术语，指的是一个情况，其中一个参与者的收益或损失与其他参与者的损失或收益完全相对应，总和为零*)。教给同行程序员的东西，并不会从你这里拿走。”
+> -约翰·卡马克，id Software的联合创始人
+
+在编程或任何协作的环境中，将知识分享给他人通常不是**零和游戏**，因为通过分享和合作，整个团队或社区都能获得收益，而不是仅仅在个人之间重新分配已有的收益。这种情况下，知识的分享可以创造更多的价值，而不是简单地从一个人转移到另一个人。
+
+本章节文本是对清晰编码原则的一个简单介绍的总结。它强调了清晰编码技术更多是一系列习惯而不是一套固定的规则，并鼓励读者通过日常实践来掌握这些习惯。文本提到，读者可以复制这份为Unity开发者准备的C#风格指南，作为自己指南的起点。
+
+它建议开发者准备好可扩展的代码，通过将代码分解成小的、模块化的部分。开发过程是一场马拉松，随着需求的变化，代码需要不断重写。幸运的是，开发者不是独自一人在进行这个过程。
+
+当作为一个团队编码时，游戏开发变得不那么像一场长跑，更像是接力赛。你有团队成员可以分担工作量，共同完成整个过程。文本提醒读者保持在自己的领域内，并且与团队成员协作，共同达到终点。
+
+如果需要帮助清理代码，可以联系Unity的专业服务团队，Accelerate Solutions。这个团队由Unity最资深的软件开发人员组成，专门从事性能优化、开发加速、游戏规划、创新等服务，并为各种规模的游戏工作室提供定制的咨询和开发解决方案。
+
+Accelerate Solutions提供的一项服务是CAP（代码、资产和性能），这是一个为期两周的咨询服务，从深入分析代码和资产开始，以发现性能问题的根本原因，并提供一个具有最佳实践建议的可操作和详细报告。要了解更多关于Unity Accelerate Solutions提供的服务，可以[今天就联系Unity代表](https://create.unity3d.com/web-accelerate-solutions-games?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)。
+
+#### 引用(References)
+
+最后，文本提供了一些参考资料，包括[微软框架设计指南](https://docs.microsoft.com/en-us/dotnet/standard/design-guidelines/)，以及一些关于清晰代码的书籍推荐，以供进一步学习和提高理解：
+
+- 《Clean Code: A Handbook of Agile Software Craftsmanship》, Robert C. Martin, 2008, Prentice Hall, ISBN 978-0132350884
+- 《The Pragmatic Programmer, 20th Anniversary Edition》, David Thomas and Andrew Hunt, 2019, Addison Wesley, ISBN 978-0135957059
+
+---
+
+### 9. 附录：脚本模板(Appendix: Script Templates)
+
+> “别说些没用的，给我看(你的)代码。”
+> -Linus Torvalds，Linux和Git的创造者
+
+当您为样式指南确定了格式规则后，您可以配置脚本模板。这些模板为各种脚本化资产生成初始空白文件，如C#脚本、着色器或材料。
+
+对于Windows用户，您可以在以下路径找到Unity的预配置脚本模板：
+
+```
+C:\Program Files\Unity\Editor\Data\Resources\ScriptTemplates
+```
+
+对于Mac用户，路径略有不同：
+
+```
+/Applications/Unity/Unity.app/Contents/Resources/ScriptTemplates
+```
+
+在Mac上，您需要揭示Unity应用程序包内容以访问Resources子目录。
+
+在这个目录中，您会找到默认模板，例如：
+
+- 81-C# Script-NewBehaviourScript.cs.txt
+- 82-Javascript-NewBehaviourScript.js.txt
+- 83-Shader__Standard Surface Shader-NewSurfaceShader.shader.txt
+- 84-Shader__Unlit Shader-NewUnlitShader.shader.txt
+
+当您使用创建菜单在项目窗口中创建一个新的脚本化资产时，Unity会使用这些模板之一。
+
+如果您用文本编辑器打开名为`81-C# Script-NewBehaviourScript.cs.txt`的文件，它通常包含以下结构：
+
+```csharp
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class #SCRIPTNAME# : MonoBehaviour
+{
+    // Start is called before the first frame update
+    void Start()
+    {
+        #NOTRIM#
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        #NOTRIM#
+    }
+}
+```
+
+请注意以下关键词：
+
+- `#SCRIPTNAME#`：是一个占位符，Unity在创建脚本时会用您给脚本的名称替换它。如果您不自定义名称，它将使用默认名称，例如`NewBehaviourScript`。
+- `#NOTRIM#`：`#NOTRIM#`是一个指令，告诉Unity在创建新脚本文件时不要修剪方法体内的任何空白，比如确保在大括号之间出现一行。
+
+脚本模板是可定制的。例如，您可以添加一个命名空间或移除默认的Update方法。修改模板可以在您每次创建这些脚本化资产时节省一些敲击键盘的时间。
+
+脚本模板文件名遵循以下模式：
+`PriorityNumber–MenuPath–DefaultName.FileExtension.txt`
+不同部分之间用破折号（-）字符分隔：
+
+- `PriorityNumber` 是脚本在创建菜单中出现的顺序，数字越小优先级越高。
+- `MenuPath` 允许您自定义文件在创建菜单中的显示方式。您可以使用双下划线（__）创建类别。
+  - 例如，“CustomScript__Misc__ScriptableObject”在创建菜单中生成路径为`Create > CustomScript > Misc`的`ScriptableObject`菜单项。
+- `DefaultName` 是如果您不指定名称时给资产的默认名称。
+- `FileExtension` 是附加到资产名称的文件扩展名。
+  - 另外，请注意每个脚本模板的文件扩展名后也附加了`.txt`。
+
+如果您想将一个脚本模板应用到特定的Unity项目，请将整个`ScriptTemplates`文件夹直接复制并粘贴到项目的`Assets`目录下。
+
+![image-20231105213220667](/assets/image/image-20231105213220667.png)
+
+要创建新的脚本模板或修改原有的模板以适应您的偏好，请按照以下步骤操作：
+
+1. 如果您不打算更改某些脚本模板，请从项目中删除它们。
+2. 例如，您可以为`ScriptableObjects`创建一个空白的脚本模板。在`ScriptTemplates`文件夹下创建一个新的文本文件，命名为：
+   `80-ScriptableObject-NewScriptableObject.cs.txt`
+3. 编辑文本文件，使其内容如下：
+   ```csharp
+   using System.Collections;
+   using System.Collections.Generic;
+   using UnityEngine;
+   
+   [CreateAssetMenu(fileName = "#SCRIPTNAME#", menuName = "#SCRIPTNAME#")]
+   public class #SCRIPTNAME# : ScriptableObject
+   {
+       // Your code here
+   }
+   ```
+   这将创建一个带有`CreateAssetMenu`属性的空白`ScriptableObject`脚本。
+
+4. 保存脚本模板后重启编辑器。下次您应该会在创建菜单中看到一个额外的选项。
+5. 从创建菜单中创建一个新的`ScriptableObject`脚本（以及相应的`ScriptableObject`资产）。
+
+确保备份自定义的脚本模板和原始模板。如果Unity无法识别修改后的模板，您将需要恢复相关的文件。
+
+一旦您有了一组您喜欢的脚本模板，复制您的`ScriptTemplates`文件夹到一个新项目，并根据您的具体需求进行定制。您也可以更改应用资源中的原始脚本模板，但请谨慎行事。这会影响使用该版本Unity的所有项目。
+
+有关自定义脚本模板的更多信息，请参阅[Unity支持文章](https://support.unity3d.com/hc/en-us/articles/210223733-How-to-customize-Unity-script-templates?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)。此外，检查附加的项目，以获取一些额外的脚本模板示例。
+
+---
+
+### 10. 附录：测试和调试(Appendix: Testing And Debugging)
+
+> 调试就像是在一部犯罪电影中成为侦探，而你也是凶手。”
+> -Filipe Fortes
+
+自动化测试是提高代码质量和减少修复bug所花费时间的有效工具。[测试驱动开发（TDD）](https://en.wikipedia.org/wiki/Test-driven_development)是一种开发方法，你在开发软件的同时创建[单元测试](https://en.wikipedia.org/wiki/Unit_testing)。实际上，你会在实现一个特定功能之前先编写每个测试用例。
+
+在软件开发过程中，你会反复运行这整套自动化测试流程。这与先写软件再构建测试用例的方式形成鲜明对比。在TDD中，编码、测试和重构是交织在一起的。
+
+以下是肯特·贝克在《测试驱动开发：实例》中提出的基本思想：
+
+1. **添加一个单元测试**：这描述了你想要添加到应用程序中的一个新功能；从你的团队或用户群体中规划出需要完成的工作。
+2. **运行测试**：测试应该失败，因为你还没有将新功能实现到程序中。此外，这还验证了测试本身是否有效。它不应该默认总是通过。
+3. **编写通过新测试的最简单代码**：编写刚好足够的逻辑来通过新的单元测试。这一点上的代码不必是干净的代码。它可以使用不优雅的结构、硬编码的魔法数字等，只要它能通过单元测试。
+4. **确认所有测试都通过**：运行完整的自动化测试套件。你之前的单元测试都应该通过。新代码满足你的新测试要求，也满足旧要求。
+   如果没有，修改你的新代码——只修改你的新代码——直到所有测试都通过。
+5. **重构**：回过头来清理你的新代码。使用你的风格指南，确保一切都符合规范。
+   移动代码，使其逻辑上组织有序。保持相似的类和方法在一起等。移除重复代码，并重命名任何标识符以最小化对注释的需求。分割过长的方法或类。
+   每次重构后都运行自动化测试套件。
+6. **重复**：每次添加新功能时都要经过这个过程。每一步都是一个小的、渐进的变化。在源代码控制下频繁提交。调试时，你只需要检查每个单元测试的少量新代码。这简化了你工作的范围。如果所有其他方法都失败了，回滚到前一个提交并重新开始。
+
+这就是TDD的要点。如果你使用这种方法开发软件，你往往会出于必要而遵循KISS原则。一次添加一个功能，边走边测试。连续不断地进行重构，以每次测试为契机，所以清理代码成为一个持续的仪式。
+
+像大多数干净代码的原则一样，TDD在短期内需要额外的工作，但通常会在长期维护和可读性方面带来改进。
+
+#### Unity测试框架（Unity Test Framework）
+
+Unity测试框架（[Unity Test Framework](https://docs.unity3d.com/Packages/com.unity.test-framework@1.1/manual/index.html?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)，简称UTF），以前称为Unity测试运行器，为Unity开发者提供了一个标准的测试框架。UTF使用[NUnit](https://nunit.org/)，这是一个为.NET语言提供的开源测试库。
+
+Unity测试框架可以在编辑器中执行单元测试（使用编辑模式或播放模式），也可以在目标平台上执行（例如，独立平台、Android、iOS）。通过包管理器安装UTF。[在线文档](https://docs.unity3d.com/Packages/com.unity.test-framework@1.1/manual/manual.html?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)将帮助你开始使用。
+
+Unity测试框架的一般工作流程是：
+
+- **创建一个新的测试套件，称为测试集合（[Test Assembly](https://docs.unity3d.com/Packages/com.unity.test-framework@1.1/manual/workflow-create-test-assembly.html?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)）**：测试运行器用户界面（UI）简化了这个过程，并在你的项目中创建一个文件夹。
+
+- **创建一个测试**：测试运行器UI帮助你管理将要创建为单元测试的C#脚本。选择一个测试集合文件夹并导航到Assets > Create > Testing > C# Test Script。编辑这个脚本并为你的测试添加逻辑。
+
+- **运行一个测试**：使用测试运行器UI运行所有单元测试或运行选定的一个。使用[JetBrains Rider](https://www.jetbrains.com/help/rider/Unity.html)，你也可以直接[从脚本编辑器运行UTF](https://www.jetbrains.com/help/rider/Running_and_Debugging_Unity_Tests.html)。
+
+- **在编辑器中添加播放模式测试或作为独立运行**：默认的测试集合在编辑模式下工作。如果你希望单元测试在运行时工作，创建一个单独的播放模式测试集合。为你的独立构建配置这个（测试结果显示在编辑器中）。
+
+  ![image-20231105214922957](/assets/image/image-20231105214922957.png)
+
+有关开始使用UTF的更多信息，请查看[测试框架](https://docs.unity3d.com/Packages/com.unity.test-framework@1.1/manual/workflow-run-playmode-test-standalone.html?utm_source=demand-gen&utm_medium=pdf&utm_campaign=clean-code&utm_content=clean-code-that-scales-ebook)微站。
+
+###### 参考网页
+
+[Clean up your code: How to create your own C# code style \| Unity Blog](https://blog.unity.com/engine-platform/clean-up-your-code-how-to-create-your-own-c-code-style)
+
+[Create a C# style guide: Write cleaner code that scales \| Unity](https://resources.unity.com/games/create-code-style-guide-e-book)
+
+[【精选】EditorConfig 使用详解_丿刘先森的博客-CSDN博客](https://blog.csdn.net/lwx931449660/article/details/120451417)
+
+[Custom naming settings for private serialized field – Rider Support \| JetBrains](https://rider-support.jetbrains.com/hc/en-us/community/posts/360001333720-Custom-naming-settings-for-private-serialized-field)
+
+[Unity工作流程优化 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/508705174)
+
+[Unity工作流程优化2 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/518642229)
+
+[可配置的进入运行模式 - Unity 手册 (unity3d.com)](https://docs.unity3d.com/cn/2021.3/Manual/ConfigurableEnterPlayMode.html)
+
+[How to architect code as your project scales \| Avoiding technical debt \| Unity](https://unity.com/how-to/how-architect-code-your-project-scales)
+
+[Unite Berlin 2018 - From Pong to 15 person project - YouTube](https://www.youtube.com/watch?v=1le4vScG3gk)
+
+[thomasjacobsen-unity/Unity-Code-Style-Guide: A inspirational C# code style guide for Unity projects (github.com)](https://github.com/thomasjacobsen-unity/Unity-Code-Style-Guide/tree/master)
