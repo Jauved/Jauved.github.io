@@ -1,0 +1,83 @@
+---
+layout: post
+title: "Rider如何加入特定的缩写"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+---
+
+# Rider如何加入特定的缩写
+
+## 00 前言
+
+Rider大部分情况下并不会识别一些特殊的缩写, 比如"MS", 比如"SRGB", 比如"OS", 等等.
+
+查看Rider的说明文档给了我们一个加入缩略词的有界面的方案, 却没有给我们删除这个词的方案, 下面让我们一一解决.
+
+## 01 处理方法
+
+### 加入特定缩写
+
+[Naming style \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/2023.2/Coding_Assistance__Naming_Style.html#abbreviations)
+
+以下为翻译
+
+> ### 忽略与驼峰式命名风格冲突的大写缩写
+>
+> 有时您可能想在驼峰式命名（CamelCase）的符号名称中使用大写缩写、首字母缩略词或缩写字（例如使用MS代表MicroSoft）。默认情况下，JetBrains Rider会将连续出现的几个大写字母检测为不一致的驼峰式大小写：
+>
+> ```csharp
+>  class MSBuildImporter
+> ```
+>
+> 其中```MSBuildImporter```会被认为是不符合大写开头的驼峰命名法.
+>
+> 为了避免这种情况，您可以配置命名风格检查时要忽略的缩写列表。
+>
+> 需要注意的是，大写缩写不应与为特定类型的标识符定义的命名风格相矛盾。
+>
+> 例如，如果您将MS添加到忽略的缩写中，MSBuilder对于UpperCamelCase风格的标识符来说是可接受的名称，但对于lowerCamelCase或all_lower命名风格的标识符则不是。
+>
+> 同样地，myMSBuilder对于lowerCamelCase是可以的，但对于UpperCamelCase风格的标识符则不行。
+>
+> 将缩写添加到忽略列表中﻿
+>
+> 1. 在编辑器中，将光标放在使用缩写的高亮显示的符号上。
+>
+> 2. 按Alt+Enter或点击光标左侧的操作指示器以打开操作列表。
+>
+> 3. 选择检查'不一致的命名'(Inspection: 'Inconsistent Naming') -> 将[缩写]添加到缩写列表中(Add [abbreviation] to the abbreviations list)
+>
+> 4. 将缩写添加到忽略列表 如果需要，您可以选择保存此偏好设置的位置。更多信息，请参考[基于层的设置](https://www.jetbrains.com/help/rider/2023.2/Sharing_Configuration_Options.html)。
+
+然后, 可以愉快的看到此时```MSBuildImporter```不再被认为是不符合规范了, 但是, 如果我们错误操作导致误加入了缩写列表我们该如何删除呢?
+
+### 删除特定缩写
+
+How to access abbreviation list? – Rider Support \| JetBrains
+
+[Layer-based settings \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Sharing_Configuration_Options.html)
+
+首先, 进入[Layer-based settings \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Sharing_Configuration_Options.html)页面, 往下拉, 能看到Rider的配置文件存储的位置.
+
+![image-20231105223257035](/assets/image/image-20231105223257035.png)
+
+在本机上找到类似的目录下的文件```C:\Users\ASUS\AppData\Roaming\JetBrains\Rider2023.2\resharper-host```,
+
+用任何编辑器打开, 比如VS Code. 然后搜索```Abbreviations```
+
+然后可以看到类似语句
+
+```<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=SRGB/@EntryIndexedValue">SRGB</s:String>```
+
+删除该行即可
+
+###### 参考网页
+
+[How to access abbreviation list? – Rider Support \| JetBrains](https://rider-support.jetbrains.com/hc/en-us/community/posts/360009368100-How-to-access-abbreviation-list)
+
+[Naming style \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/2023.2/Coding_Assistance__Naming_Style.html#detect)
+
+[Layer-based settings \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Sharing_Configuration_Options.html#solution-team-shared-layer)
+
+[Code Style. C# | JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Settings_Code_Style_CSHARP.html)
