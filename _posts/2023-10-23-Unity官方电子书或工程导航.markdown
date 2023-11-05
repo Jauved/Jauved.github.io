@@ -50,9 +50,15 @@ math: true
 
   关于代码规范的一些建议.
 
+
+- [Create a C# style guide: Write cleaner code that scales \| Unity](https://resources.unity.com/games/create-code-style-guide-e-book)
+
 - [Level up your code with game programming patterns \| Unity Blog](https://blog.unity.com/games/level-up-your-code-with-game-programming-patterns)
 
   设计模式, 以及[案例](https://github.com/Unity-Technologies/game-programming-patterns-demo).
+
+- [How to architect code as your project scales \| Avoiding technical debt \| Unity](https://unity.com/how-to/how-architect-code-your-project-scales)
+  关于扩展代码的方法, 其中提到了重构.
 
 
 ---
