@@ -108,5 +108,5 @@ Unity还有一个名为Addressable的打包用的扩展. 具体用法看[这篇�
 
 [AssetBundleBuild - Unity 脚本 API](https://docs.unity.cn/cn/2023.1/ScriptReference/AssetBundleBuild.html)
 
-[【精选】【游戏开发探究】Unity Addressables资源管理方式用起来太爽了，资源打包、加载、热更变得如此轻松（Addressable Asset System | 简称AA）_player content must be built before entering play -CSDN博客](https://blog.csdn.net/linxinfa/article/details/122390621)
+[【精选】【游戏开发探究】Unity Addressables资源管理方式用起来太爽了，资源打包、加载、热更变得如此轻松（Addressable Asset System \| 简称AA）_player content must be built before entering play -CSDN博客](https://blog.csdn.net/linxinfa/article/details/122390621)
 
