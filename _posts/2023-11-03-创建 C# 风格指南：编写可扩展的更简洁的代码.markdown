@@ -523,8 +523,6 @@ using Enemy;
 
 ### 3. 格式化(Formatting)
 
-[<-](#字段和变量\(Fields and variables\))
-
 > "如果你想让你的代码易于编写，那就让它易于阅读。"
 > - 罗伯特·C·马丁（Robert C. Martin），《代码整洁之道》和《敏捷软件开发》的作者
 >
