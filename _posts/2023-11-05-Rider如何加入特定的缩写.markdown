@@ -80,4 +80,4 @@ How to access abbreviation list? – Rider Support \| JetBrains
 
 [Layer-based settings \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Sharing_Configuration_Options.html#solution-team-shared-layer)
 
-[Code Style. C# | JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Settings_Code_Style_CSHARP.html)
+[Code Style. C# \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Settings_Code_Style_CSHARP.html)
