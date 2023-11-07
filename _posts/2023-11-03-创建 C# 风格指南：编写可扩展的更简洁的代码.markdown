@@ -199,7 +199,7 @@ math: true
 
 #### **大小写术语**
 
-[⇦](#字段和变量(Fields and variables))
+[<-](#字段和变量(Fields and variables))
 
 >在C#中，你不能定义名称中带有空格的变量，因为C#使用空格字符来分隔标识符。大小写方案可以缓解在源代码中使用复合名称或短语的问题。有几种众所周知的命名和大小写约定。
 >
@@ -525,7 +525,7 @@ using Enemy;
 
 ### 3. 格式化(Formatting)
 
-[⇦](#字段和变量(Fields and variables))
+[<-](#字段和变量(Fields and variables))
 
 > "如果你想让你的代码易于编写，那就让它易于阅读。"
 > - 罗伯特·C·马丁（Robert C. Martin），《代码整洁之道》和《敏捷软件开发》的作者
