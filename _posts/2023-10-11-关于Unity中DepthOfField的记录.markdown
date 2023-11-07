@@ -169,13 +169,13 @@ math: true
 ### 彩色石头:
 
 - DOF的算法有这样的注释```*// "A Lens and Aperture Camera Model for Synthetic Image Generation" [Potmesil81]*```
-- [A lens and aperture camera model for synthetic image generation | ACM SIGGRAPH Computer Graphics](https://dl.acm.org/doi/10.1145/965161.806818)
+- [A lens and aperture camera model for synthetic image generation \| ACM SIGGRAPH Computer Graphics](https://dl.acm.org/doi/10.1145/965161.806818)
 - [文件下载](https://dl.acm.org/doi/pdf/10.1145/965161.806818)
 - 81年的算法
 
 ###### 参考网页: 
 
-[Depth Of Field | Universal RP \| 14.0.9 (unity3d.com)](https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@14.0/manual/post-processing-depth-of-field.html)
+[Depth Of Field \| Universal RP \| 14.0.9 (unity3d.com)](https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@14.0/manual/post-processing-depth-of-field.html)
 
 [图形学基础\|景深效果（Depth of Field/DOF）_后处理dof 原理-CSDN博客](https://blog.csdn.net/qjh5606/article/details/118960868)
 
