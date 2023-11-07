@@ -1,0 +1,224 @@
+---
+layout: post
+title: "移动端性能优化"
+categories: [Unity, 优化]
+tags: Unity 优化 移动端
+math: true
+---
+
+# 移动端性能优化
+
+## 00 前言
+
+## 01 处理方法
+
+## 02 基础概念
+
+### 1. 内存带宽
+
+移动端目前使用的[`LPDDR4X`](https://en.wikipedia.org/wiki/LPDDR)是一种低功耗的DDR4内存。它同样使用双倍数据率技术，但与标准DDR4相比，它在功耗方面进行了优化。`LPDDR4X`通常也支持多通道传输，比如四通道。
+
+对于一个四通道16位（每通道）的LPDDR4X内存，其总线宽度将是64位（16位 x 4通道）。如果时钟频率是2133 MHz，我们可以使用以下公式来计算带宽：
+
+```
+总线宽度（位）= 单通道位数 × 通道数
+带宽（GB/s）= 时钟频率（MHz）× 数据倍率(DDR即双倍数据率) × 总线宽度（位）/ 8 / 1,000
+```
+
+在这个例子中，数据倍率是2，因为LPDDR4X也是在每个时钟周期的上升沿和下降沿传输数据。
+
+```
+带宽（GB/s）= 2133 MHz × 2 × 64位 / 8 / 1,000
+```
+
+将这些数字代入计算：
+
+```
+带宽（GB/s）= 2133 × 2 × 64 / 8 / 1,000
+带宽（GB/s）= 273024 / 8 / 1,000
+带宽（GB/s）= 34128 / 1,000
+带宽（GB/s）= 34.128
+```
+
+所以，一个四通道16位的LPDDR4X内存在2133 MHz的频率下，大约可以提供17.064 GB/s的带宽。这是理论上的最大带宽，实际性能可能会因系统架构和其他因素而有所不同。
+
+对于一个八通道16位（每通道）的LPDDR4X内存，其总线宽度将是128位（16位 x 8通道）。如果时钟频率是2133 MHz，则类似的有
+
+```
+带宽（GB/s）= 2133 × 2 × 128 / 8 / 1,000
+带宽（GB/s）= 546048 / 8 / 1,000
+带宽（GB/s）= 68256 / 1,000
+带宽（GB/s）= 68.256
+```
+
+与wiki数据68.26GB/s近似.
+
+实际数据分析中, 严格来说不能用1000来计算. 
+
+同时实机也不可能真的按照100%带宽来进行性能评估.
+
+通常, 为了考虑散热的因素, 所有的性能指标建议按照67%来进行评估. 之后不再赘述.
+
+### 2. 填充率
+
+像素填充率指的是[GPU](https://zh.wikipedia.org/wiki/GPU)在[一秒](https://zh.wikipedia.org/wiki/秒)内可以渲染到屏幕并写入显示存储器的像素数量，纹理填充率指的是GPU可以在一秒内映射到像素的纹理贴图元素（纹理元素）的数量[[1\]](https://zh.wikipedia.org/wiki/填充率#cite_note-Burke-1)。 像素填充率以[百万像素/秒](https://zh.wikipedia.org/wiki/像素)（早期）或[千兆像素/秒](https://zh.wikipedia.org/wiki/像素)为单位，透过将图形处理器单元的时钟频率乘以[光栅输出单元（ROP）](https://zh.wikipedia.org/wiki/渲染输出单元)的数量来获得。 纹理填充率以百万[纹素](https://zh.wikipedia.org/wiki/纹素)/秒（早期）或千兆纹素/秒为单位，将图形处理单元的时钟频率乘以[纹理映射单元（TMU）](https://zh.wikipedia.org/wiki/紋理映射單元)的数量来获得纹理填充率。然而，关于如何计算和报告填充率没有完全一致的意见。其他可能的方法是：将像素流水线的数量乘以时钟频率。[[2\]](https://zh.wikipedia.org/wiki/填充率#cite_note-2)这些乘法的结果为理论数字，实际填充率会被许多其它因素影响（例如显示存储器的规格）。过去，填充率被[ATI](https://zh.wikipedia.org/wiki/ATI)和[NVIDIA](https://zh.wikipedia.org/wiki/NVIDIA)等显卡制造商用作性能指针，但是随着[图形应用程序](https://zh.wikipedia.org/wiki/应用程序接口)瓶颈的转移，填充率作为衡量性能的重要性下降了，统一着色器处理单元的数量和速度越来越受到关注。[[3\]](https://zh.wikipedia.org/wiki/填充率#cite_note-Thomas-3)
+
+当一系列场景非常复杂时，每个场景必须绘制许多像素，该场景的帧速率可能会下降。在设计图形密集型应用程序时，可以通过查看应用程序在以较低分辨率或较小视窗运行时帧速率是否显著增加来判断应用程序是否为填充单元满载（或[着色器](https://zh.wikipedia.org/wiki/着色器)满载）。[[4\]](https://zh.wikipedia.org/wiki/填充率#cite_note-Pabst-4)
+
+对应填充率的就是全屏OverDraw的次数, 
+
+要计算渲染一屏所消耗的带宽，我们需要知道屏幕的颜色深度（每个像素的比特数）。例如，如果我们假设屏幕使用的是32位色（这意味着每个像素使用32比特即4字节来表示颜色），我们可以用以下公式计算渲染一屏像素所需的带宽：
+
+```
+带宽 (bytes) = 屏幕宽 (pixels) × 屏幕高 (pixels) × 颜色深度 (bytes/pixel)
+```
+
+同时涉及半透明混合的OverDraw还会回读一次屏幕缓冲区的数据, 这个结果需要乘以`2`.
+
+```
+带宽 (bytes) = 屏幕宽 (pixels) × 屏幕高 (pixels) × 颜色深度 (bytes/pixel) * 2
+```
+
+最终的Blit还会写入深度, 深度一般为```16 bit```, 即```2 bytes/pixel```. 
+
+```
+最终Blit的带宽 = 屏幕宽 (pixels) × 屏幕高 (pixels) × (颜色深度 (bytes/pixel) + 深度图深度(bytes/pixel)
+```
+
+**注意:**
+
+- 这里的结果是每一帧的消耗;
+- 带宽还需要减去纹理, 顶点, 程序数据, Prefab数据, 粒子系统数据, 材质数据等等的带宽消耗(这部分根据项目不同而不同);
+- 一次全屏后处理等于一次全屏OverDraw的带宽消耗.
+
+
+
+## 03 实际案例
+
+| 项目     | 信息                                                         |
+| -------- | ------------------------------------------------------------ |
+| 开发者   | Google                                                       |
+| 生产商   | 富士康                                                       |
+| 系列     | Pixel                                                        |
+| 首次发布 | 2019年10月15日，4年前                                        |
+| 上市日期 | 2019年10月24日                                               |
+| 系统芯片 | 高通骁龙855                                                  |
+| CPU      | 八核（1×2.84 GHz Kryo 485 + 3×2.42 GHz Kryo 485 + 4×1.78 GHz Kryo 485） |
+| GPU      | Adreno 640                                                   |
+| 存储器   | 6GB LPDDR4X 4通道 16bit 2133MHz                              |
+| 存储空间 | 64GB或128GB                                                  |
+| 电池     | Pixel 4：2800 mAh                                            |
+| 显示器   | Pixel 4：5.7英寸（140 mm） FHD+P-OLED，2280×1080（19:9，444ppi）支持90Hz刷新率 |
+
+| 项目                    | Adreno 640 GPU参数                                    |
+| ----------------------- | ----------------------------------------------------- |
+| ALUs (SIMDs, FP32)      | 768 [384]\(MP(Multiprocessor)数为2, 单核384, 总数768) |
+| On-chip graphics memory | 1024 KB                                               |
+| TMU                     | 12*2 [45]                                             |
+| 制造工艺 (nm)           | 7                                                     |
+| 时钟频率 (MHz)          | 585 - 675                                             |
+| 内存技术                | LPDDR4X-4266 Quad-channel 16-bit (64-bit)             |
+| 内存带宽                | 34.1 GB/s (@ 2133 MHz)                                |
+| 三角形处理能力 (MT/s)   | ?                                                     |
+| 像素填充率 (GP/s)       | 9.4                                                   |
+| 纹理填充率 (GT/s)       | 28.1                                                  |
+| GFLOPS (FP64)           | 224.6                                                 |
+| GFLOPS (FP32)           | 1036.8                                                |
+| GFLOPS (FP16)           | 2073.6                                                |
+| Vulkan API              | 1.1 [32] [26]                                         |
+| OpenGL ES               | 3.2                                                   |
+| OpenVG API              | 2.0 Full                                              |
+| OpenCL API              | WIP (freedreno driver)                                |
+| OpenGL API              | ?                                                     |
+| Direct3D API            | 12 (feature level 12_1) [17]                          |
+| 兼容的Qualcomm SoC      | Snapdragon 855/855+ 和 Snapdragon 860                 |
+
+| 性能指标 | 指标数值 | 理论指标 | 实际指标(67%) |
+| -------- | ---------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| 带宽 | 34.128GB/s                                                    | 1137.6 MB/frame(30帧), 568.8 MB/frame(60帧)       | 762.192 MB/frame(30帧),381.096 MB/Frame(60帧) |
+| OverDraw + 全屏后处理次数 + 后处理缓存读取数 |                                                          | 23.9 次/frame (30帧), 3.6 次/frame(60帧) | 16 次/frame (30帧), 2.4 次/frame(60帧) |
+
+
+
+对于Pixel 4，其屏幕分辨率为2280×1080。如果使用32位色深，计算如下：
+
+```
+带宽 (bytes) = 2280 × 1080 × 4 bytes/pixel
+```
+
+```
+带宽 (bytes) = 9,830,400 bytes
+```
+
+```
+带宽 (MB) ≈ 9,830,400 bytes / (1024^2 bytes/MB) ≈ 9.37 MB
+```
+
+所以，渲染一个分辨率为2280×1080的屏幕，使用32位色深，大约需要9.37 MB的带宽。
+
+同时OverDraw一般是半透明物体产生, 还会有一次全屏幕颜色(包括Alpha)的回读, 这部分消耗需要加倍
+
+```
+带宽 (MB) ≈ 9.37 MB × 2 ≈ 18.74 MB
+```
+
+这只是单纯从渲染一帧静态图像的数据量来计算的。如果你要计算每秒的带宽使用情况，需要乘以帧率：
+
+```
+带宽 (MB/s) ≈ 帧带宽 (MB) × 帧率 (frames/s)
+```
+
+例如，如果帧率分别为30帧/秒和60帧/秒，则每秒所需的带宽将是：
+
+```
+带宽 (MB/s) ≈ 18.74 MB/frame × 30 frames/s ≈ 562.2 MB/s
+带宽 (MB/s) ≈ 18.74 MB/frame × 60 frames/s ≈ 1124.4 MB/s
+```
+
+这只考虑了渲染帧的带宽消耗，实际上，GPU在渲染过程中还会有额外的数据读写操作，如纹理加载、帧缓存更新等，实际的带宽需求会更高。
+
+比如,最终的Blit的固定全屏填充消耗(包含的深度图数据, 一般为16位色深), 考虑到一般情况下(但并不绝对), 造成OverDraw的都是透明物体, 而透明物体一般不会写深度, FinalBlit的带宽消耗如下.
+
+```
+带宽 (bytes) = 2280 × 1080 × (4 bytes/pixel + 2 bytes/pixel) = 14,774,400 bytes
+带宽 (MB) ≈ 14,774,400 bytes / (1024^2 bytes/MB) ≈ 14.09 MB
+带宽 (MB/s) ≈ 14.09 MB/frame × 30 frames/s ≈ 422.7 MB/s
+带宽 (MB/s) ≈ 14.09 MB/frame × 60 frames/s ≈ 845.4 MB/s
+```
+
+Pixel 4的每帧带宽上限是`762.192MB/frame, 381.096MB/Frame`, 
+
+| 条目                                             | 30帧       | 60帧       |
+| ------------------------------------------------ | ---------- | ---------- |
+| 每帧带宽上限                                     | 762.192 MB | 381.096 MB |
+| 最终Blit带宽                                     | 14.09 MB   | 14.09 MB   |
+| 其他数据消耗,暂定300 MB                          | 300 MB     | 300 MB     |
+| 剩余带宽                                         | 448.102 MB | 67.006     |
+| 全屏OverDraw消耗                                 | 18.74 MB   | 18.74 MB   |
+| 全屏OverDraw + 全屏后处理次数 + 后处理缓存读取数 | 23.9 次    | 3.6 次     |
+
+
+
+###### 参考网页
+
+[高通骁龙组件列表 - 维基百科，自由的百科全书 (wikipedia.org)](https://zh.wikipedia.org/wiki/高通驍龍元件列表#Snapdragon_845/850)
+
+[Snapdragon 855 Mobile Platform \| Qualcomm](https://www.qualcomm.com/products/mobile/snapdragon/smartphones/snapdragon-8-series-mobile-platforms/snapdragon-855-mobile-platform)
+
+[Pixel 4 - 维基百科，自由的百科全书 (wikipedia.org)](https://zh.wikipedia.org/wiki/Pixel_4)
+
+[Fillrate - Wikipedia](https://en.wikipedia.org/wiki/Fillrate)
+
+[LPDDR - Wikipedia](https://en.wikipedia.org/wiki/LPDDR)
+
+[Adreno - Wikipedia](https://en.wikipedia.org/wiki/Adreno)
+
+[Overdraw概念、指标和分析工具 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/323421079)
+
+[ken48/UnityOverdrawMonitor: Overdraw profiler for Unity, shows fill rate (github.com)](https://github.com/ken48/UnityOverdrawMonitor)
+
+[移动设备渲染架构学习&优化小技巧 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/265151933)
+
+[【《Real-Time Rendering 3rd》 提炼总结】(十二) 渲染管线优化方法论：从瓶颈定位到优化策略 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/32928016)
+
+[Fixing Performance Problems - 2019.3 - Unity Learn](https://learn.unity.com/tutorial/fixing-performance-problems-2019-3-1#)

@@ -1,0 +1,17 @@
+---
+layout: post
+title: "数据拟合"
+categories: [数学]
+tags: 数学 拟合 曲线
+math: true
+---
+
+# 数据拟合
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[数据拟合（Data Fitting）算法 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/546437540)
