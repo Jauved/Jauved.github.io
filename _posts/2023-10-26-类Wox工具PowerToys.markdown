@@ -66,4 +66,4 @@ PowerToys Run默认使用的是Windows Search, 而我正是因为Windows Search�
 
 [voidtools](https://www.voidtools.com/zh-cn/)
 
-[Microsoft PowerToys | Microsoft Learn](https://learn.microsoft.com/zh-cn/windows/powertoys/)
+[Microsoft PowerToys \| Microsoft Learn](https://learn.microsoft.com/zh-cn/windows/powertoys/)
