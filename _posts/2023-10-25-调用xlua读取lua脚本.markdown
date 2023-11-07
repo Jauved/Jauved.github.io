@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "调用xlua读取lua脚本"
-categories: [URP, 后处理]
+categories: [Unity, 代码]
 tags: URP 后处理 DepthOfField
 math: true
 ---

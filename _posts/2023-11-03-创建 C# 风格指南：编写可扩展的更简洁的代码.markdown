@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "创建 C# 风格指南：编写可扩展的更简洁的代码"
-categories: [Unity, c#]
+categories: [代码, 规范]
 tags: Unity 代码 风格
 math: true
 ---

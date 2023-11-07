@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "类Wox工具PowerToys"
-categories: [工具, PowerToys]
+categories: [软件]
 tags: 工具 Wox PowerToys
 math: true
 ---
