@@ -201,6 +201,32 @@ Pixel 4的每帧带宽上限是`762.192MB/frame, 381.096MB/Frame`,
 
 ###### 参考网页
 
+[Optimize game performance \| Unity Blog](https://blog.unity.com/reading-list/optimize-game-performance)
+
+[Games Focus: Profiling and performance optimization \| Unity Blog](https://blog.unity.com/engine-platform/games-focus-profiling-and-performance-optimization)
+
+[Optimize your mobile game performance: Get expert tips on physics, UI, and audio settings \| Unity Blog](https://blog.unity.com/games/optimize-your-mobile-game-performance-get-expert-tips-on-physics-ui-and-audio-settings)
+
+[Unity E-Book: Optimize Your Mobile Game Performance](https://resources.unity.com/games/unity-e-book-optimize-your-mobile-game-performance?ungated=true)
+
+[Unity - Manual: Profiler overview (unity3d.com)](https://docs.unity3d.com/Manual/Profiler.html)
+
+[Android Profiler  \| Android Studio  \| Android Developers](https://developer.android.com/studio/profile/android-profiler?hl=zh-cn)
+
+[Android GPU 检查器  \| Android 游戏开发  \| Android Developers](https://developer.android.com/agi?hl=zh-cn)
+
+[系统性能分析概览  \| Android Developers](https://developer.android.com/agi/sys-trace/system-profiler?hl=zh-cn)
+
+[Android GPU 检查器快速入门  \| Android Developers](https://developer.android.com/agi/start?hl=zh-cn)
+
+[Unity合批（Batching）的限制与失败原因汇总 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/604534298)
+
+[Unity常见合批失败 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/109200416)
+
+[Unity场景物体动态合批 - UWATech - 博客园 (cnblogs.com)](https://www.cnblogs.com/uwatech/p/16619509.html#)
+
+---
+
 [高通骁龙组件列表 - 维基百科，自由的百科全书 (wikipedia.org)](https://zh.wikipedia.org/wiki/高通驍龍元件列表#Snapdragon_845/850)
 
 [Snapdragon 855 Mobile Platform \| Qualcomm](https://www.qualcomm.com/products/mobile/snapdragon/smartphones/snapdragon-8-series-mobile-platforms/snapdragon-855-mobile-platform)
