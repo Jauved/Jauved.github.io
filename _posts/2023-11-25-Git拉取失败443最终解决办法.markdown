@@ -40,10 +40,8 @@ math: true
 
 1. 在新的_管理员提升_终端窗口（PowerShell 或 CMD）中，确保 ssh-agent 正在运行。 可以使用“[使用 SSH 密钥密码](https://docs.github.com/zh/articles/working-with-ssh-key-passphrases)”中的“自动启动 ssh agent”说明，或者手动启动它：
 
-   ```powershell
-   # start the ssh-agent in the background
-   Get-Service -Name ssh-agent | Set-Service -StartupType Manual
-   Start-Service ssh-agent
+   ```
+   eval $(ssh-agent -s)
    ```
 
 #### [x010 在 Git for Windows 上自动启动 `ssh-agent`](https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/working-with-ssh-key-passphrases#auto-launching-ssh-agent-on-git-for-windows)
@@ -76,8 +74,10 @@ unset env
 
 2. 将 SSH 私钥添加到 `ssh-agent`。 如果使用其他名称创建了密钥或要添加具有其他名称的现有密钥，请将命令中的 ided25519 替换为私钥文件的名称。或者直接进入到`C:\Users\[username]\.ssh`目录下直接在`Gitbash`中运行`ssh-add`命令, 即可向`ssh-agent`中添加SSH私钥.
 
-```powershell
+```csharp
 ssh-add /c/Users/YOU/.ssh/id_ed25519
+//或者
+ssh-add /c/Users/YOU/.ssh/id_rsa
 ```
 
 1. 将 SSH 公钥添加到 GitHub 上的帐户。 有关详细信息，请参阅“[新增 SSH 密钥到 GitHub 帐户](https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)”。
