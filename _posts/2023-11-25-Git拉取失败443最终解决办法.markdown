@@ -1,0 +1,91 @@
+---
+layout: post
+title: "Git拉取失败443最终解决办法"
+categories: [Git]
+tags: Git 443 拉取失败
+math: true
+---
+
+# Git拉取失败443最终解决办法
+
+## 00 前言
+
+使用Github DeskTop可以拉取, 而SourceTree拉取报443错误. Git命令行同样无法拉取, 报443连接错误.
+
+## 01 处理方法
+
+最根本的原因是: Github的账号和密码验证服务器没有走梯子. 当然我们可以用全局代理配置的方式来强制使用梯子, 但始终会遇到有时可以验证有时无法验证的情况.
+
+最稳定的解决方式是采用ssh验证的方式绕过验证, 可以稳定的拉取和提交. 但使用SourceTree的Putty生成密钥, 会出现本地计算出的结果和Github计算出的结果不一致的情况, 所以必须使用Git自身来生成密钥.
+
+### [x00 生成新 SSH 密钥](https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#generating-a-new-ssh-key)
+
+[通过 SSH 连接到 GitHub - GitHub 文档](https://docs.github.com/zh/authentication/connecting-to-github-with-ssh)
+
+[生成新的 SSH 密钥并将其添加到 ssh-agent - GitHub 文档](https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent)
+
+1. 打开Git Bash。
+
+2. 粘贴以下文本，将示例中使用的电子邮件替换为你自己的 GitHub 电子邮件地址。
+
+   ```shell
+   ssh-keygen -t ed25519 -C "your_email@example.com"
+   ```
+
+### [x01 将 SSH 密钥添加到 ssh-agent](https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#adding-your-ssh-key-to-the-ssh-agent)
+
+在向 ssh 代理添加新的 SSH 密钥以管理您的密钥之前，您应该检查现有 SSH 密钥并生成新的 SSH 密钥。
+
+如果已安装 [GitHub Desktop](https://desktop.github.com/)，可使用它克隆存储库，而无需处理 SSH 密钥。
+
+1. 在新的_管理员提升_终端窗口（PowerShell 或 CMD）中，确保 ssh-agent 正在运行。 可以使用“[使用 SSH 密钥密码](https://docs.github.com/zh/articles/working-with-ssh-key-passphrases)”中的“自动启动 ssh agent”说明，或者手动启动它：
+
+   ```powershell
+   # start the ssh-agent in the background
+   Get-Service -Name ssh-agent | Set-Service -StartupType Manual
+   Start-Service ssh-agent
+   ```
+
+#### [x010 在 Git for Windows 上自动启动 `ssh-agent`](https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/working-with-ssh-key-passphrases#auto-launching-ssh-agent-on-git-for-windows)
+
+在`C:\Users\[username]`目录下建立一个`.profile`文件, 将以下内容粘贴复制到文件中. 下一次`Gitbash`启动会自动将`ssh-agent`启动
+
+```bash
+env=~/.ssh/agent.env
+
+agent_load_env () { test -f "$env" && . "$env" >| /dev/null ; }
+
+agent_start () {
+    (umask 077; ssh-agent >| "$env")
+    . "$env" >| /dev/null ; }
+
+agent_load_env
+
+# agent_run_state: 0=agent running w/ key; 1=agent w/o key; 2=agent not running
+agent_run_state=$(ssh-add -l >| /dev/null 2>&1; echo $?)
+
+if [ ! "$SSH\_AUTH\_SOCK" ] || [ $agent_run_state = 2 ]; then
+    agent_start
+    ssh-add
+elif [ "$SSH\_AUTH\_SOCK" ] && [ $agent_run_state = 1 ]; then
+    ssh-add
+fi
+
+unset env
+```
+
+2. 将 SSH 私钥添加到 `ssh-agent`。 如果使用其他名称创建了密钥或要添加具有其他名称的现有密钥，请将命令中的 ided25519 替换为私钥文件的名称。或者直接进入到`C:\Users\[username]\.ssh`目录下直接在`Gitbash`中运行`ssh-add`命令, 即可向`ssh-agent`中添加SSH私钥.
+
+```powershell
+ssh-add /c/Users/YOU/.ssh/id_ed25519
+```
+
+1. 将 SSH 公钥添加到 GitHub 上的帐户。 有关详细信息，请参阅“[新增 SSH 密钥到 GitHub 帐户](https://docs.github.com/zh/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)”。
+
+### x02 使用SSH方式拉取仓库
+
+此时, 使用`SSH`方式拉取仓库, 即可顺利的拉取提交. 注意, 使用`Github DeaskTop`, 无法配置私钥目录, 那么私钥必须储存在默认位置`C:\Users\[username]\.ssh`目录下, 并且名字必须为`id_rsa`, 公钥名字必须为`id_rsa.pub`, 这样才可以被识别. 使用SourceTree则可以方便的在`工具->选项->一般->SSH客户端配置`条目, 选择`OpenSSH`客户端, 并指定私钥.
+
+###### 参考网页
+
+[Github-Git工程拉取443错误 \| 【RoanYiu】](https://myblog.roanyiu.com/posts/Github-Git工程拉取443错误/)
