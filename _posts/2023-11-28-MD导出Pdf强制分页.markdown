@@ -1,0 +1,27 @@
+---
+layout: post
+title: "MD导出Pdf强制分页"
+categories: [文档, MarkDown]
+tags: 文档 MarkDown 分页 Typora
+math: true
+---
+
+# MD导出Pdf强制分页
+
+## 00 前言
+
+使用Typora导出Pdf时, 需要强制分页的问题.
+
+## 01 处理方法
+
+在markdown文本中需要分页的地方添入：
+
+```html
+<div STYLE="page-break-after: always;"></div>
+```
+
+###### 参考网页
+
+[Markdown文本的强行分页 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/95683901)
+
+[Typora换页问题请教 · Keldos-Li/typora-latex-theme · Discussion #34 (github.com)](https://github.com/Keldos-Li/typora-latex-theme/discussions/34)
