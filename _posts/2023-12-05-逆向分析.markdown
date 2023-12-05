@@ -1,0 +1,22 @@
+---
+layout: post
+title: "逆向分析"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+---
+
+# 逆向分析
+
+## 00 前言
+
+目前大部分的截帧软件, 即便是手机取得了Root权限, 并且设置全局为Debuggable, 仍旧无法截帧.
+
+## 01 处理方法
+
+###### 参考网页
+
+[手游逆向分析之Snapdragon Profiler - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/339167035)
+
+[渲染逆向工程：打造一台调试任意Android游戏的设备 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/100583752)

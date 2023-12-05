@@ -1,0 +1,31 @@
+---
+layout: post
+title: "部分手机后处理真机显示错误的问题解决"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+---
+
+# 部分手机后处理真机显示错误的问题解决
+
+## 00 前言
+
+昨天项目组(Unity2019.4.15f1)报出的在vivo Ytt7上面, 景深后处理失效(具体表现为模糊部分直接没有做渲染, 叠加在原图上).
+
+## 01 处理方法
+
+Unity景深部分的Shaderlab代码, program target 都被设定为3.5或4.5, 而由于Unity本身的版本(2019)过于老旧, 导致编译出的中间代码无法被SoC识别. 
+
+vivoYtt7的SoC为**MediaTek(联发科) Dimensity(天玑) 7020**, 通过[wiki资料](https://en.wikipedia.org/wiki/List_of_MediaTek_systems_on_chips), 该款SoC是联发科系列2023年Q1的新款SoC. 采用的GPU芯片是PowerVR的[IMG-BXM-8-256](https://en.wikipedia.org/wiki/PowerVR#IMG_B-Series). 
+
+目前的解决方式是将Unity官方的景深后处理的program tatget 全部设置为3.0, 然后效果正常.
+
+当然, 如果抛开实际项目情况来说的话, 更换引擎是最终的解决办法.
+
+## 02 后续
+
+建议对PowerVR的GPU芯片多注意一下. 
+
+###### 参考网页
+
+[（一）unity shader在实际项目中出现的问题————unity的后处理插件景深效果在某些低档机（如三星）无效的解决方案_unity无法解析类型:"shader-CSDN博客](https://blog.csdn.net/cgy56191948/article/details/103702291)
