@@ -1,0 +1,48 @@
+---
+layout: post
+title: "Unity如何连接手机进行测试"
+categories: [Unity, 性能测试]
+tags: URP 性能测试
+math: true
+---
+
+# Unity如何连接手机进行测试
+
+## 00 前言
+
+性能分析实机测试时, 需要将Unity的Profiler连接到实机进行CPU端的测试. 
+
+## 01 处理方法
+
+- 首先确认app的包是`debuggable`
+- 手机开启了开发者
+
+### x00 安装ADB
+
+使用Android Studio中的SDK Manager安装ADB
+
+### x01 启动app
+
+### x02 通过ADB命令连接app
+
+命令行中输入
+
+```
+adb forward tcp:34999 localabstract:Unity-包名
+```
+
+此时在Profiler中选择
+
+![image-20231127112505081](/assets/image/image-20231127112505081.png)
+
+即可看到数据.
+
+###### 参考网页
+
+[Unity 基础 之 连接 Android 手机 使用 Profiler 基于 2019.3.x_unity 手机 profiler_仙魁XAN的博客-CSDN博客](https://blog.csdn.net/u014361280/article/details/117562897)
+
+[Unity Android Profile - 菠菜的blog (conerlius.cn)](https://www.conerlius.cn/unity/2019/10/12/Unity-Android-Profile.html)
+
+[Profiler 窗口入门 - Unity 手册](https://docs.unity.cn/cn/2019.4/Manual/ProfilerWindow.html#controls)
+
+[Unity真机连接profiler步骤说明 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/222662617)
