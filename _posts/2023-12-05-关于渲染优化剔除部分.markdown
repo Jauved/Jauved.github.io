@@ -1,0 +1,17 @@
+---
+layout: post
+title: "关于渲染优化剔除部分."
+categories: [优化]
+tags: URP 后处理 DepthOfField
+math: true
+---
+
+# 关于渲染优化剔除部分.
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[Compute Shader 进阶应用:结合Hi-Z 剔除海量草渲染 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/278793984)
