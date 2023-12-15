@@ -43,7 +43,7 @@ google出品的GPU性能检测工具(包含部分CPU数据, 需要详细的CPU�
 
 [gtk-sharp-2.12.45](https://5.34.176.247/?uuid=066a4ba8-bec0-40cd-a5bd-b9daaf7548a3)
 
-顾名思义, 这款分析工具仅限定搭载Snapdragon系列SoC的手机. 该Profiler可以截帧. 仅获取CPU/GPU数据时apk包无需<font color=orange>debuggable</font>, 但如果需要截帧, 还是需要设置<font color=orange>debuggable</font>. 优点是截帧后可以看到大部分渲染流程的性能参数. 缺点是, 卡/慢/容易奔溃. 
+顾名思义, 这款分析工具主要针对搭载Snapdragon系列SoC的手机(实测, Mali). 该Profiler可以截帧. 仅获取CPU/GPU数据时apk包无需<font color=orange>debuggable</font>, 但如果需要截帧, 还是需要设置<font color=orange>debuggable</font>. 优点是截帧后可以看到大部分渲染流程的性能参数. 缺点是, 卡/慢/容易奔溃. 
 
 ### 01.3 [PVRCarbon](https://developer.imaginationtech.com/download/windows-installer-pvrcarbon/)
 
@@ -312,3 +312,7 @@ Pixel 4的每帧带宽上限是`762.192MB/frame, 381.096MB/Frame`,
 [【Unity】使用Profiler进行性能分析 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/51391047)
 
 [分析 AGI 纹理数据并提升 GPU 性能 (androidweekly.io)](https://androidweekly.io/using-texture-counters-in-the-android-gpu-inspector-cc0f0dd4a798/)
+
+[Unity移动端游戏性能优化简谱之 画面表现与GPU压力的权衡 - UWA问答 \| 博客 \| 游戏及VR应用性能优化记录分享 \| 侑虎科技 (uwa4d.com)](https://blog.uwa4d.com/archives/EDU_Performance4.html)
+
+[Android Game Analysis with Arm Mobile Studio \| Samsung Developers](https://developer.samsung.com/galaxy-gamedev/blog/en/2020/09/29/android-game-analysis-with-arm-mobile-studio)
