@@ -1,0 +1,40 @@
+---
+layout: post
+title: "aaaaaaaaaa"
+categories: [性能测试]
+tags: 性能测试 ADB
+math: true
+
+---
+
+# ADB命令
+
+## 00 前言
+
+## 01 详细
+
+### 01.1 查看全部参数
+
+`adb shell getprop`
+
+### 01.2 查看SoC型号
+
+`adb shell cat /proc/cpuinfo`
+
+例子:
+
+`Hardware        : Qualcomm Technologies, Inc KONA`
+
+![image-20231207160500130](/assets/image/image-20231207160500130.png)
+
+
+
+###### 参考网页
+
+[ADB 命令大全 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/89060003)
+
+[adb查看手机硬件信息_adb 小米手机wifi硬件芯片信息-CSDN博客](https://blog.csdn.net/bulucc/article/details/123790608)
+
+[使用adb获取android设备的芯片名称？-腾讯云开发者社区-腾讯云 (tencent.com)](https://cloud.tencent.com/developer/ask/sof/1836755)
+
+[Qualcomm Snapdragon 865 5G SM8250 (Kona) \| Processor Specs \| PhoneDB](https://phonedb.net/index.php?m=processor&id=805&c=qualcomm_snapdragon_865_5g_sm8250__kona)

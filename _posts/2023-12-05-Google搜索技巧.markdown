@@ -1,0 +1,18 @@
+---
+layout: post
+title: "Google搜索技巧"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+---
+
+# Google搜索技巧
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[最详细的GOOGLE搜索指令大全 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/136076792)

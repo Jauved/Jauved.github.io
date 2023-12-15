@@ -1,0 +1,26 @@
+---
+layout: post
+title: "其他官方电子书或工程导航"
+categories: [电子书, 其他]
+tags: 电子书 其他
+math: true
+
+---
+
+# 其他官方电子书或工程导航
+
+## 00 前言
+
+## 01 内容
+
+### 01.1 GPU原理
+
+[How GPU Computing Works \| NVIDIA On-Demand](https://www.nvidia.cn/on-demand/session/gtcspring21-s31151/)
+
+### 01.2 渲染器
+
+[Nori光追渲染器 - 知乎 (zhihu.com)](https://www.zhihu.com/column/c_1407025850030698496)
+
+[wjakob/nori: Nori: an educational ray tracer (github.com)](https://github.com/wjakob/nori)
+
+###### 参考网页
