@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Unity官方电子书或工程导航"
-categories: [Unity, 电子书]
+categories: [电子书, Unity]
 tags: Unity 电子书
 math: true
 ---
