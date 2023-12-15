@@ -114,7 +114,7 @@ adb reboot bootloader
 //检查在fastboot下有没有识别手机
 fastboot devices
 //如果没有识别, 打开AndroidStudio, tools->SDK Manager
-//选贼usbdriver进行下载, 下载后的目录为
+//选择usbdriver进行下载, 下载后的目录为
 //X:\AndroidSDK\extras\google\usb_driver
 fastboot flashing unlock
 //用音量键选择unlock, 用开机键确定

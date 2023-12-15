@@ -1,0 +1,19 @@
+---
+layout: post
+title: "环境贴图八面体映射"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 环境贴图八面体映射
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[八面体参数化球面映射方式及实现 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/408898601#Octahedral Map)

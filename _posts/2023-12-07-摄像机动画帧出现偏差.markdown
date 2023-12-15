@@ -1,0 +1,18 @@
+---
+layout: post
+title: "摄像机动画帧出现偏差"
+categories: [Unity, 动画]
+tags: Unity 动画 跳帧
+math: true
+
+---
+
+# 摄像机动画帧出现偏差
+
+## 00 前言
+
+## 01 处理方法
+
+无脑关闭Unity动画的"ReSample"
+
+###### 参考网页
