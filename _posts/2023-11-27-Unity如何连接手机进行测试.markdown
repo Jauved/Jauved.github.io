@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Unity如何连接手机进行测试"
-categories: [Unity, 性能测试]
+categories: [性能测试]
 tags: URP 性能测试
 math: true
 ---

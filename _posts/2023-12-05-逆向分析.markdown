@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "逆向分析"
-categories: [URP, 后处理]
-tags: URP 后处理 DepthOfField
+categories: [性能测试]
+tags: 第三方 逆向 截帧 性能测试
 math: true
 
 ---
@@ -15,14 +15,16 @@ math: true
 
 ## 01 处理方法
 
+## 02 FAQ
+
+### 02.1 截帧时提示App没有读写权限
+
+开发者选项里面找到"强制允许将应用写入外部存储设备", 开启即可.
+
 ###### 参考网页
 
 [手游逆向分析之Snapdragon Profiler - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/339167035)
 
 [渲染逆向工程：打造一台调试任意Android游戏的设备 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/100583752)
 
-[调试&截帧 过一遍虚幻渲染管线(下) GPU流程 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/341431133)
-
-[使用RenderDoc配合安卓模拟器抓帧手游 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/403453085)
-
-[结合Bug，聊一下用RenderDoc进行安卓手机联调（一） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/91476074)
+[ADB 命令大全 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/89060003)
