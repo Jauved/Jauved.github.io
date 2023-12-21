@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "aaaaaaaaaa"
+title: "ADB命令"
 categories: [性能测试]
 tags: 性能测试 ADB
 math: true

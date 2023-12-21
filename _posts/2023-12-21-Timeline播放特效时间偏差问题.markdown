@@ -1,0 +1,24 @@
+---
+layout: post
+title: "Timeline播放特效时间偏差问题"
+categories: [Unity, Q&A]
+tags: Unity Q&A Timeline 粒子特效
+math: true
+
+---
+
+# Timeline播放特效时间偏差问题
+
+## 00 Q
+
+Unity2019, Timeline中播放粒子特效, 但其中一个设置了Delay的粒子和初始节奏对不上. 单独播放特效, 或者在另一个工程中播放完成正常.
+
+## 01 A
+
+查出, Timeline中的粒子计时, 走的是`fixedupdate`, 即Time设置中的`Maximum fixed Time Step`会影响其播放偏差. 而通常粒子系统走的是`Maximum particle timestep`. 
+
+而之前, 为了优化物理消耗, 项目组将`Maximum fixed Time Step`直接设置为了0.2. 导致Timeline中的粒子播放异常.
+
+总体来说, Unity的Timeline中的粒子本不应该走`fixedupdate`. 同时, 从0.02到0.2的`Maximum fixed Time Step`优化, 确实也相对欠妥. 相当于把原先50帧的精度, 降低到了5帧的精度. 建议即便是优化, 请起码保证基于`fixedupdate`有30帧左右的误差容忍. 比如将0.02改为0.033, 建议不要高于0.05.
+
+###### 参考网页
