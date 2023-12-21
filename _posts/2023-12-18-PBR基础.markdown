@@ -1,0 +1,20 @@
+---
+layout: post
+title: "PBR基础"
+categories: [Unity, PBR]
+tags: Unity PBR
+math: true
+
+---
+
+# PBR基础
+
+## 00 前言
+
+Physically Based Rendering的详细笔记.
+
+## 01 分析
+
+
+
+###### 参考网页
