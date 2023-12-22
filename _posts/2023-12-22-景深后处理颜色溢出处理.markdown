@@ -1,0 +1,274 @@
+---
+layout: post
+title: "景深后处理颜色溢出处理"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+---
+
+# 景深后处理颜色溢出处理
+
+## 00 前言
+
+景深后处理开启时, 在物体边缘处会出现颜色溢出的问题.
+
+经过排查, Unity在进行景深的剔除前, 就对景深的原图和Mask进行了模糊处理.
+
+同时, 最根本的原因是深度图并不能"严格"的覆盖漫反射图. 
+**推测**原因是两张图片的格式, 深度图为R8, 而屏幕截图是RGB111110Float, 同时由于图片都是Bilinear的Filter方式, 导致无法严格的遮挡. 
+
+![image-20231222105756929](/assets/image/image-20231222105756929.png)
+
+## 01 处理方法
+
+采样原图时不做模糊. 这样可以减弱颜色溢出, 但如前图所示, 仍旧无法完全的进行遮蔽.
+
+```c++
+half4 FragPrefilter(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    float2 uv = UnityStereoTransformScreenSpaceTex(input.uv);
+
+    #if SHADER_TARGET >= 45 && defined(PLATFORM_SUPPORT_GATHER)
+
+        // Sample source colors
+        half4 cr = GATHER_RED_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv);
+        half4 cg = GATHER_GREEN_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv);
+        half4 cb = GATHER_BLUE_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv);
+
+        half3 c0 = half3(cr.x, cg.x, cb.x);
+        half3 c1 = half3(cr.y, cg.y, cb.y);
+        half3 c2 = half3(cr.z, cg.z, cb.z);
+        half3 c3 = half3(cr.w, cg.w, cb.w);
+
+        // Sample CoCs
+        half4 cocs = GATHER_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv) * 2.0 - 1.0;
+        half coc0 = cocs.x;
+        half coc1 = cocs.y;
+        half coc2 = cocs.z;
+        half coc3 = cocs.w;
+
+    #else
+
+    float3 duv = _MainTex_TexelSize.xyx * float3(0.5, 0.5, -0.5);
+    float2 uv0 = uv - duv.xy;
+    float2 uv1 = uv - duv.zy;
+    float2 uv2 = uv + duv.zy;
+    float2 uv3 = uv + duv.xy;
+
+
+    // Sample source colors
+    half3 c0 = SAMPLE_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv0).xyz;
+    half3 c1 = SAMPLE_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv1).xyz;
+    half3 c2 = SAMPLE_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv2).xyz;
+    half3 c3 = SAMPLE_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv3).xyz;
+
+    // Sample CoCs
+    half coc0 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv0).x * 2.0 - 1.0;
+    half coc1 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv1).x * 2.0 - 1.0;
+    half coc2 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv2).x * 2.0 - 1.0;
+    half coc3 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv3).x * 2.0 - 1.0;
+
+    #endif
+
+    #if COC_LUMA_WEIGHTING
+
+        // Apply CoC and luma weights to reduce bleeding and flickering
+        half w0 = abs(coc0) / (Max3(c0.x, c0.y, c0.z) + 1.0);
+        half w1 = abs(coc1) / (Max3(c1.x, c1.y, c1.z) + 1.0);
+        half w2 = abs(coc2) / (Max3(c2.x, c2.y, c2.z) + 1.0);
+        half w3 = abs(coc3) / (Max3(c3.x, c3.y, c3.z) + 1.0);
+
+        // Weighted average of the color samples
+        half3 avg = c0 * w0 + c1 * w1 + c2 * w2 + c3 * w3;
+        avg /= max(w0 + w1 + w2 + w3, 1e-5);
+
+    #else
+
+    half3 avg = (c0 + c1 + c2 + c3) / 4.0;
+
+    #endif
+    
+    //修改, 直接采样原图和_FullCoCTexture, 不模糊.
+    float2 uv4 = uv;
+    half3 c4 = SAMPLE_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv4).xyz;
+    half coc4 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv4).x * 2.0 - 1.0;
+    half3 avg =c4 * abs(coc4);
+    //修改
+
+    // Select the largest CoC value
+    half cocMin = min(coc0, Min3(coc1, coc2, coc3));
+    half cocMax = max(coc0, Max3(coc1, coc2, coc3));
+    half coc = (-cocMin > cocMax ? cocMin : cocMax) * MaxRadius;
+
+    // Premultiply CoC
+    avg *= smoothstep(0, _MainTex_TexelSize.y * 2.0, abs(coc));
+
+    #if defined(UNITY_COLORSPACE_GAMMA)
+        avg = SRGBToLinear(avg);
+    #endif
+
+    return half4(avg, coc);
+}
+
+```
+
+
+
+###### 参考网页
+
+
+
+## 02 定制记录
+
+### 涉及文件:
+
+- 着色器: 
+  ```Packages/com.unity.render-pipelines.universal@14.0.8/Shaders/PostProcessing/BokehDepthOfField.shader```
+- 面板(不涉及, 仅关联): 
+  ```Packages/com.unity.render-pipelines.universal@14.0.8/Runtime/Overrides/DepthOfField.cs```
+  ```Packages/com.unity.render-pipelines.universal@14.0.8/Editor/Overrides/DepthOfFieldEditor.cs```
+- Pass:
+  ```Packages/com.unity.render-pipelines.universal@14.0.8/Runtime/Passes/PostProcessPass.cs```
+
+### 完整代码
+
+shader代码
+
+```c++
+ half4 FragPrefilterV2(Varyings input) : SV_Target
+{
+    UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    float2 uv = UnityStereoTransformScreenSpaceTex(input.uv);
+    float3 duv = _MainTex_TexelSize.xyx * float3(0.5, 0.5, -0.5);
+    float2 uv0 = uv - duv.xy;
+    float2 uv1 = uv - duv.zy;
+    float2 uv2 = uv + duv.zy;
+    float2 uv3 = uv + duv.xy;
+
+    half3 c4 = SAMPLE_TEXTURE2D_X(_MainTex, sampler_LinearClamp, uv).xyz;
+
+    half coc0 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv0).x * 2.0 - 1.0;
+    half coc1 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv1).x * 2.0 - 1.0;
+    half coc2 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv2).x * 2.0 - 1.0;
+    half coc3 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv3).x * 2.0 - 1.0;
+
+    half cocMin = min(coc0, Min3(coc1, coc2, coc3));
+    half cocMax = max(coc0, Max3(coc1, coc2, coc3));
+    half coc = (-cocMin > cocMax ? cocMin : cocMax) * MaxRadius;
+
+    half coc4 = SAMPLE_TEXTURE2D_X(_FullCoCTexture, sampler_LinearClamp, uv).x * 2.0 - 1.0;
+
+    half3 avg =c4 * abs(coc4);
+
+    #if defined(UNITY_COLORSPACE_GAMMA)
+        avg = SRGBToLinear(avg);
+    #endif
+
+    return half4(avg, coc);
+}
+
+...
+
+Pass
+{
+    Name "Bokeh Depth Of Field PrefilterV2"
+
+    HLSLPROGRAM
+    #pragma vertex Vert
+    #pragma fragment FragPrefilterV2
+    #pragma target 3.0
+    ENDHLSL
+}
+```
+
+Pass代码
+
+```c++
+void DoDepthOfField(Camera camera, CommandBuffer cmd, int source, int destination, Rect pixelRect)
+{
+    if (m_DepthOfField.mode.value == DepthOfFieldMode.Gaussian)
+        DoGaussianDepthOfField(camera, cmd, source, destination, pixelRect);
+    else if (m_DepthOfField.mode.value == DepthOfFieldMode.Bokeh)
+        DoBokehDepthOfField(cmd, source, destination, pixelRect);
+    //C10132023
+    else if (m_DepthOfField.mode.value == DepthOfFieldMode.BokehVer2)
+    {
+        DoBokehDepthOfFieldV2(cmd, source, destination, pixelRect);
+    }
+    //C10132023
+}
+
+...
+    
+void DoBokehDepthOfFieldV2(CommandBuffer cmd, int source, int destination, Rect pixelRect)
+{
+    m_DepthOfField.nearClearPlane.value = URPUserData.NearClearPlane;
+    m_DepthOfField.farClearPlane.value = URPUserData.FarClearPlane;
+    m_DepthOfField.farBlurAttend.value = URPUserData.FarBlurAttend;
+    m_DepthOfField.focalLength.value = URPUserData.FocalLength;
+    m_DepthOfField.aperture.value = URPUserData.Aperture;
+
+    var material = m_Materials.bokehDepthOfField;
+    int wh = m_Descriptor.width / 2;
+    int hh = m_Descriptor.height / 2;
+
+    // "A Lens and Aperture Camera Model for Synthetic Image Generation" [Potmesil81]
+    float F = m_DepthOfField.focalLength.value / 1000f;
+    float A = m_DepthOfField.focalLength.value / m_DepthOfField.aperture.value;
+    //C10132023
+    // float P = m_DepthOfField.focusDistance.value;
+    float P = m_DepthOfField.nearClearPlane.value / 100f;
+    //C10132023
+    float maxCoC = (A * F) / (P - F);
+    float maxRadius = GetMaxBokehRadiusInPixels(m_Descriptor.height);
+    float rcpAspect = 1f / (wh / (float)hh);
+    //C10132023
+    float N = m_DepthOfField.farClearPlane.value / 100f; //因为是厘米
+    float farBlurAttend = m_DepthOfField.farBlurAttend.value;
+    cmd.SetGlobalFloat(ShaderConstants._FarClearPlane, N);
+    cmd.SetGlobalFloat(ShaderConstants._FarBlurAttend, farBlurAttend);
+    //C10132023
+
+    cmd.SetGlobalVector(ShaderConstants._CoCParams, new Vector4(P, maxCoC, maxRadius, rcpAspect));
+
+    // Prepare the bokeh kernel constant buffer
+    int hash = m_DepthOfField.GetHashCode();
+    if (hash != m_BokehHash)
+    {
+        m_BokehHash = hash;
+        PrepareBokehKernel();
+    }
+
+    cmd.SetGlobalVectorArray(ShaderConstants._BokehKernel, m_BokehKernel);
+
+    // Temporary textures
+    cmd.GetTemporaryRT(ShaderConstants._FullCoCTexture, GetStereoCompatibleDescriptor(m_Descriptor.width, m_Descriptor.height, GraphicsFormat.R8_UNorm), FilterMode.Bilinear);
+    cmd.GetTemporaryRT(ShaderConstants._PingTexture, GetStereoCompatibleDescriptor(wh, hh, GraphicsFormat.R16G16B16A16_SFloat), FilterMode.Bilinear);
+    cmd.GetTemporaryRT(ShaderConstants._PongTexture, GetStereoCompatibleDescriptor(wh, hh, GraphicsFormat.R16G16B16A16_SFloat), FilterMode.Bilinear);
+
+    // Compute CoC
+    cmd.Blit(source, ShaderConstants._FullCoCTexture, material, 5);
+    cmd.SetGlobalTexture(ShaderConstants._FullCoCTexture, ShaderConstants._FullCoCTexture);
+
+    // Downscale & prefilter color + coc
+    cmd.Blit(source, ShaderConstants._PingTexture, material, 6);
+
+    // Bokeh blur
+    cmd.Blit(ShaderConstants._PingTexture, ShaderConstants._PongTexture, material, 2);
+
+    // Post-filtering
+    cmd.Blit(ShaderConstants._PongTexture, BlitDstDiscardContent(cmd, ShaderConstants._PingTexture), material, 3);
+
+    // Composite
+    cmd.SetGlobalTexture(ShaderConstants._DofTexture, ShaderConstants._PingTexture);
+    cmd.Blit(source, BlitDstDiscardContent(cmd, destination), material, 4);
+
+    // Cleanup
+    cmd.ReleaseTemporaryRT(ShaderConstants._FullCoCTexture);
+    cmd.ReleaseTemporaryRT(ShaderConstants._PingTexture);
+    cmd.ReleaseTemporaryRT(ShaderConstants._PongTexture);
+}
+```
+
