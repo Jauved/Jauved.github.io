@@ -86,6 +86,31 @@ ssh-add /c/Users/YOU/.ssh/id_rsa
 
 此时, 使用`SSH`方式拉取仓库, 即可顺利的拉取提交. 注意, 使用`Github DeaskTop`, 无法配置私钥目录, 那么私钥必须储存在默认位置`C:\Users\[username]\.ssh`目录下, 并且名字必须为`id_rsa`, 公钥名字必须为`id_rsa.pub`, 这样才可以被识别. 使用SourceTree则可以方便的在`工具->选项->一般->SSH客户端配置`条目, 选择`OpenSSH`客户端, 并指定私钥.
 
+## 02 其他命令
+
+测试Github是否可以ssh连通
+
+```
+ssh -vT git@ssh.github.com	//测试ssh是否可连
+ssh -vT -p 443 git@ssh.github.com //测试443端口是否可连
+ipconfig /flushdns //请除DNS缓存
+nslookup github.com 8.8.8.8 //查询github.com的ip地址
+ssh-add -l	//查看已经配置的密钥
+ssh-add -D 密钥文件路径	//删除已有密钥
+```
+
+
+
 ###### 参考网页
 
 [Github-Git工程拉取443错误 \| 【RoanYiu】](https://myblog.roanyiu.com/posts/Github-Git工程拉取443错误/)
+
+[坑：ssh: connect to host github.com port 22: Connection refused - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/521340971)
+
+[ssh 连接报错:debug1: expecting SSH2_MSG_KEX_ECDH_REPLY-CSDN博客](https://blog.csdn.net/LaineGates/article/details/102768297)
+
+[ssh 登录 expecting SSH2_MSG_KEX_ECDH_REPLY 错误 - SegmentFault 思否](https://segmentfault.com/q/1010000041688968)
+
+[Github配置SSH密钥连接（附相关问题解决） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/628727065)
+
+[ssh agent详解 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/126117538)

@@ -18,3 +18,35 @@ Physically Based Rendering的详细笔记.
 
 
 ###### 参考网页
+
+[Filament引擎的PBR实现 - 知乎 (zhihu.com)](https://www.zhihu.com/column/c_1419375161635819520)
+
+[filament/shaders/src/shading_model_standard.fs at main · google/filament (github.com)](https://github.com/google/filament/blob/main/shaders/src/shading_model_standard.fs)
+
+[Physically Based Rendering in Filament (google.github.io)](https://google.github.io/filament/Filament.html)
+
+[Graphic Rants: Specular BRDF Reference](https://graphicrants.blogspot.com/2013/08/specular-brdf-reference.html)
+
+[从Lambert模型到PBR模型6：推导镜面反射和漫反射的菲涅尔部分 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/198201029)
+
+[PBR基础模板 (rentry.org)](https://rentry.org/LeiCanY_PBR)
+
+[multithreading - How does \[branch\] get executed in HLSL? - Stack Overflow](https://stackoverflow.com/questions/62992777/how-does-branch-get-executed-in-hlsl)
+
+[Graphics Compendium](https://graphicscompendium.com/references/cook-torrance)
+
+[Graphics Compendium \| Cook-Torrance Reflectance Model](https://graphicscompendium.com/gamedev/15-pbr)
+
+[PBR光照 Part1：BRDF（Cook-Torrance 模型） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/160804623)
+
+[基于物理的渲染—更精确的微表面分布函数GGX - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/25539396)
+
+[万物皆可镭射，个性吸睛的材质渲染技术 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/487204843)
+
+[理论 - LearnOpenGL CN (learnopengl-cn.github.io)](https://learnopengl-cn.github.io/07 PBR/01 Theory/)
+
+[PBR快速(遁)入(空)门 (Physically Based Rendering) - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/393174880)
+
+[Unity PBR轮子（2）StandardLit nuomi (tajourney.games)](https://tajourney.games/6112/)
+
+[unity 在Windows平台编辑器使用 目标为 Android 平台的 shader assetbundle - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/421928428)
