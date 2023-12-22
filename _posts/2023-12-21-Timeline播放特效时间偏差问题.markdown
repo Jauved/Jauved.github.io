@@ -22,3 +22,7 @@ Unity2019, Timeline中播放粒子特效, 但其中一个设置了Delay的粒子
 总体来说, Unity的Timeline中的粒子本不应该走`fixedupdate`. 同时, 从0.02到0.2的`Maximum fixed Time Step`优化, 确实也相对欠妥. 相当于把原先50帧的精度, 降低到了5帧的精度. 建议即便是优化, 请起码保证基于`fixedupdate`有30帧左右的误差容忍. 比如将0.02改为0.033, 建议不要高于0.05.
 
 ###### 参考网页
+
+[Understanding FixedUpdate, FixedTimeStep and Maximum Allowed Timestep in Unity \| Lidia Martinez's Blog (lidia-martinez.com)](http://blog.lidia-martinez.com/fixedupdate-fixedtimestep-maximum-allowed-timestep-unity)
+
+[深入理解Unity中的FixedUpdate,FixedTimeStep和Maximum Allowed Timestep - 掘金 (juejin.cn)](https://juejin.cn/post/7008502979624091685)
