@@ -1,0 +1,23 @@
+---
+layout: post
+title: "编辑器扩展Gizmos"
+categories: [URP, 后处理]
+tags: 编辑器 Gizmos
+math: true
+
+
+---
+
+# 编辑器扩展Gizmos
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[Unity Gizmos使用绘制-CSDN博客](https://blog.csdn.net/qq_39162826/article/details/124687714)
+
+[InitializeOnLoad、InitializeOnLoadMethod、RuntimeInitializeOnLoadMethod特性的使用-CSDN博客](https://blog.csdn.net/qq_35130510/article/details/80905961)
+
+[UnityToolchainsTrick/Assets/Editor/Examples/Example_23_EditorEventListener/EditorListener.cs at main · XINCGer/UnityToolchainsTrick (github.com)](https://github.com/XINCGer/UnityToolchainsTrick/blob/main/Assets/Editor/Examples/Example_23_EditorEventListener/EditorListener.cs)

@@ -1,0 +1,25 @@
+---
+layout: post
+title: "PNG转TGA"
+categories: [豆知识, 贴图]
+tags: 贴图 PNG TGA
+math: true
+
+
+---
+
+# PNG转TGA
+
+## 00 前言
+
+## 01 处理方法
+
+1、Layer->Layer Mask->From Transparency
+
+2、Shift-click禁用Mask可以在Photoshop中预览不透明的图像效果（类似TGA的预览效果，也可以切换到通道面板预览对应的通道）
+
+3、复制Layer Mask通道作为Alpha通道，然后另存为TGA即可
+
+原文链接：https://blog.csdn.net/cubesky/article/details/103118974
+
+###### 参考网页

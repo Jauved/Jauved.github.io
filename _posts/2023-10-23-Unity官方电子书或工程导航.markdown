@@ -93,6 +93,13 @@ math: true
 
   关于通过避免潜在的花销提升ROI(投资回报率)? 指导经营的电子书.
 
+### Demo
+
+- [Unity-Technologies/URP3DSampleScenes: The beta release of the new URP Sample Scene (github.com)](https://github.com/Unity-Technologies/URP3DSampleScenes)
+- [UnityKorea/ProjectKaya: Project Kaya for mobile game platform (github.com)](https://github.com/UnityKorea/ProjectKaya?tab=readme-ov-file)
+  - [[译\] 韩国Unity团队研发的demo分享—ProjectKaya - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/444413015)
+
+
 ###### 参考网页
 
 [Search the blog \| Unity Blog](https://blog.unity.com/search?q=E-book)

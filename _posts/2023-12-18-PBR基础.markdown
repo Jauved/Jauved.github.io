@@ -15,9 +15,178 @@ Physically Based Rendering的详细笔记.
 
 ## 01 分析
 
+### 01.1 环境光反射高光部分与遮罩部分
+
+```c++
+#define UNITY_SPECCUBE_LOD_STEPS 6
+// The *approximated* version of the non-linear remapping. It works by
+// approximating the cone of the specular lobe, and then computing the MIP map level
+// which (approximately) covers the footprint of the lobe with a single texel.
+// Improves the perceptual roughness distribution.
+real PerceptualRoughnessToMipmapLevel(real perceptualRoughness, uint mipMapCount)
+{
+    perceptualRoughness = perceptualRoughness * (1.7 - 0.7 * perceptualRoughness);
+
+    return perceptualRoughness * mipMapCount;
+}
+
+half3 GlossyEnvironmentReflection(half3 reflectVector, half perceptualRoughness, half occlusion)
+{
+#if !defined(_ENVIRONMENTREFLECTIONS_OFF)
+    half mip = PerceptualRoughnessToMipmapLevel(perceptualRoughness);
+    half4 encodedIrradiance = SAMPLE_TEXTURECUBE_LOD(unity_SpecCube0, samplerunity_SpecCube0, reflectVector, mip);
+
+    //解码环境光, 根据HDR还是非HDR有两种解码方式
+    #if !defined(UNITY_USE_NATIVE_HDR)
+        half3 irradiance = DecodeHDREnvironment(encodedIrradiance, unity_SpecCube0_HDR);
+    #else
+        half3 irradiance = encodedIrradiance.rbg;
+    #endif
+    return irradiance * occlusion;
+#endif // GLOSSY_REFLECTIONS
+    return _GlossyEnvironmentColor.rgb * occlusion;
+}
+```
+
+注意这里的`occlusion`, Unity直接使用了直接光漫反射的`occlusion`, 但实际上, 这部分的镜面反射间接光的`occlusion`有独立的算法, 在Filament引擎的[PBR实现](file:///E:/Projects/filament/docs/Filament.md.html#lighting/occlusion/specularocclusion)中有解析. 
+
+>Specular occlusion
+>
+>Specular micro-occlusion can be derived from $f\_0$​, itself derived from the diffuse color. The derivation is based on the knowledge that no real-world material has a reflectance lower than 2%. Values in the 0-2% range can therefore be treated as pre-baked specular occlusion used to smoothly extinguish the Fresnel term.
+>
+>```c++
+>float f90 = clamp(dot(f0, 50.0 * 0.33), 0.0, 1.0);
+>// cheap luminance approximation
+>float f90 = clamp(50.0 * f0.g, 0.0, 1.0);
+>```
+>
+>**Listing 37:** *Pre-baked specular occlusion in GLSL*
+>
+>The derivations mentioned earlier for ambient occlusion assume Lambertian surfaces and are only valid for indirect diffuse lighting. The lack of information about surface accessibility is particularly harmful to the reconstruction of indirect specular lighting. It usually manifests itself as light leaks.
+>
+>Sébastien Lagarde proposes an empirical approach to derive the specular occlusion term from the diffuse occlusion term in [[Lagarde14](#citation-lagarde14)]. The result does not have any physical basis but produces visually pleasant results. The goal of his formulation is return the diffuse occlusion term unmodified for rough surfaces. For smooth surfaces, the formulation, implemented in [listing 38](#listing_specularocclusion), reduces the influence of occlusion at normal incidence and increases it at grazing angles.
+>
+>```c++
+>float computeSpecularAO(float NoV, float ao, float roughness) {
+>    return clamp(pow(NoV + ao, exp2(-16.0 * roughness - 1.0)) - 1.0 + ao, 0.0, 1.0);
+>}
+>
+>// specular indirect
+>vec3 indirectSpecular = evaluateSpecularIBL(r, perceptualRoughness);
+>// ambient occlusion
+>float ao = texture2D(aoMap, outUV).r;
+>indirectSpecular *= computeSpecularAO(NoV, ao, roughness);
+>```
+>
+>**Listing 38:** Implementation of Lagarde's specular occlusion factor in GLSL
+>
+>Note how the specular occlusion factor is only applied to indirect lighting.
+
+另外, Unity的`EnvironmentBRDF`, 其中`surfaceReduction * indirectSpecular * lerp(brdfData.specular, brdfData.grazingTerm, fresnelTerm);`即等同于`specularIBL`.
+
+```c++
+half3 EnvironmentBRDF(BRDFData brdfData, half3 indirectDiffuse, half3 indirectSpecular, half fresnelTerm)
+{
+    half3 c = indirectDiffuse * brdfData.diffuse;
+    float surfaceReduction = 1.0 / (brdfData.roughness2 + 1.0);
+    c += surfaceReduction * indirectSpecular * lerp(brdfData.specular, brdfData.grazingTerm, fresnelTerm);
+    return c;
+}
+```
+
+UE4的完整`SpecularIBL`, `AB`在桌面端是采用预积分图来实现, 移动端则是`EnvBRDFApprox()`函数进行近似. 然后UE4可能由于反射图的计算mip的编码方式和Unity的不同, 也导致了mip计算的不同. 但还是建议在Unity中使用Unity自己的mip计算方式.
+
+```c++
+float3 ApproximateSpecularIBL( uint2 Random, float3 SpecularColor, float Roughness, float3 N, float3 V )
+{
+    // Function replaced with prefiltered environment map sample
+    float3 R = 2 * dot( V, N ) * N - V;
+    // float3 PrefilteredColor = PrefilterEnvMap( Random, Roughness, R );
+    // float3 PrefilteredColor = FilterEnvMap( Random, Roughness, N, V );
+
+    // Compute fractional mip from roughness
+    // CubemapMaxMip is the (MaxMipNum - 1) of the cubemap. For 128x128, CubemapMaxMip = 7.
+    float AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, CubemapMaxMip);
+    float3 PrefilteredColor = PrefilterEnvMap.SampleLevel(PrefilterEnvMapSampler, R, AbsoluteSpecularMip).xyz;
+
+    // Function replaced with 2D texture sample
+    float NoV = saturate( dot( N, V ) );
+    // float2 AB = IntegrateBRDF( Random, Roughness, NoV ).xy;
+    float2 AB = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, Roughness), 0 ).rg;
+
+    return PrefilteredColor * ( SpecularColor * AB.x + AB.y );
+}
+```
+
+
+
+UE4的`EnvBRDFApprox`移动端近似
+
+```c++
+half3 EnvBRDFApprox( half3 SpecularColor, half Roughness, half NoV )
+{
+    // [ Lazarov 2013, "Getting More Physical in Call of Duty: Black Ops II" ]
+    // Adaptation to fit our G term.
+    const half4 c0 = { -1, -0.0275, -0.572, 0.022 };
+    const half4 c1 = { 1, 0.0425, 1.04, -0.04 };
+    half4 r = Roughness * c0 + c1;
+    half a004 = min( r.x * r.x, exp2( -9.28 * NoV ) ) * r.x + r.y;
+    half2 AB = half2( -1.04, 1.04 ) * a004 + r.zw;
+
+    // Anything less than 2% is physically impossible and is instead considered to be shadowing
+    // Note: this is needed for the 'specular' show flag to work, since it uses a SpecularColor of 0
+    AB.y *= saturate( 50.0 * SpecularColor.g );
+
+    return SpecularColor * AB.x + AB.y;
+}
+```
+
+UE4的mipMapLod, 这里的mioMalLod, 要对应各自引擎的lod编码方式, 这里无法照搬, 除非我们能够改动Unity的反射图lod的编码方式.
+
+```c++
+#define REFLECTION_CAPTURE_ROUGHEST_MIP 1
+#define REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE 1.2
+
+/** 
+ * Compute absolute mip for a reflection capture cubemap given a roughness.
+ */
+half ComputeReflectionCaptureMipFromRoughness(half Roughness, half CubemapMaxMip)
+{
+    // Heuristic that maps roughness to mip level
+    // This is done in a way such that a certain mip level will always have the same roughness, regardless of how many mips are in the texture
+    // Using more mips in the cubemap just allows sharper reflections to be supported
+    half LevelFrom1x1 = REFLECTION_CAPTURE_ROUGHEST_MIP - REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE * log2(Roughness);
+    return CubemapMaxMip - 1 - LevelFrom1x1;
+}
+
+float ComputeReflectionCaptureRoughnessFromMip(float Mip, half CubemapMaxMip)
+{
+    float LevelFrom1x1 = CubemapMaxMip - 1 - Mip;
+    return exp2( ( REFLECTION_CAPTURE_ROUGHEST_MIP - LevelFrom1x1 ) / REFLECTION_CAPTURE_ROUGHNESS_MIP_SCALE );
+}
+
+// Compute fractional mip from roughness
+// CubemapMaxMip is the (MaxMipNum - 1) of the cubemap. For 128x128, CubemapMaxMip = 7.
+half AbsoluteSpecularMip = ComputeReflectionCaptureMipFromRoughness(Roughness, CubemapMaxMip);
+// Sample the mipmap
+half4 SpecularIBLSample = ReflectionCaptureTexture.SampleLevel(ReflectionCaptureTextureSampler, R, AbsoluteSpecularMip);
+```
+
+
+
 
 
 ###### 参考网页
+
+IBL
+
+- [移动管线光照——基于图像的照明 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/149217557)
+- [镜面IBL - LearnOpenGL CN (learnopengl-cn.github.io)](https://learnopengl-cn.github.io/07 PBR/03 IBL/02 Specular IBL/)
+- [镜面反射辐照模型——不完全的翻译_prefiltering the environment maps-CSDN博客](https://blog.csdn.net/xiewenzhao123/article/details/70175785)
+- [深入理解 PBR/基于图像照明 (IBL) - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/66518450)
+- Real shading in unreal engine 4[J]. Proc. Physically Based Shading Theory Practice, 2013, 4. https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+- Library/PackageCache/com.unity.render-pipelines.core@7.3.1/ShaderLibrary/ImageBasedLighting.hlsl
+- [Alternative Take on the Split Sum Approximation for Cubemap Pre-filtering // Zero Radiance (zero-radiance.github.io)](https://zero-radiance.github.io/post/split-sum/)
 
 [Filament引擎的PBR实现 - 知乎 (zhihu.com)](https://www.zhihu.com/column/c_1419375161635819520)
 

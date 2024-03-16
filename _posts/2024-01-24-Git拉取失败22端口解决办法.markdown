@@ -1,0 +1,129 @@
+---
+layout: post
+title: "Git拉取失败22端口解决办法"
+categories: [Git]
+tags: Git 22 拉取失败
+math: true
+---
+
+# Git拉取失败22端口解决办法
+
+## 00 前言
+
+使用ssh后, 仍旧拉取失败.
+
+命令行报错
+
+```
+C:\Windows\system32>ssh -vT git@github.com
+OpenSSH_for_Windows_8.1p1, LibreSSL 3.0.2
+debug1: Connecting to github.com [20.205.243.166] port 22.
+debug1: connect to address 20.205.243.166 port 22: Connection timed out
+ssh: connect to host github.com port 22: Connection timed out
+```
+
+常用命令
+
+```
+ssh -vT git@github.com //在本文中, 使用此命令报错
+ssh -vT git@ssh.github.com //在本文中, 使用此命令连接成功
+netstat -aon | findstr :22 //查看本机22端口的情况
+```
+
+## 01 处理方法
+
+22端口无法连接, 那么解决方式:
+
+- 改变`ssh`对于`Github`的端口使用, `Github`也接受443端口.
+- ping`Github.com`, 如果不能连通, 测试其IP地址是否正确, 不正确则修正.
+
+### 改变`ssh`对于`Github`的端口使用
+
+- 进入`C:\Users\[用户名]\.ssh`目录, 在目录中建立一个`config`文件(可以用笔记本建立后删除扩展名), 用任何的文本编辑工具打开并加入以下代码
+  ```
+  Host github.com
+    Hostname ssh.github.com
+    Port 443
+  ```
+
+- 使用`ssh -vT git@github.com`命令进行测试, 此时连接成功即解决了问题.
+
+### 修正Github地址
+
+使用命令`nslookup github.com`, 大概率出现信息如下
+
+```
+服务器:  public1.114dns.com
+Address:  114.114.114.114
+
+非权威应答:
+名称:    github.com
+Address:  20.205.243.166
+```
+
+而通过网站[GitHub.com - GitHub: Let's build from here · GitHub (ipaddress.com)](https://sites.ipaddress.com/github.com/#ipinfo), 可以查询到
+
+![image-20240124120704468](/assets/image/image-20240124120704468.png)
+
+而20.205.243.166是位于新加坡的微软云, 如果这个IP无法ping通的话, 那么也就意味着该节点出现了问题.
+
+![image-20240124120756701](/assets/image/image-20240124120756701.png)
+
+在`C:\Windows\System32\drivers\etc\hosts`文件中强行进行修正, 加入如下行. 即可.
+
+```
+  140.82.113.4 github.com              # Github
+```
+
+
+
+## 02 其他命令
+
+查看是哪个程序占用了本机端口
+
+### 查看是哪个程序占用了本机端口
+
+- 使用`netstat -aon | findstr :22`命令查看22端口情况, 在本机的情况下如下
+
+  ```
+  C:\Windows\system32>netstat -aon | findstr :22
+    TCP    127.0.0.1:22112        0.0.0.0:0              LISTENING       6008
+  ```
+
+- 然后打开`任务管理器`, 详细信息页, 寻找PID为6008的程序
+  ![image-20240124112458850](/assets/image/image-20240124112458850.png)
+
+- 如果你需要别人用到该端口, 则处理掉这个服务(对于这个程序, 进入添加删除程序卸载其即可).
+
+- 此时再次运行`netstat -aon | findstr :22`, 将不会出现任何信息.
+
+### 命令整合
+
+```
+ssh -vT git@ssh.github.com	//测试ssh是否可连
+ssh -vT -p 443 git@ssh.github.com //测试443端口是否可连
+ipconfig /flushdns //请除DNS缓存
+nslookup github.com 8.8.8.8 //查询github.com的ip地址
+ssh-add -l	//查看已经配置的密钥
+ssh-add -D 密钥文件路径	//删除已有密钥
+ping github.com //ping Github, 会显示其IP地址
+netstat -aon | findstr :22 //测试22端口占用
+```
+
+
+
+###### 参考网页
+
+[github ssh 连接 22 端口 Connection refused - C_BC - 博客园 (cnblogs.com)](https://www.cnblogs.com/cbc-onne/p/17981624)
+
+[Github-Git工程拉取443错误 \| 【RoanYiu】](https://myblog.roanyiu.com/posts/Github-Git工程拉取443错误/)
+
+[坑：ssh: connect to host github.com port 22: Connection refused - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/521340971)
+
+[ssh 连接报错:debug1: expecting SSH2_MSG_KEX_ECDH_REPLY-CSDN博客](https://blog.csdn.net/LaineGates/article/details/102768297)
+
+[ssh 登录 expecting SSH2_MSG_KEX_ECDH_REPLY 错误 - SegmentFault 思否](https://segmentfault.com/q/1010000041688968)
+
+[Github配置SSH密钥连接（附相关问题解决） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/628727065)
+
+[ssh agent详解 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/126117538)

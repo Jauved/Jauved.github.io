@@ -1,0 +1,28 @@
+---
+layout: post
+title: "寻路避障"
+categories: [AI, 寻路]
+tags: AI 寻路 避障
+math: true
+
+---
+
+# 寻路避障
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[避障算法 - VO、RVO 以及 ORCA (RVO2)\|移动_新浪新闻 (sina.com.cn)](https://k.sina.com.cn/article_3743149912_df1bef5801901cp6s.html)
+
+[Unity 万人寻路（dots版本）-CSDN博客](https://blog.csdn.net/qq_35623058/article/details/132001513)
+
+[RTS游戏中的避障算法 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/109556568)
+
+[Unity 使用RVO2(orca)算法_unity orca-CSDN博客](https://blog.csdn.net/qq_27461747/article/details/128815432)
+
+[Unity 使用RVO2(orca)算法_unity orca-CSDN博客](https://blog.csdn.net/qq_27461747/article/details/128815432)
+
+[RTS游戏中的避障算法 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/109556568)
