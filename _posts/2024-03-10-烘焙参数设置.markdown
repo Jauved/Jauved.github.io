@@ -1,0 +1,42 @@
+---
+layout: post
+title: "烘焙参数设置"
+categories: [URP, 烘焙]
+tags: URP 烘焙 Bake
+math: true
+
+
+---
+
+# 烘焙参数设置
+
+## 00 前言
+
+- 官方烘焙QA: [Official - Lightmapping Troubleshooting Guide - Unity Forum](https://forum.unity.com/threads/lightmapping-troubleshooting-guide.1340936/)
+- 新的自动光照UV的方式: [Official - [2020.1\] New Feature - Auto Pack Margin - Unity Forum](https://forum.unity.com/threads/2020-1-new-feature-auto-pack-margin.827859/)
+- [Global Illumination - Unity Forum](https://forum.unity.com/forums/global-illumination.85/)
+- [Lighting tips & tricks in the Adam films \| Unity Blog](https://blog.unity.com/entertainment/lighting-tips-tricks-in-the-adam-films)
+
+
+
+## 01 参数设置QA
+
+[Unity - Manual: Lightmap Parameters Asset (unity3d.com)](https://docs.unity3d.com/Manual/class-LightmapParameters.html)
+
+### Q: 关于伪影和接缝的关键参数有哪些?
+
+A: 其实最重要的参数为LightMap Parameters中的参数, 
+
+- `Backface Tolerance`
+  - 默认该值为0.9, 此时如果会产生大量的伪影, Unity官方的案例, 该值为0.1.
+  - 指定 Unity 认为有效的像素必须具有的正面几何体采样光线命中百分比。这样，如果有太多光线从曲面投射到曲面背面（例如曲面位于几何体内部），Unity 就有可能使曲面无效。例如，如果数值为 1.0，则 Unity 会认为该像素的任何光线击中背面都是无效的。当一个像素无效时，Unity 会从周围的像素中克隆有效值，以防止出现伪影。降低该值可解决由背面采样引起的光照问题。使用 "Texel Validity 场景视图绘制模式 "调整此值.
+- Pushoff
+  - 默认值为0.001, 一般不需要修改, 但如果墙壁地板之类的是拼接而成, 那么可能在拼接处出现预期外的AO,此时该值可以通过降低整体AO来缓解, 但还是建议墙壁整体建模, 或者在接缝处使用其他模型进行遮挡.
+  - 根据您以建模单位指定的值，沿着法线将光线起源推离几何体。Unity 会将此值应用于所有烘焙光贴图。它会影响直射光、间接光和烘焙的环境光遮蔽。
+    .调整此设置可减少自遮蔽和自阴影伪影。
+
+### Q: shadowMask哪种情况下会出现且带有数据?
+
+A: 灯光设置为mixed, 且产生阴影时, 才会烘焙出shadowMask图, 同一个物体, 同时只能接受4盏烘焙光的阴影. 即对应shadowMask的RGBA通道.
+
+###### 参考网页

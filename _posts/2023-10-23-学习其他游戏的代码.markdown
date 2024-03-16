@@ -26,3 +26,10 @@ math: true
 
 [killop/anything_about_game: A wonderful list of Game Development resources. (github.com)](https://github.com/killop/anything_about_game#papers)
 
+[游戏开发工具箱 - 知乎 (zhihu.com)](https://www.zhihu.com/column/c_1093507551714443264)
+
+[EllanJiang/GameFramework: This is literally a game framework, based on Unity game engine. It encapsulates commonly used game modules during development, and, to a large degree, standardises the process, enhances the development speed and ensures the product quality. (github.com)](https://github.com/EllanJiang/GameFramework)
+
+[From 1 to Hero 不容错过的游戏相关书籍——(二)程序篇 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/367850710)
+
+[XSF：一个开源的极简风游戏开发框架 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/664297073)

@@ -1,0 +1,29 @@
+---
+layout: post
+title: "逆向分析URP管线"
+categories: [逆向, URP]
+tags: URP 逆向 渲染管线
+math: true
+
+
+---
+
+# 逆向分析URP管线
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[[Unity\] 用 Rider 的 PlantUML 畫出專案程式架構圖 (MacOS) – 熱血剪貼部 (scissor.tw)](https://scissor.tw/unity-rider-plantuml/)
+
+[PlantUmlClassDiagramGenerator/README.zh-CN.md at master · pierre3/PlantUmlClassDiagramGenerator (github.com)](https://github.com/pierre3/PlantUmlClassDiagramGenerator/blob/master/README.zh-CN.md)
+
+[Download \| Graphviz](https://graphviz.org/download/)
+
+[.NET Class Diagrams In JetBrains Rider with PlantUML \| Khalid Abuhakmeh](https://khalidabuhakmeh.com/dotnet-class-diagrams-in-jetbrains-rider-with-plantuml)
+
+[通用渲染管线中的渲染 \| Universal RP \| 12.1.1 (unity3d.com)](https://docs.unity3d.com/cn/Packages/com.unity.render-pipelines.universal@12.1/manual/rendering-in-universalrp.html)
+
+[URP \| 后处理-色调映射-ACES - 哔哩哔哩 (bilibili.com)](https://www.bilibili.com/read/cv19908801/)

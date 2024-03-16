@@ -1,0 +1,27 @@
+---
+layout: post
+title: "下雨雨滴制作"
+categories: [URP, 天气]
+tags: URP 天气 雨滴
+math: true
+
+
+---
+
+# 下雨雨滴制作
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[Unity Shader 实现雨天的水面涟漪效果 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/83219238)//时间差
+
+[用WebGL实现雨打屏幕 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/353616639)
+
+[ 关于实时的天气模拟&渲染，涉及的较为经典或者目前最先进的技术和做法有哪些？ - 知乎 (zhihu.com)](https://www.zhihu.com/question/35529412)
+
+[游戏中雨天效果开发：如何打造“最美下雨天” - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/111904859)
+
+[教程 \| 在Unity中实现逼真的下雨效果-腾讯游戏学堂 (tencent.com)](https://gwb.tencent.com/community/detail/120283)

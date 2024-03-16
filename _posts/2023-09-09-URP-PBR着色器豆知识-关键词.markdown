@@ -22,3 +22,24 @@ tags: PBR着色器豆知识
 - 此时```Generate Lighting```后, 该关键词才会激活
 
 - 考虑到移动端的性能, 暂时去掉该功能, 以简化PBR基础着色器.
+
+
+## 环境光BRDF优化
+
+```c++
+half3 EnvBRDFApprox( half3 SpecularColor, half Roughness, half NoV )
+{
+	const half4 c0 = { -1, -0.0275, -0.572, 0.022 };
+	const half4 c1 = { 1, 0.0425, 1.04, -0.04 };
+	half4 r = Roughness * c0 + c1;
+	half a004 = min( r.x * r.x, exp2( -9.28 * NoV ) ) * r.x + r.y;
+	half2 AB = half2( -1.04, 1.04 ) * a004 + r.zw;
+	return SpecularColor * AB.x + AB.y;
+}
+```
+
+# Tag
+
+[Shader Tags（标签） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/625198742)
+
+[Physically Based Shading on Mobile - Unreal Engine](https://www.unrealengine.com/en-US/blog/physically-based-shading-on-mobile)
