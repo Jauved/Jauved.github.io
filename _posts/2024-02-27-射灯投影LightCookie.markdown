@@ -20,5 +20,3 @@ math: true
 ###### 参考网页
 
 https://blog.unity.com/engine-platform/create-high-quality-light-fixtures-in-unity
-
- [create-high-quality-light-fixtures-in-unity.pdf]([Create high-quality light fixtures in Unity \| Unity Blog](https://blog.unity.com/engine-platform/create-high-quality-light-fixtures-in-unity)) 
