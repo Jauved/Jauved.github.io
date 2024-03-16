@@ -1,0 +1,41 @@
+---
+layout: post
+title: "水体渲染"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 水体渲染
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[[GitHub\] Unity中实现水、海洋以及液体模拟的仓库合集 - 简书 (jianshu.com)](https://www.jianshu.com/p/affd155e9ef1)
+
+[Boat Attack 项目海水技术解析 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/127116312)
+
+[ChiliMilk/URP_Water: Water shader in unity urp. (github.com)](https://github.com/ChiliMilk/URP_Water)
+
+[Unity URP真实感水体渲染工具（二）水的交互，波动方程 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/441400462)
+
+[AsehesL/UnityWaveEquation: unity实现二维波方程交互水面与实时焦散 (github.com)](https://github.com/AsehesL/UnityWaveEquation)
+
+[Unity URP真实感水体渲染工具（一）水的形态，折射，着色与简单交互 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/435120103)
+
+[一波江水动京城：游戏水面渲染与互动 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/112300986)
+
+[[Unity\]URP管线可交互涟漪的实现_哔哩哔哩_bilibili](https://www.bilibili.com/video/BV12L411x7nZ/)
+
+https://github.com/LoveAIhuihui/Urp-Interactive-Water
+
+[[Unity/URP学习\]风格化水体渲染(一)_unity urp水面-CSDN博客](https://blog.csdn.net/Phantom1516/article/details/128762607)
+
+[UnityTessellationSnowURP: 利用曲面细分制作雪地效果。 (gitee.com)](https://gitee.com/FB-dtalker/unity-tessellation-snow-urp)
+
+[Urp-Interactive-Water/Assets at main · LoveAIhuihui/Urp-Interactive-Water (github.com)](https://github.com/LoveAIhuihui/Urp-Interactive-Water/tree/main/Assets)

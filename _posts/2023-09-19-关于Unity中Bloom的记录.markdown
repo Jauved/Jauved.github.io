@@ -69,4 +69,8 @@ $$
 
 解释一下采样部分的"神奇数字"的来源.
 
-参考网页: [高质量泛光Bloom改进以及高斯核采样的优化 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/630726865)
+参考网页: 
+
+[高质量泛光Bloom改进以及高斯核采样的优化 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/630726865)
+
+[UnrealEngine/Engine/Shaders/Private/Bloom/BloomDownsampleKernel.usf at release · EpicGames/UnrealEngine (github.com)](https://github.com/EpicGames/UnrealEngine/blob/release/Engine/Shaders/Private/Bloom/BloomDownsampleKernel.usf)

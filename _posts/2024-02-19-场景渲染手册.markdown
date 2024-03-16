@@ -1,0 +1,60 @@
+---
+layout: post
+title: "场景渲染手册"
+categories: [URP, 场景]
+tags: URP 场景 渲染
+math: true
+
+
+---
+
+# 场景渲染手册
+
+## 00 前言
+
+## 01 工程目录结构
+
+- Assets
+  - Scenes
+    - Scenes00
+    - Scenes01
+    - ...
+  - Settings
+    - Mobile//管线Asset及其使用的RendererData文件
+    - PC
+    - VolumeProfiles//后处理相关
+
+## 02 步骤
+
+### 01.1 根据平台设定PiplineAsset
+
+放置于```Settings```文件夹中
+
+| 名称                            | Mobile Low         | Mobile High        | PC Low             | PC High             |
+| ------------------------------- | ------------------ | ------------------ | ------------------ | ------------------- |
+| Realtime GI CPU Usage           | Medium             | Unlimited          | Low                | Unlimited           |
+| Global Mipmap Limit             | 1: Half Resolution | 0: Full Resolution | 0: Full Resolution | 0: Full Resolution  |
+| Anisotropic Textures[^1]        | Per Texture        | Per Texture        | Disabled           | Force On            |
+| Billboards Face Camera Position | ✓                  | ✓                  | ✗                  | ✓                   |
+| Shadowmask Mode                 | Shadowmask         | Shadowmask         | Shadowmask         | Distance Shadowmask |
+| LOD Bias                        | 0.25               | 1                  | 0.25               | 2                   |
+| Maximum LOD Level               | 1                  | 0                  | 1                  | 0                   |
+| Skin Weights                    | 2 Bones            | 2 Bones            | 2 Bones            | 4 Bones             |
+
+[^1]: [由硬件完成的当贴图不与摄像机裁剪面平行时额外需要的采样, 一般来说一倍Anisotropic需要8次采样](https://zhuanlan.zhihu.com/p/633122224)
+
+### 01.2 设置RendererData
+
+|                    | 质量               | 性能               |
+| ------------------ | ------------------ | ------------------ |
+| Rendering Path     | Forward+           | Defferred          |
+| Depth Priming Mode | Forced             | Disabled           |
+| Depth Texture Mode | After Transparents | After Transparents |
+
+### 01.3 加入Renderer Feature
+
+Global Volume Feature: 全局后处理
+Screen Space Ambient Occlusion: 屏幕AO
+Decal: 印花
+
+###### 参考网页

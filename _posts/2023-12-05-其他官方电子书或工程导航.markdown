@@ -2,25 +2,33 @@
 layout: post
 title: "其他官方电子书或工程导航"
 categories: [电子书, 其他]
-tags: 电子书 其他
+tags: 电子书 其他 贴花
 math: true
 
 ---
 
 # 其他官方电子书或工程导航
 
-## 00 前言
-
-## 01 内容
-
-### 01.1 GPU原理
+## 01 GPU原理
 
 [How GPU Computing Works \| NVIDIA On-Demand](https://www.nvidia.cn/on-demand/session/gtcspring21-s31151/)
 
-### 01.2 渲染器
+## 02 渲染器
 
 [Nori光追渲染器 - 知乎 (zhihu.com)](https://www.zhihu.com/column/c_1407025850030698496)
 
 [wjakob/nori: Nori: an educational ray tracer (github.com)](https://github.com/wjakob/nori)
+
+## 03 渲染
+
+[ 游戏开发的一些前沿技术在哪里能浏览到? - 知乎 (zhihu.com)](https://www.zhihu.com/question/624512843/answer/3287554066)
+
+[贴花-Anatta336/driven-decals: A mesh-based PBR decal system for Unity's universal render pipeline. (github.com)](https://github.com/Anatta336/driven-decals)
+
+## 04 工具
+
+[数学库-FreyaHolmer/Mathfs: Expanded Math Functionality for Unity (github.com)](https://github.com/freyaholmer/Mathfs)
+
+[游戏框架-EllanJiang/GameFramework: This is literally a game framework, based on Unity game engine. It encapsulates commonly used game modules during development, and, to a large degree, standardises the process, enhances the development speed and ensures the product quality. (github.com)](https://github.com/EllanJiang/GameFramework)
 
 ###### 参考网页

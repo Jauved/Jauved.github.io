@@ -1,0 +1,21 @@
+---
+layout: post
+title: "卡通渲染"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 卡通渲染
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[JasonMa0012/JTRP: JTRP : Unity HDRP ToonShading Render Pipeline (Preview) (github.com)](https://github.com/JasonMa0012/JTRP)
+
+[ChiliMilk/URP_Toon: A Toon Shader in Unity Universal Render Pipeline. (github.com)](https://github.com/ChiliMilk/URP_Toon/tree/master)

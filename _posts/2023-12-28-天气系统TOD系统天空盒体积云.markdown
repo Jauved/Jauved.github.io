@@ -1,0 +1,112 @@
+---
+layout: post
+title: "天气系统TOD系统天空盒和体积云"
+categories: [URP, TOD]
+tags: URP TOD 体积云 天空盒
+math: true
+
+
+---
+
+# 天气系统TOD系统天空盒体积云
+
+## 00 前言
+
+## 01 参考库
+
+[wlgys8/URPLearn: A project used for learning Unity Universal Render Pipeline (github.com)](https://github.com/wlgys8/URPLearn)
+
+### 01.0 天空盒
+
+- [Campo Santo](https://blog.camposanto.com/post/112703721804/this-blog-post-is-an-in-detail-explanation-of-a)(用阿荣打开)
+- [Unity 卡通渲染 程序化天空盒 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/540692272)
+- [Unity-URP-原神风格程序化天空盒-（1）纸片卡通云 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/660806535)
+- [Unity 卡通渲染 程序化天空盒 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/540692272)
+- [Coding Adventure: Atmosphere - YouTube](https://www.youtube.com/watch?v=DxfEbulyFcY)
+  - [SebLague/Solar-System: Simple solar system experiment (github.com)](https://github.com/SebLague/Solar-System)
+- [Unity 天空盒环境光和反射光 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/340096340)
+- [【计算机图形学】基于GPU预计算的大气层光效渲染_precomputed atmospheric scattering: a new implemen-CSDN博客](https://blog.csdn.net/qq_31615919/article/details/85938076)
+- [Skybox tutorial part 1 \| Kelvin van Hoorn](https://kelvinvanhoorn.com/2022/03/17/skybox-tutorial-part-1/)
+- [xinyangaa/Unity_URP_Genshin_Impact_Programmed_Skybox: Unity的URP中制作的仿原神程序化天空球 (github.com)](https://github.com/xinyangaa/Unity_URP_Genshin_Impact_Programmed_Skybox)
+- [GDC Vault - The Art of Firewatch](https://gdcvault.com/play/1022295/The-Art-of)
+- [八面体参数化球面映射方式及实现 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/408898601)
+- [MrMabulous/CubeMapToOctMap: Fast tool to convert OpenExr Cube Maps to Octahedron Maps (github.com)](https://github.com/MrMabulous/CubeMapToOctMap)
+- [八面体映射 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/655725271)
+
+### 01.1 云
+
+- [模拟飞行-brihernandez/MouseFlight: War Thunder style mouse flight controls for aircraft (github.com)](https://github.com/brihernandez/MouseFlight)
+- [体积云-SebLague/Clouds: Cloud rendering test (github.com)](https://github.com/SebLague/Clouds)
+- [简单天空盒-FlowingCrescent/SimpleProceduralSkybox_URP: A simple procedural skybox which has day and night in unity universal render pipeline (github.com)](https://github.com/FlowingCrescent/SimpleProceduralSkybox_URP)
+
+### 01.2 雾效
+
+- [雾效-【浅入浅出】Unity 雾效 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/144845123)
+
+### 01.3 雨/雪
+
+- [Unity3D:URP下输出深度图以及自定义ScriptableRenderer - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/351390737)
+  - [LookingShader/ShaderDemo/Assets/Scripts/RenderFeature/CustomRenderFeature.cs at master · tkonexhh/LookingShader (github.com)](https://github.com/tkonexhh/LookingShader/blob/master/ShaderDemo/Assets/Scripts/RenderFeature/CustomRenderFeature.cs)
+  - [Unity Render Feature初探 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/146396120)
+  - [URP Renderer Feature to force a CopyDepth pass (Unity 2022.2, URP) (github.com)](https://gist.github.com/Cyanilux/451c84fc54aab1871fc1643751c35730)
+
+- [可交互雪地轨迹实现思路 \| YoKuYo (higashisan.github.io)](https://higashisan.github.io/2021/09/10/可交互雪地轨迹实现思路/)
+- [游戏中雨天效果开发：如何打造“最美下雨天” - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/111904859)
+- [天刀下雨效果分析和复现（一） - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/276038311)
+- [一种适合移动平台的下雪遮挡实现方法 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/144673560)
+- [移动端天气系统--【下雨】效果之【雨滴】的实现和分析_shader屏幕雨水效果-CSDN博客](https://blog.csdn.net/u013229693/article/details/103921562)
+- [Unity-雪地效果的实现 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/110447928)
+  - [TheBeach54/SnowSimulation (github.com)](https://github.com/TheBeach54/SnowSimulation)
+  - [thnewlands/unity-deformablesnow: Repository for online PIGSquad workshop on deformable snow in Unity. (github.com)](https://github.com/thnewlands/unity-deformablesnow)
+
+
+#### 01.3.1 深度
+
+- [unity深度及应用 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/475163731)
+- [【Unity UPR】造个获取深度法线纹理的轮子_urp获取buffer中的法线-CSDN博客](https://blog.csdn.net/qq_41835314/article/details/130151062)
+- [unity - Why can't I write to depth buffer if I specify the render target to something different than the default camera frame buffer? - Game Development Stack Exchange](https://gamedev.stackexchange.com/questions/202894/why-cant-i-write-to-depth-buffer-if-i-specify-the-render-target-to-something-di)
+
+### 01.4 水面交互
+
+- [怎么才能边做游戏边划水: 基于浅水方程的水面交互 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/649003961)
+- [在Unity中实现水体交互 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/108845039)
+
+[图形引擎实战：移动端大世界TOD与多光源调节经验分享 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/649359537)
+
+[原神逆向库-xuetaolu/URP_ASE_Tutorial: Amplify Shader Editor Tutorial with Universal Render Pipeline (github.com)](https://github.com/xuetaolu/URP_ASE_Tutorial)
+
+【附录2.1】Houdini烘焙3D纹理 - 知乎 (zhihu.com)
+
+[[ArtStation - Signed distance fields in Substance Designer](https://www.artstation.com/artwork/gaRO8)](https://zhuanlan.zhihu.com/p/444451024)
+
+[实时反射优化-Unity实时反射相关优化 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/462435469)
+
+###### 参考网页
+
+[Unity URP RayMarching 体积云 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/440607144)
+
+[【附录2.1】Houdini烘焙3D纹理 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/444451024)
+
+[移动端基于SDF的体积云：被云淹没，不知所措 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/350058989)
+
+[Signed Distance Field - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/337944099)
+
+[基于SDF的云朵消散效果_sdf贴图云彩-CSDN博客](https://blog.csdn.net/weixin_63115824/article/details/132059685)
+
+[SebLague/Clouds: Cloud rendering test (github.com)](https://github.com/SebLague/Clouds)
+
+[请问在三维空间中distanceField的原理？ - 知乎 (zhihu.com)](https://www.zhihu.com/question/334188376)
+
+[3D Texture SDF \| Substance 3D Designer (adobe.com)](https://helpx.adobe.com/substance-3d-designer/substance-compositing-graphs/nodes-reference-for-substance-compositing-graphs/node-library/filters/effects/3d-texture-sdf.html)
+
+[ArtStation - Signed distance fields in Substance Designer](https://www.artstation.com/artwork/gaRO8)
+
+[Creating a Volumetric Ray Marcher (shaderbits.com)](https://shaderbits.com/blog/creating-volumetric-ray-marcher)
+
+[Houdini工具-生成体积贴图 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/108085346)
+
+[实时渲染札记 - 知乎 (zhihu.com)](https://www.zhihu.com/column/c_1131310164912967680)
+
+[Unity——Shader学习22——From庄懂（场景篇）烘焙LightMap - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/428223597)
+
+[ 苍白的茧 - 知乎 (zhihu.com)](https://www.zhihu.com/people/cang-bai-de-chong/posts)
