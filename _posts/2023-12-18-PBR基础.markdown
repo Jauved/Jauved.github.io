@@ -64,7 +64,7 @@ half3 GlossyEnvironmentReflection(half3 reflectVector, half perceptualRoughness,
 >
 >The derivations mentioned earlier for ambient occlusion assume Lambertian surfaces and are only valid for indirect diffuse lighting. The lack of information about surface accessibility is particularly harmful to the reconstruction of indirect specular lighting. It usually manifests itself as light leaks.
 >
->Sébastien Lagarde proposes an empirical approach to derive the specular occlusion term from the diffuse occlusion term in [[Lagarde14](#citation-lagarde14)]. The result does not have any physical basis but produces visually pleasant results. The goal of his formulation is return the diffuse occlusion term unmodified for rough surfaces. For smooth surfaces, the formulation, implemented in [listing 38](#listing_specularocclusion), reduces the influence of occlusion at normal incidence and increases it at grazing angles.
+>Sébastien Lagarde proposes an empirical approach to derive the specular occlusion term from the diffuse occlusion term in [Lagarde14]. The result does not have any physical basis but produces visually pleasant results. The goal of his formulation is return the diffuse occlusion term unmodified for rough surfaces. For smooth surfaces, the formulation, implemented in [listing 38], reduces the influence of occlusion at normal incidence and increases it at grazing angles.
 >
 >```c++
 >float computeSpecularAO(float NoV, float ao, float roughness) {
