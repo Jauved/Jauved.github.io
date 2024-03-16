@@ -21,4 +21,4 @@ math: true
 
 https://blog.unity.com/engine-platform/create-high-quality-light-fixtures-in-unity
 
- [create-high-quality-light-fixtures-in-unity.pdf](.assets\pdf\create-high-quality-light-fixtures-in-unity.pdf) 
+ [create-high-quality-light-fixtures-in-unity.pdf]([Create high-quality light fixtures in Unity \| Unity Blog](https://blog.unity.com/engine-platform/create-high-quality-light-fixtures-in-unity)) 
