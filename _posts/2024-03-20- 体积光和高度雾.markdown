@@ -1,0 +1,22 @@
+---
+layout: post
+title: "体积光和高度雾"
+categories: [URP, 渲染]
+tags: URP 渲染 体积光 高度雾
+math: true
+
+
+---
+
+# 体积光和高度雾
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+- [Unity-Technologies/VolumetricLighting: Lighting effects implemented for the Adam demo: volumetric fog, area lights and tube lights (github.com)](https://github.com/Unity-Technologies/VolumetricLighting)
+- [MaxwellGengYF/Unity-Volumetric-Light: A powerful volumetric light plugin based on post-processing in Unity3D (github.com)](https://github.com/MaxwellGengYF/Unity-Volumetric-Light)
+- [SlightlyMad/VolumetricLights: Volumetric Lights for Unity (github.com)](https://github.com/SlightlyMad/VolumetricLights)
+- [Signed Distance Field Shadow in Unity - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/37918356#)

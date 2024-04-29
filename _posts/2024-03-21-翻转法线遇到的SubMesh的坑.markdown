@@ -1,0 +1,114 @@
+---
+layout: post
+title: "翻转法线遇到的SubMesh的坑"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 翻转法线遇到的SubMesh的坑
+
+## 00 前言
+
+翻转法线时导致SubMesh丢失.
+
+## 01 过程
+
+首先, 通常3D美术认为的翻转法线, 即连法线和渲染面一并翻转. 但实际上在Unity中是两个操作. 不仅要翻转法线, 同时也要"翻转"模型"triangles"的构建方式, 才能达到DCC软件中的翻转法线的效果.
+
+翻转"triangles"的方式很简单, 即把三角面的构建方式从"顺时针变为逆时针/逆时针变为顺时针". 假设"1->2->3"这样渲染, 那么如果要翻转, 只需要将第一个和第三个进行对调即可, 按照"3->2->1"这样渲染, 即完成了"triangles"的翻转.
+
+于是第一版函数为
+
+```c++
+//翻转法线, 这一步没有问题, 正常操作.
+private void FlipNormals(Mesh mesh)
+{
+    var normalsHash = mesh.normals;
+    for (int i = 0; i < normalsHash.Length; i++)
+    {
+        normalsHash[i] = -normalsHash[i];
+    }
+    mesh.normals = normalsHash;
+}
+//翻转Triangles的构建方式
+private void FlipTriangles(Mesh mesh)
+{
+    var trianglesHash = mesh.triangles;
+    for (int i = 0; i < trianglesHash.Length; i++)
+    {
+        (trianglesHash[i], trianglesHash[i + 2]) = (trianglesHash[i + 2], trianglesHash[i]);
+    }
+    mesh.triangles = trianglesHash;
+}
+```
+
+但这样翻转之后, 如果模型并没有SubMesh的情况, 那么一切正常, 而有SubMesh的模型, 会导致SubMesh失效, 整个模型只能接受一个材质球. 显然目前的方法有问题.
+
+查阅关于```Mesh.triangles```API的信息, 会发现, 如果直接对其赋值, 则会导致SubMesh被统一设置为1. 同时建议使用```SetTriangles```这个API.
+
+[Unity - Scripting API: Mesh.triangles (unity3d.com)](https://docs.unity3d.com/ScriptReference/Mesh-triangles.html)
+
+![image-20240321104325057](/assets/image/image-20240321104325057.png)
+
+## 02 处理方法
+
+按照SubMesh分割```triangles```数组, 将每个数组翻转后, 再使用```SetTriangles```赋值回去. 修改```FlipTriangles```函数如下
+
+```c++
+ private void FlipTriangles(Mesh mesh)
+{
+    var trianglesHash = mesh.triangles;
+    int offset = 0;
+    for (int i = 0; i < mesh.subMeshCount; i++)
+    {
+        //数组按照offset的值切片
+        var trianglesSubHash = new ArraySegment<int>(trianglesHash,offset,mesh.GetSubMesh(i).indexCount).ToArray();
+        //offset的值会根据SubMesh占用, 进行增加.
+        offset += mesh.GetSubMesh(i).indexCount;
+        //正常的翻转triangles的操作
+        for (int j = 0; j < mesh.GetSubMesh(i).indexCount; j += 3)
+        {
+            (trianglesSubHash[j], trianglesSubHash[j + 2]) = (trianglesSubHash[j + 2], trianglesSubHash[j]);
+        }
+        //分别设置每个SubMesh的triangles
+        mesh.SetTriangles(trianglesSubHash, i);
+    }
+}
+```
+
+此时, 目前解决了翻墙模型的需求.
+
+## 03 附录
+
+默认情况下, [OpenGL](https://learnopengl-cn.readthedocs.io/zh/latest/04%20Advanced%20OpenGL/04%20Face%20culling/)会认为逆时针的构建是正面, 顺时针的构建是背面. 
+
+![Image of viewer seeing front or back facing triangles](/assets/image/faceculling_frontback-1710988098675-2.png)
+
+当然, 也可以通过命令来让顺时针的构建变为正面, 比如
+
+```c++
+glEnable(GL_CULL_FACE);//激活面剔除
+glCullFace(GL_BACK);//指定剔除背面
+glFrontFace(GL_CW);//指定"顺时针"的是正面, 如下图CW为顺时针, CCW为逆时针
+```
+
+![Winding order of OpenGL triangles](/assets/image/faceculling_windingorder.png)
+
+结果就和"翻转法线"效果相同.
+
+![Image of faceculling with clockwise ordering, only culling the front faces](/assets/image/faceculling_reverse.png)
+
+
+
+###### 参考网页
+
+[Unity 法线翻转_unity法线翻转 - 分享有价值的内容](http://122.51.130.40:9001/ch080239/2385431.html)
+
+[Unity描边法线平滑工具 x踩坑记录 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/508319122)
+
+[如何在Unity里翻转网格法线 - 技术专栏 - Unity官方开发者社区](https://developer.unity.cn/projects/61551b91edbc2a0020c606e3)
+
+[Unity问题（1）——mesh法线反转_unity 翻转mesh-CSDN博客](https://blog.csdn.net/m0_37710023/article/details/115441721)
