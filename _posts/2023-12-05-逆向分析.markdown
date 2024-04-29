@@ -2,7 +2,7 @@
 layout: post
 title: "逆向分析"
 categories: [性能测试]
-tags: 第三方 逆向 截帧 性能测试
+tags: 第三方 逆向 截帧 性能测试 GPA CSV Mesh
 math: true
 
 ---
@@ -161,7 +161,42 @@ real PerceptualRoughnessToMipmapLevel(real perceptualRoughness, uint mipMapCount
 
 
 
-## 03 FAQ
+## 03 CSV转Mesh
+
+注意, GPA截帧出来的模型, 其三角面的构建方向与Unity相反. 在Unity中使用以下函数进行修正
+
+```c#
+/// <summary>
+    /// 翻转mesh的三角片元构建方式
+    /// </summary>
+    /// <param name="mesh"></param>
+    private void FlipTriangles(Mesh mesh)
+    {
+        // triangles数量对应subMesh的index数量
+        var trianglesHash = mesh.triangles;
+        int offset = 0;
+        for (int i = 0; i < mesh.subMeshCount; i++)
+        {
+            var trianglesSubHash = new ArraySegment<int>(trianglesHash, offset, mesh.GetSubMesh(i).indexCount).ToArray();
+            offset += mesh.GetSubMesh(i).indexCount;
+            for (int j = 0; j < mesh.GetSubMesh(i).indexCount; j += 3)
+            {
+                (trianglesSubHash[j], trianglesSubHash[j + 2]) = (trianglesSubHash[j + 2], trianglesSubHash[j]);
+            }
+            mesh.SetTriangles(trianglesSubHash, i);
+        }
+    }
+```
+
+
+
+然后用Maya脚本将导出的UV, 光照UV, 顶点色, 进行还原, 但要注意的是, Maya导出FBX并不支持超过2位的UV数据, 如果对象的UV数据是合并后的4位UV数据, 则还是建议使用下面的Git仓库中的工具进行还原.
+
+CSV2MESH工具:
+
+[javelinlin/GPA_CSV2MESH_TOOL_pure_version: 将 GPA 中抓取的模型导出CSV再通过U3D工具导出 FBX 或是 UnityMesh (*.asset) (github.com)](https://github.com/javelinlin/GPA_CSV2MESH_TOOL_pure_version)这个工具.
+
+## 04 FAQ
 
 ### 03.1 截帧时提示App没有读写权限
 
