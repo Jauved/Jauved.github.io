@@ -1,0 +1,19 @@
+---
+layout: post
+title: "CRT后处理"
+categories: [URP, 后处理]
+tags: URP 后处理 CRT 怀旧
+math: true
+
+
+---
+
+# CRT后处理
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[超小白向URP Scriptable Render Feature写法——实现老式CRT电视效果！ - 哔哩哔哩 (bilibili.com)](https://www.bilibili.com/read/cv17531935/)

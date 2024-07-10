@@ -190,7 +190,7 @@ real PerceptualRoughnessToMipmapLevel(real perceptualRoughness, uint mipMapCount
 
 
 
-然后用Maya脚本将导出的UV, 光照UV, 顶点色, 进行还原, 但要注意的是, Maya导出FBX并不支持超过2位的UV数据, 如果对象的UV数据是合并后的4位UV数据, 则还是建议使用下面的Git仓库中的工具进行还原.
+然后用Maya脚本将导出的UV, 光照UV, 顶点色, 进行还原, 但要注意的是, Maya导出FBX并不支持超过2位的UV数据([参考](https://blog.csdn.net/linjf520/article/details/133993603)), 如果对象的UV数据是合并后的4位UV数据, 则还是建议使用下面的Git仓库中的工具进行还原.
 
 CSV2MESH工具:
 
