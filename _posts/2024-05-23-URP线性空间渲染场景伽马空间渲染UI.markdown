@@ -1,0 +1,780 @@
+---
+layout: post
+title: "URP线性空间渲染场景伽马空间渲染UI"
+categories: [URP, 管线]
+tags: URP 管线 UI 线性 伽马
+math: true
+
+
+---
+
+# URP线性空间渲染场景伽马空间渲染UI
+
+## 00 前言
+
+Unity的URP管线中, 推荐使用Overlay相机进行UI渲染, Base相机进行场景渲染. 但选择线性空间, 会导致UI渲染的透明度混合出现问题. 
+
+## 01 前置知识
+
+### 01.0 URP线性流程:
+
+- 颜色贴图导入时, 会通过sRGB的选项, 进行一次```sRGBToLinear```的贴图颜色修正(视觉感受是颜色变暗). 关于```sRGB```的校正(计算相当于```sRGBToLinear```)的推导见附录.
+
+  ```C++
+  real3 SRGBToLinear(real3 c)
+  {
+      real3 linearRGBLo  = c / 12.92;
+      real3 linearRGBHi  = PositivePow((c + 0.055) / 1.055, real3(2.4, 2.4, 2.4));
+      real3 linearRGB    = (c <= 0.04045) ? linearRGBLo : linearRGBHi;
+      return linearRGB;
+  }
+  ```
+
+- 计算完毕后
+
+  - 没有开启HDR
+
+    - 硬件支持sRGBBuffer, 直接使用sRGB的Buffer, 每一个渲染阶段都进行硬件的免费转换, 做一次```LinearTosRGB```的颜色修正(视觉感受就是颜色变亮)
+
+      - 如果没有使用后处理, 直接依次进行硬件的免费转换做```LinearTosRGB```的颜色修正后输出
+      - 如果使用了后处理, 在后处理的```FinalPost```, 同样进行硬件的免费转换做```LinearTosRGB```的颜色修正后输出
+
+    - 硬件不支持sRGBBuffer, 使用通常的Buffer(UNorm) , 渲染完毕后, 
+
+      - 如果没有使用后处理, 则使用```Blit```在其片元着色器中调用函数```LinearToSRGB```进行颜色修正后输出
+      - 如果使用后处理, 则使用 ```FinalPost```在其片元着色器中调用函数```LinearToSRGB```进行颜色修正后输出
+
+      ```C++
+      real3 LinearToSRGB(real3 c)
+      {
+          real3 sRGBLo = c * 12.92;
+          real3 sRGBHi = (PositivePow(c, real3(1.0/2.4, 1.0/2.4, 1.0/2.4)) * 1.055) - 0.055;
+          real3 sRGB   = (c <= 0.0031308) ? sRGBLo : sRGBHi;
+          return sRGB;
+      }
+      ```
+
+  -  开启了HDR
+    - 硬件支持```sRGBBuffer```, 先使用HDR的Buffer渲染
+      - 如果没有使用用后处理, 完毕后, 使用```FinalBlit```调用sRGB的Buffer, 进行硬件的免费转换, 做一次```LinearTosRGB```的颜色修正
+      - 如果使用后处理, 在后处理的```FinalPost```, 同样进行硬件的免费转换做```LinearTosRGB```的颜色修正后输出
+    - 硬件不支持```sRGBBuffer```, 先使用HDR的Buffer渲染
+      - 如果没有使用后处理, 则使用```Blit```在其片元着色器中调用函数```LinearToSRGB```进行颜色修正后输出
+      - 如果使用后处理, 则使用 ```FinalPost```在其片元着色器中调用函数```LinearToSRGB```进行颜色修正后输出
+
+- 此时Buffer中是Gamma空间的颜色, 最后通过显示器的Gamma校正, 输出到屏幕.
+
+- 另: Buffer即RT在内存中的形态
+
+### 01.1 流程示意图
+
+橙色部分: 线性数据/线性Buffer
+
+黄色部分: sRGB数据/sRGBBuffer
+
+绿色部分: 管线改造部分
+
+白色部分: 该部分仅进行渲染计算, 不涉及颜色空间变换
+
+![shapes at 24-05-23 20.46.03](/assets/image/shapes%20at%2024-05-23%2020.46.03.png)
+
+## 02 思路
+
+在线性空间渲染完成后, 通过一个```LinearToSRGB```函数将数据转入```sRGB(Gamma)```空间, ```sRGB(Gamma)```空间渲染完毕后, 通过一个```SRGBToLinear```函数转回线性空间, 然后重新汇入Unity原本的渲染工作流.
+
+### 02.1 工程细节
+
+- URP中同属于一个相机堆栈的Base相机和Overlay相机只能使用同一个类型的Buffer
+- 场景与UI分属于不同的空间, 所以需要有两个Base相机(场景Base相机, UIBase相机), 并分别申请```sRGBBuffer```和```非sRGBBuffer```
+
+具体要做的事情只有两件(即两个绿框内的计算和各自的数据传递)
+
+#### 02.1.0 LinearToSRGB框(示意图中靠上的绿色框)
+
+- (示意图中靠上的绿色框及数据传递)是通过两个```Rendererfeature```来实现
+  - 通过LinearToSRGB这个```Renderrefeature```, 申请一张非sRGB的RT, 利用其调用的着色器添加的```LinearToSRGB```函数完成```LinearToSRGB```(), 并将结果渲染到这个RT上
+  - 通过SRGBToTexture这个`Rendererfeature`, 将这个RT传递到下一个Base相机(UIBase相机)的非sRGBBuffer中
+    - UIBase相机所使用的Buffer必须强制申请为```非sRGBBuffer```
+
+
+#### 02.1.1 SRGBToLinear框(示意图中靠下的绿色框)
+
+- 添加的```SRGBToLinear```函数(示意图中靠下的绿色框), 要根据是否使用后处理的情况, 放置在不同的位置, 并定义关键字用于激活, 用于最终汇入Unity管线
+
+### 02.2 步骤
+
+#### 02.2.0 LinearToSRGB框(示意图中靠上的绿色框)
+
+##### 01.4.0 场景Base相机和UIBase相机
+
+注: 按照逻辑来说, 其实应该做成相机的下拉选项, 在选择Base相机之后, 还能够选择Linear相机/Gamma相机, 但Camera类是封闭的. 曲线救国的方式就是通过FarwardRendererData传入CameraData, 间接附着在Camera上.
+
+- `ForwardRendererData.cs`中添加字段和属性
+
+  ```c++
+  bool m_ForceNotSRGB = false; //用于决定是否需要强制申请非sRGBBuffer的RenderTextureDescriptor(UI相机使用)
+  bool m_ForceRenderToTexture = false; //用于决定当前相机的结果是否强制渲染到申请的非sRGBRT上
+  public bool forceNotSRGB
+  {
+      get => m_ForceNotSRGB;
+      set
+      {
+          SetDirty();
+          m_ForceNotSRGB = value;
+      }
+  }
+  
+  public bool forceRenderToTexture
+  {
+      get => m_ForceRenderToTexture;
+      set
+      {
+          SetDirty();
+          m_ForceRenderToTexture = value;
+      }
+  }
+  ```
+
+- 对应修改`ForwardRendererDataEditor.cs`
+
+  最终能够得到面板上的两个额外配置
+
+  Force not sRGB fixed: 勾选, 则意味着, 无论Unity设置为什么空间, 使用这个ForwardRendererData的相机都申请非sRGB的Buffer
+
+  Force Render to Texture: 勾选, 则意味着, 使用这个ForwardRendererData的相机, 会将最终的结果渲染到RT上(而不是相机的Buffer上)
+
+  <img src="/assets/image/image-20240524142850396.png" alt="image-20240524142850396" style="zoom:50%;" />
+
+- 在`ForwardRenderer.cs`中
+
+  - 添加字段和属性, 用于接收`ForwardRendererData`中的属性
+  - 构造函数中进行数据传递
+
+  ```c++
+   public bool ForceNotSRGB
+  {
+      get => m_ForceNotSRGB;
+  }
+  bool m_ForceNotSRGB;
+  
+  public bool ForceRenderToTexture
+  {
+      get => m_ForceRenderToTexture;
+  }
+  bool m_ForceRenderToTexture;
+  ...
+  public ForwardRenderer(ForwardRendererData data) : base(data)
+  {
+   	...
+      m_ForceNotSRGB = data.forceNotSRGB;
+      m_ForceRenderToTexture = data.forceRenderToTexture;
+      ...
+  }
+  ```
+
+- 在`UniversalRenderPipelineCore.cs`中的`CameraData`结构体中加入我们需要的数据
+
+  ```c++
+  [MovedFrom("UnityEngine.Rendering.LWRP")] public struct CameraData
+  {
+  	...
+  	//Add by: Yumiao Purpose: forceNotSRGB/forceRenderToTexture/isBaseCamera
+      //Purpose: 添加需要用到的额外的cameraData的字段,
+      //cameraTargetDescriptorForceNotSRGB用于LinearToSRGBFeature的渲染目标格式设置
+      //forceNotSRGB用于标识Gamma相机
+      //forceRenderToTexture用于标识渲染到贴图的相机(Linear相机)
+      //isBaseCamera用于标识SRGBToCamera的启用时机, 让其只启用一次
+      public RenderTextureDescriptor cameraTargetDescriptorForceNotSRGB;
+      public bool forceNotSRGB;
+      public bool forceRenderToTexture;
+      public bool isBaseCamera;
+      //End Add
+  }
+  ```
+
+- 在`UniversalRenderPipelineCore.cs`中重写一个`CreateRenderTextureDescriptor`函数用于可控的申请Buffer, 这里的forceNotHDR是预留用于定制关闭UI的HDR. 接下来我们会在记录Buffer格式时调用这个重写的函数以替代Unity默认的函数
+
+  ```c++
+  static RenderTextureDescriptor CreateRenderTextureDescriptor(Camera camera, float renderScale,
+              bool isStereoEnabled, bool isHdrEnabled, int msaaSamples, bool needsAlpha, bool forceNotSRGB, bool forceNotHDR = false)
+  {
+  	...
+  	else if (camera.targetTexture == null)
+      {
+  	...
+  	desc.graphicsFormat = isHdrEnabled && !forceNotHDR ? hdrFormat : renderTextureFormatDefault;//Add by: Yumiao Purpose: forceNotHDR
+      desc.depthBufferBits = 32;
+      desc.msaaSamples = msaaSamples;
+      desc.sRGB = (QualitySettings.activeColorSpace == ColorSpace.Linear) && !forceNotSRGB;//Add by: Yumiao Purpose: forceNotSRGB
+      }
+      ...
+  }
+  ```
+
+  
+
+- 在`UniversalRenderPipeline.cs`中初始化CameraData数据时, 
+
+  - 将`ForwardRendererData`中的数据传递到`CameraData`中, 注意, Scene相机保持不激活, 因为Scene相机的渲染流程不可调试不可控, 而最后一种情况未知,(推测是编辑器自定义相机) 出于稳妥, 保持不激活
+  - 在记录Camera堆栈的Buffer格式的时候, 除了记录通常的申请Buffer格式之外, 还需要记录一个非sRGB的Buffer格式, 用于`LinearToSRGB`这个`RendererFeature`
+
+  ```c++
+  static void InitializeStackedCameraData(Camera baseCamera, UniversalAdditionalCameraData baseAdditionalCameraData, ref CameraData cameraData)
+  {
+  	...
+       if (isSceneViewCamera)
+      {
+          ...
+           //Add by: Yumiao Purpose: forceNotSRGB/forceRenderToTexture Scene窗口维持原状
+          cameraData.forceNotSRGB = false;
+          cameraData.forceRenderToTexture = false;
+          //End Add    
+      }
+      else if (baseAdditionalCameraData != null)
+      {
+          ...
+          //Add by: Yumiao Purpose: forceNotSRGB/forceRenderToTexture
+          //Purpose: 传递ForceNotSRGB和ForceRenderToTexture参数, 因为RenderFeature能接受的比较方便的就是CameraData中的数据
+          //Todo 这里写在ForwardRenderer中是个隐患, 如果可能的话, 整个移动到scriptableRenderer中
+          var cur_renderer = baseAdditionalCameraData.scriptableRenderer as ForwardRenderer;
+          cameraData.forceNotSRGB = cur_renderer.ForceNotSRGB;
+          cameraData.forceRenderToTexture = cur_renderer.ForceRenderToTexture;
+          //End Add
+      }
+      else
+      {
+          ...
+          //Add by: Yumiao Purpose: forceNotSRGB/forceRenderToTexture
+          cameraData.forceNotSRGB = false;
+          cameraData.forceRenderToTexture = false;
+          //End Add
+      }
+     	...
+  	bool needsAlphaChannel = Graphics.preserveFramebufferAlpha;
+      //Todo 这里其实根据cameraData.forceNotSRGB的设置, 可以用一个中间变量, 当forceNotSRGB=true时只保留一个声明
+      //Modify Add by: Yumiao 调用新写的CreateRenderTextureDescriptor方法的变体
+      //Purpose: 
+      //1. 添加forceNotSRGB, 是为了在Linear空间下, 仍旧可以强制获取非sRGB修正的RednerBuffer.
+      //2. 添加cameraTargetDescriptorForceNotSRGB, 是为了在将场景相机渲染到RT的时候, 能得到一张同格式的, 但是没有sRGB修正的RenderTextureDescriptor.
+      cameraData.cameraTargetDescriptor = CreateRenderTextureDescriptor(baseCamera, cameraData.renderScale,
+          cameraData.isStereoEnabled, cameraData.isHdrEnabled, msaaSamples, needsAlphaChannel, cameraData.forceNotSRGB);
+      cameraData.cameraTargetDescriptorForceNotSRGB = CreateRenderTextureDescriptor(baseCamera, cameraData.renderScale,
+          cameraData.isStereoEnabled, cameraData.isHdrEnabled, msaaSamples, needsAlphaChannel, true);
+      //End Add
+  }
+  ```
+
+##### 01.4.1 将结果渲染到Rendererfeature申请的RT上
+
+- 在不使用后处理的时候, 阻止其渲染到屏幕上
+
+  - 在`ForwardRenderer.cs`中, 如果是堆栈中最后一个相机, 当相机的`ForwardRendererData`标识为"Force Render To Texture"时, 渲染到Buffer而不是屏幕
+
+    ```c++
+    public override void Setup(ScriptableRenderContext context, ref RenderingData renderingData)
+    {
+        ...
+        bool lastCameraInTheStack = cameraData.resolveFinalTarget; //Add Commit by: Yumiao 实际这里就是lastCamera, 是否最后一个相机
+        ...
+        if (lastCameraInTheStack)
+        {
+            ...
+             bool cameraTargetResolved =
+                            // final PP always blit to camera target
+                            applyFinalPostProcessing ||
+                            // no final PP but we have PP stack. In that case it blit unless there are render pass after PP
+                            (applyPostProcessing && !hasPassesAfterPostProcessing) ||
+                            // offscreen camera rendering to a texture, we don't need a blit pass to resolve to screen
+                            m_ActiveCameraColorAttachment == RenderTargetHandle.CameraTarget //;//Modify Add by: Yumiao Purpose: forceRenderToTexture 如果当前激活的RTH=当前相机的RTH, 那么就要走FinalBlit
+                            || m_ForceRenderToTexture; //Add by: Yumiao Purpose: forceRenderToTexture 如果当前是ForceRenderToTex, 那么就不使用.    
+            ...  
+        }   
+        ...
+    }
+    ```
+
+- 在使用后处理的时候, 阻止其渲染到屏幕上
+
+  - 修改`PostProcessPass.cs`
+
+    ```c++
+    void Render(CommandBuffer cmd, ref RenderingData renderingData)
+    {
+  	...
+  	if (m_IsStereo)
+      {...}
+      else
+      {
+     		...
+          if (!finishPostProcessOnScreen || cameraData.forceRenderToTexture)//Modify Add by: Yumiao Purpose: forceRenderToTexture 原条件没有|| cameraData.forceRenderToTexture, 这里利用了Unity自身的判断, 后处理后, 如果不需要渲染到屏幕, 则走这个分支, 这里通过加入cameraData.forceRenderToTexture这个条件, 很方便的处理了在后处理开启情况下的RenderToTexture
+          {
+              cmd.SetGlobalTexture("_BlitTex", cameraTarget);
+              cmd.SetRenderTarget(m_Source.id, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
+              cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);
+          }
+          ...
+      }
+  	...
+    }
+    ```
+
+
+- 在使用后处理, 并且相机开启FXAA时, 这时候, 在`ForwardRenderer`中,  Unity会专门标识为`applyFinalPostProcessing`, 并且加入一个额外的后处理Pass. 注意, 这个后处理Pass的`evt`是`RenderPassEvent.AfterRendering + 1`. 我们要阻止在这种情况下渲染到屏幕上, 采取的策略是将LinearToSRGB这个Feature的操作改到这个Pass中去处理.
+
+  ```c#
+  m_FinalPostProcessPass = new PostProcessPass(RenderPassEvent.AfterRendering + 1, data.postProcessData, m_BlitMaterial);
+  ...
+  bool applyFinalPostProcessing = anyPostProcessing && lastCameraInTheStack &&
+                          renderingData.cameraData.antialiasing == AntialiasingMode.FastApproximateAntialiasing;
+  ...
+  // Do FXAA or any other final post-processing effect that might need to run after AA.
+  if (applyFinalPostProcessing)
+  {
+      m_FinalPostProcessPass.SetupFinalPass(sourceForFinalPass);
+      EnqueuePass(m_FinalPostProcessPass);
+  }
+  
+  ```
+
+  - 在`PostProcessPass.cs`中声明非SRGB的Buffer, 包括RenderTargetIdentifier, RenderTextureDescriptor, RT, 因为强制申请的非sRGB的Buffer, 所以需要强制开启`ShaderKeywordStrings.LinearToSRGBConversion`
+
+    ```c#
+    ...
+    private static readonly int LinearToSRGBID = Shader.PropertyToID("_LinearToSRGBTex");//Add by: Yumiao
+    ...
+    void RenderFinalPass(CommandBuffer cmd, ref RenderingData renderingData)
+    {
+    	...
+    	if (RequireSRGBConversionBlitToBackBuffer(cameraData) && m_EnableSRGBConversionIfNeeded 
+                    || cameraData.forceRenderToTexture) //Modify Add by: Yumiao
+            material.EnableKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+        ...
+        //Add by: Yumiao
+        var descriptor = renderingData.cameraData.cameraTargetDescriptorForceNotSRGB;
+        descriptor.useMipMap = false;
+        descriptor.autoGenerateMips = false;
+        descriptor.depthBufferBits = 0;
+        cmd.GetTemporaryRT(LinearToSRGBID,descriptor, FilterMode.Point);
+        //End Add
+        ...
+        RenderTargetIdentifier cameraTarget = (cameraData.targetTexture != null) ? new RenderTargetIdentifier(cameraData.targetTexture) : 
+                    cameraData.forceRenderToTexture? (RenderTargetIdentifier)LinearToSRGBID : BuiltinRenderTextureType.CameraTarget;//Modify Add by: Yumiao    
+        ...
+    }
+    ```
+
+    
+
+- LinearToSRGBFeature(见附录)
+
+##### 01.4.2将RT上的数据渲染到UIBase相机的Buffer上
+
+- 在`UniversalRenderPipeline.cs`中给Base相机添加标识
+
+  ```c++
+  static void RenderCameraStack(ScriptableRenderContext context, Camera baseCamera)
+  {
+  	...
+      baseCameraData.isBaseCamera = true; //Add by: Yumiao Purpose: IsBaseCamera 用于判断是否是Base相机
+      RenderSingleCamera(context, baseCameraData, anyPostProcessingEnabled);
+      EndCameraRendering(context, baseCamera);
+          
+      if (!isStackedRendering)
+          return;
+      
+      for (int i = 0; i < cameraStack.Count; ++i)
+              {
+                  var currCamera = cameraStack[i];
+  
+                  if (!currCamera.isActiveAndEnabled)
+                      continue;
+  
+                  currCamera.TryGetComponent<UniversalAdditionalCameraData>(out var currCameraData);
+                  // Camera is overlay and enabled
+                  if (currCameraData != null)
+                  {
+                      baseCameraData.isBaseCamera = false; //Add by: Yumiao IsBaseCamera 用于判断是否是Base相机
+                      // Copy base settings from base camera data and initialize initialize remaining specific settings for this camera type.
+                      CameraData overlayCameraData = baseCameraData;
+                      bool lastCamera = i == lastActiveOverlayCameraIndex;
+  
+                      BeginCameraRendering(context, currCamera);
+  #if VISUAL_EFFECT_GRAPH_0_0_1_OR_NEWER
+                      //It should be called before culling to prepare material. When there isn't any VisualEffect component, this method has no effect.
+                      VFX.VFXManager.PrepareCamera(currCamera);
+  #endif
+                      UpdateVolumeFramework(currCamera, currCameraData);
+                      InitializeAdditionalCameraData(currCamera, currCameraData, lastCamera, ref overlayCameraData);
+                      RenderSingleCamera(context, overlayCameraData, anyPostProcessingEnabled);
+                      EndCameraRendering(context, currCamera);
+                  }
+              }
+      ...
+  }
+  ```
+
+- SRGBToCameraFeature(见附录)
+
+#### 02.2.1 SRGBToLinear框(示意图中靠下的绿色框)
+
+- 在`Blit.shader`中加入`SRGBToLinear`函数的调用, 以及关键字
+
+  ```c++
+  ...
+  #pragma multi_compile _ _LINEAR_TO_SRGB_CONVERSION _SRGB_TO_LINEAR_CONVERSION //Modify Add by: Yumiao Purpose: SRGBToLinear
+  ...
+  #if defined(_LINEAR_TO_SRGB_CONVERSION) || defined(_SRGB_TO_LINEAR_CONVERSION)
+  #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+  #endif
+  ...
+  //Add by: Yumiao Purpose: SRGBToLinear
+  //Purpose: 从这一步重新汇入Unity默认管线
+  #ifdef _SRGB_TO_LINEAR_CONVERSION
+  col = SRGBToLinear(col);
+  #endif
+  //End Add
+  ...
+  ```
+
+- 在`UniversalRenderPipelineCore.cs`中的`ShaderKeywordStrings`中加入关键字
+
+  ```c++
+  public static class ShaderKeywordStrings
+  {
+  	public static readonly string SRGBToLinearConversion = "_SRGB_TO_LINEAR_CONVERSION";
+  }
+  ```
+
+- 在`FinalBlitPass.cs`中加入关键字激活
+
+  ```c++
+  public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+  {
+  	...
+      if (cameraData.forceNotSRGB)
+      {
+          cmd.EnableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+      }
+  	...
+  }
+  ```
+
+
+
+#### 02.2.2 收尾工作
+
+- 无论过程中自定义的关键字如何, 在渲染阶段开始时, 都恢复到默认状态
+
+- 在`ScriptableRenderer.cs`中
+
+  ```c++
+  void ClearRenderingState(CommandBuffer cmd)
+  {
+      ...
+      cmd.DisableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+      ...
+  }
+  ```
+
+  
+
+## 附录: 
+
+#### LinearToSRGBFeature
+
+```c#
+using System;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+public class LinearToSRGBFeature : ScriptableRendererFeature
+{
+    class LinearToSRGBPass : ScriptableRenderPass
+    {
+        Material m_SamplingMaterial;
+
+        private RenderTargetIdentifier source { get; set; }
+        private RenderTextureDescriptor destination { get; set; }
+        const string m_ProfilerTag = "LinearToSRGB";
+        private static readonly int LinearToSRGBID = Shader.PropertyToID("_LinearToSRGBTex");
+
+        /// <summary>
+        /// Create the CopyColorPass
+        /// </summary>
+        public LinearToSRGBPass(RenderPassEvent evt, Material samplingMaterial)
+        {
+            m_SamplingMaterial = samplingMaterial;
+            renderPassEvent = evt;
+        }
+
+        /// <summary>
+        /// Configure the pass with the source and destination to execute on.
+        /// </summary>
+        /// <param name="source">Source Render Target</param>
+        /// <param name="destination">Destination Render Target</param>
+        public void Setup(RenderTargetIdentifier source, RenderTextureDescriptor destination)
+        {
+            this.source = source;
+            this.destination = destination;
+        }
+
+        public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescriptor)
+        {
+            // RenderTextureDescriptor descriptor = cameraTextureDescriptor;
+            RenderTextureDescriptor descriptor = destination;
+            descriptor.useMipMap = false;
+            descriptor.autoGenerateMips = false;
+            descriptor.depthBufferBits = 0;
+            // descriptor.msaaSamples = 1;
+
+            cmd.GetTemporaryRT(LinearToSRGBID, descriptor, FilterMode.Bilinear);
+        }
+
+        /// <inheritdoc/>
+        public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+        {
+            if (m_SamplingMaterial == null)
+            {
+                Debug.LogErrorFormat("Missing {0}. {1} render pass will not execute. Check for missing reference in the renderer resources.", m_SamplingMaterial, GetType().Name);
+                return;
+            }
+            CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
+            
+            //Add by: Yumiao
+            //这里的逻辑有点绕, 重要前提:"当我们的目标RT是非sRGB编码的情况下, 输入RT无论是什么格式, 取得的数据都是非编码的数据"
+            //1. 我们需要传到UI相机的, 是sRGB的图.
+            //2. 在不开启HDR的时候, 系统支持sRGBBuffer(对应下方的requiresSRGBConvertion=false), 我们通过SRGBBuffer拿到的是sRGB编码的图, 直接取数据是取的Linear的数据, 所以必须做一次LinearToSRGB
+            //3. 在不开启HDR的时候, 系统不支持sRGBBuffer(对应下方的requiresSRGBConvertion=true), 我们通过通常的Buffer拿到的是Linear的图, 取的是Linear的数据, 所以必须做一次LinearToSRGB
+            //4. 开启HDR的时候, 系统支持sRGBBuffer(对应下方的requiresSRGBConvertion=false), 我们通过HDRBuffer拿到的是Linear的图,直接取数据是取的Linear的数据, 所以必须做一次LinearToSRGB
+            //5. 开启HDR的时候, 系统不支持sRGBBuffer(对应下方的requiresSRGBConvertion=true), 我们通过HDRBuffer拿到的是Linear的图,直接取数据是取的Linear的数据, 所以必须做一次LinearToSRGB
+            //无论如何都要开启LinearToSRGB, 以下的判断没有必要
+            // bool requiresSRGBConvertion = Display.main.requiresSrgbBlitToBackbuffer;
+            // if (requiresSRGBConvertion)
+            //     cmd.DisableShaderKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+            // else
+            //     cmd.EnableShaderKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+            
+            RenderTargetIdentifier opaqueColorRT = LinearToSRGBID;
+            Blit(cmd, source, opaqueColorRT, m_SamplingMaterial);
+            cmd.SetGlobalTexture(LinearToSRGBID,opaqueColorRT);
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+        }
+
+        /// <inheritdoc/>
+        public override void FrameCleanup(CommandBuffer cmd)
+        {
+            if (cmd == null)
+                throw new ArgumentNullException("cmd");
+
+            // cmd.ReleaseTemporaryRT(LinearToSRGBID);
+        }
+    }
+
+    public Material SamplingMaterial;
+    LinearToSRGBPass m_ScriptablePass;
+
+    public override void Create()
+    {
+        m_ScriptablePass = new LinearToSRGBPass(RenderPassEvent.AfterRendering, SamplingMaterial);
+    }
+
+    // Here you can inject one or multiple render passes in the renderer.
+    // This method is called when setting up the renderer once per-camera.
+    public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+    {
+        if (renderingData.cameraData.camera.cameraType == CameraType.Game  &&
+            renderingData.cameraData.resolveFinalTarget && 
+            renderingData.cameraData.forceRenderToTexture)
+        {
+            m_ScriptablePass.Setup(renderer.cameraColorTarget,renderingData.cameraData.cameraTargetDescriptorForceNotSRGB);
+            renderer.EnqueuePass(m_ScriptablePass);
+        }
+    }
+}
+
+```
+
+#### SRGBToCameraFeature
+
+```c#
+using System;
+using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
+
+public class SRGBToCameraFeature : ScriptableRendererFeature
+{
+    class SRGBToCameraPass : ScriptableRenderPass
+    {
+        Material m_ToCameraMaterial;
+
+        private RenderTargetIdentifier source { get; set; }
+        private RenderTargetIdentifier destination { get; set; }
+        const string m_ProfilerTag = "SRGBToCamera";
+        private static readonly int LinearToSRGBID = Shader.PropertyToID("_LinearToSRGBTex");
+
+        /// <summary>
+        /// Create the CopyColorPass
+        /// </summary>
+        public SRGBToCameraPass(RenderPassEvent evt, Material ToCameraMaterial)
+        {
+            renderPassEvent = evt;
+            m_ToCameraMaterial = ToCameraMaterial;
+        }
+
+        /// <summary>
+        /// Configure the pass with the source and destination to execute on.
+        /// </summary>
+        /// <param name="source">Source Render Target</param>
+        /// <param name="destination">Destination Render Target</param>
+        public void Setup(RenderTargetIdentifier source, RenderTargetIdentifier destination)
+        {
+            this.source = source;
+            this.destination = destination;
+        }
+
+        public override void Configure(CommandBuffer cmd, RenderTextureDescriptor cameraTextureDescripor)
+        {
+            // RenderTextureDescriptor descriptor = cameraTextureDescripor;
+            // descriptor.msaaSamples = 1;
+            // descriptor.depthBufferBits = 0;
+            // cmd.GetTemporaryRT(LinearToSRGBID, descriptor, FilterMode.Point);
+        }
+
+        /// <inheritdoc/>
+        public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+        {
+            if (m_ToCameraMaterial == null)
+            {
+                Debug.LogErrorFormat("Missing {0}. {1} render pass will not execute. Check for missing reference in the renderer resources.", m_ToCameraMaterial, GetType().Name);
+                return;
+            }
+
+            CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
+            Blit(cmd, source, destination, m_ToCameraMaterial);
+            context.ExecuteCommandBuffer(cmd);
+            CommandBufferPool.Release(cmd);
+        }
+
+        /// <inheritdoc/>
+        public override void FrameCleanup(CommandBuffer cmd)
+        {
+            if (cmd == null)
+                throw new ArgumentNullException("cmd");
+
+            cmd.ReleaseTemporaryRT(LinearToSRGBID);
+        }
+    }
+
+    public Material toCameraMaterial;
+    SRGBToCameraPass m_ScriptablePass;
+
+    public override void Create()
+    {
+        m_ScriptablePass = new SRGBToCameraPass(RenderPassEvent.BeforeRenderingOpaques, toCameraMaterial);//在渲染Opaques之前, 即TargetClear之后
+    }
+
+    // Here you can inject one or multiple render passes in the renderer.
+    // This method is called when setting up the renderer once per-camera.
+    public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+    {
+        if (renderingData.cameraData.camera.cameraType == CameraType.Game && 
+            renderingData.cameraData.isBaseCamera 
+            && renderingData.cameraData.forceNotSRGB)
+        {
+            m_ScriptablePass.Setup(BuiltinRenderTextureType.CameraTarget,renderer.cameraColorTarget);
+            renderer.EnqueuePass(m_ScriptablePass);
+        }
+    }
+}
+
+```
+
+
+
+#### 显示器端sRGB校正(```sRGBToLinear```)的推导.
+
+详细解析见[Wiki网页](https://en.wikipedia.org/wiki/SRGB), 你可能还会需要[求导公式](https://zhuanlan.zhihu.com/p/609302964).
+
+- 前提: 
+
+  - 显示器端的sRGB校正(```sRGBToLinear```)为 $y=x^{2.2}$ 这样的函数
+
+  - 对应的, 存储sRGB数据就应该类似于 $y=x^{-2.2}$
+
+  - 但存储数据时, 在x=0时, 会出现斜率无限大的情况, 为了避免在0点出现无限大的斜率, 当数据小于一定程度的时候, 就取数据本身
+
+  - 所以不能直接使用 $y=x^{2.2}$​​ 函数, 而是用两个函数来拟合
+
+    <img src="/assets/image/image-20240523154130386.png" alt="image-20240523154130386" style="zoom:50%;" />
+
+- 首先, 我们需要一个0-1区间内, 正比变化的一次函数, 用来拟合$x$接近于0的情况, 图中蓝色点线;
+
+  - $y=kx$
+  - 同时我们可以注意到, 要拟合这部分, $k$ 肯定小于1, 那么我们将 $k$ 移动到分母, 那么 $k$ 将会更好计算, 所以最终采用 $y=\frac{1}{k}*x$​ 的方式
+  - $y=\frac{x}{k}$(函数一)
+
+- 其次, 我们需要一个0-1区间内, 幂函数, 用来拟合 $x$ 通常的情况, 图中红色点线;
+
+  - $y =(\frac{x+A}{1+A})^N$ (函数二)
+
+- 再次, 这两个函数相交;
+
+  - $\frac{x}{k}=(\frac{x+A}{1+A})^N$ 
+
+- 最后, 这两个函数相交的地方是平滑过度的
+
+  - 即: 交点的导数相等
+
+  - 两边求导(左侧简单的乘积求导, 右侧先进行幂函数求导, 再进行一次乘积$\frac{x+A}{1+A}$求导), 有下列等式
+
+    $\frac{1}{k} = N*(\frac{x+A}{1+A})^{N-1}*\frac{1}{1+A}$​
+
+- 方程组求解
+  $$
+  \begin{cases}
+  	\frac{x}{k}=(\frac{x+A}{1+A})^N &\\
+  	\frac{1}{k} = N*(\frac{x+A}{1+A})^{N-1}*\frac{1}{1+A}
+  \end{cases}
+  $$
+
+- 
+
+- 解为
+  $$
+  \begin{cases}
+  	x=\frac{A}{N-1}&\\
+  	k=\frac{(1+A)^{N}*(N-1)^{N-1}}{A^{N-1}*N^N}
+  \end{cases}
+  $$
+
+- 最终, 规则定为$A=0.055, N=2.4$, 对应的$x=0.0392875, k=12.9232102$​
+
+  - 但, 该方案是付费的.
+  - 免费版 $k = 12.92$ ,如果曲线要连续对应的 $x=0.04045$ , 但这个标准仅仅保证曲线连续, 但斜率会不连续. 
+
+- Unity采用的是免费版数据
+
+  - $x =0.04050$ (函数分界点)
+
+  - $k=12.92$ (函数一斜率分母)
+
+  - $A = 0.055$ (函数二$ A $值)​
+
+  - $N = 2.4$ (函数二$ N $值)
+
+    ```C++
+    real3 SRGBToLinear(real3 c)
+    {
+        real3 linearRGBLo  = c / 12.92;
+        real3 linearRGBHi  = PositivePow((c + 0.055) / 1.055, real3(2.4, 2.4, 2.4));
+        real3 linearRGB    = (c <= 0.04045) ? linearRGBLo : linearRGBHi;
+        return linearRGB;
+    }
+    ```
+
+    
+
+###### 参考网页

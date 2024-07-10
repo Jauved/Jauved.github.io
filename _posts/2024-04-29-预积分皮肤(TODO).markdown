@@ -1,0 +1,23 @@
+---
+layout: post
+title: "预积分皮肤(TODO)"
+categories: [URP, 渲染]
+tags: URP PBR 渲染 皮肤 预积分
+math: true
+
+
+---
+
+# 预积分皮肤(TODO)
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[Pre-Integrated Skin Shading 的常见问题解答 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/384541607)
+
+[预积分皮肤次表面散射LUT研究实践与遇到的问题 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/304213775)
+
+[Unity HDRP中的次表面散射材质 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/450046635)
