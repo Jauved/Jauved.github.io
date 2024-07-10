@@ -110,3 +110,7 @@ math: true
 [Unity——Shader学习22——From庄懂（场景篇）烘焙LightMap - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/428223597)
 
 [ 苍白的茧 - 知乎 (zhihu.com)](https://www.zhihu.com/people/cang-bai-de-chong/posts)
+
+[【Unity URP】Unity Procedural Skybox Shader - Sand and Foam - FlowingCrescent's Blog](https://flowingcrescent.net/en/【Unity-URP】Unity Procedural Skybox Shader/)
+
+[Unity-Built-in-Shaders/DefaultResourcesExtra/Skybox-Procedural.shader at master · TwoTailsGames/Unity-Built-in-Shaders (github.com)](https://github.com/TwoTailsGames/Unity-Built-in-Shaders/blob/master/DefaultResourcesExtra/Skybox-Procedural.shader)

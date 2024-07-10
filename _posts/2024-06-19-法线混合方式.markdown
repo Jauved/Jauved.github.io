@@ -1,0 +1,21 @@
+---
+layout: post
+title: "法线混合方式"
+categories: [URP, 后处理]
+tags: URP 法线 法线混合 Blend 混合
+math: true
+
+
+---
+
+# 法线混合方式
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[法线贴图叠加细节方式【译】 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/375764857)
+
+[Normal Blend方法总结 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/364821684)
