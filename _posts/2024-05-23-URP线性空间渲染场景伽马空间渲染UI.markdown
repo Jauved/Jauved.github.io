@@ -730,7 +730,7 @@ public class SRGBToCameraFeature : ScriptableRendererFeature
 
   - 两边求导(左侧简单的乘积求导, 右侧先进行幂函数求导, 再进行一次乘积$\frac{x+A}{1+A}$求导), 有下列等式
 
-    $\frac{1}{k} = N*(\frac{x+A}{1+A})^{N-1}*\frac{1}{1+A}$​
+    $$\frac{1}{k} = N*(\frac{x+A}{1+A})^{N-1}*\frac{1}{1+A}$$​
 
 - 方程组求解
   $$
