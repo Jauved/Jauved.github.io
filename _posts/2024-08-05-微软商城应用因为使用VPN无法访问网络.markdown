@@ -1,0 +1,78 @@
+---
+layout: post
+title: "微软商城应用因为使用VPN无法访问网络"
+categories: [软件]
+tags: 微软 软件 网络 VPN
+math: true
+
+
+---
+
+# 微软商城应用因为使用VPN无法访问网络
+
+## 00 前言
+
+开启VPN后, 会遇到微软商城应用无法访问网络的问题. 原因是因为微软运行商城应用本质上是在一个沙盒里. 在默认的情况下, 这些应用被禁止访问本地的Localhost, 也自然导致该沙盒无法直接使用到系统的VPN.
+
+## 01 处理方法
+
+1. 官方解除限制工具`CheckNetIsolation.exe`, 步骤如下:
+
+   - Win+R, 输入`regedit`, 启动注册表编辑器
+
+   - 找到`HKEY_CURRENT_USER\Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppContainer\Mappings`
+
+   - 在其中找到需要访问网络的应用
+
+   - 利用"重命名"功能, 复制其SID号(即注册表左栏中的"文件夹名")
+
+   - Win+X, A, 启动Shell, 输入`CheckNetIsolation loopbackexempt -a -p=[SID] # 上一步你复制的 SID`, 其中SID即为上一步中复制的SID号, 回车
+
+   - 完成
+
+   - 其他命令
+     ```shell
+     // 查看已经取得 Loopback 豁免的应用列表及其SID号
+     CheckNetIsolation.exe loopbackexempt -s
+     // 基于SID添加豁免应用
+     CheckNetIsolation.exe loopbackexempt -a -p=[SID]
+     // 基于SUD移除豁免应用
+     CheckNetIsolation.exe loopbackexempt -d -p=[SID]
+     // 基于应用名添加豁免应用
+     CheckNetIsolation.exe loopbackexempt -a -n=[NAME]
+     // 基于应用名移除豁免应用
+     CheckNetIsolation.exe loopbackexempt -d -n=[NAME]
+     ```
+
+     
+
+但, 使用官方限制工具必须先要知道应用的SID号, 而找到SID号又需要启动注册表, 且需要手动查找.
+
+2. 使用`Fiddler`官方的插件`Windows 8 AppContainer Loopback Utility`来解除限制(推荐)(也可使使用第三方工具[tiagonmas/Windows-Loopback-Exemption-Manager (github.com)](https://github.com/tiagonmas/Windows-Loopback-Exemption-Manager))
+
+   因为有图形界面, 操作也很简单. (注: 以下步骤为单独下载该插件且可独立运行. 也可以直接下载`Fiddler`)
+
+   - 访问Fiddler插件页面[Add Ons for Telerik Fiddler Web Debugging Proxy](https://www.telerik.com/fiddler/add-ons) 
+   - 下载[`Windows 8 AppContainer Loopback Utility`](https://telerik-fiddler.s3.amazonaws.com/fiddler/addons/enableloopbackutility.exe)
+   - 安装后启动
+   - 勾选需要访问网络的应用后, `Save Changes`即可
+     ![image-20240805122124177](/assets/image/image-20240805122124177.png)
+
+附录: 下载`Fiddler`则是通过`WinConfig`来启动该插件
+![image-20240805122229107](/assets/image/image-20240805122229107.png)
+
+
+
+###### 参考网页
+
+[办公环境初始化 (rentry.org)](https://rentry.org/LeiCanY_SysInitialization)
+
+[通过设置为 Win 10 UWP 应用解除网络隔离 - 少数派 (sspai.com)](https://sspai.com/post/41137#!)
+
+[关于 Window 的 UWP 应用本地回环限制以及限制解除方案_uwp loopback-CSDN博客](https://blog.csdn.net/sigmarising/article/details/122758568)
+
+`Windows-Loopback-Exemption-Manager`: [tiagonmas/Windows-Loopback-Exemption-Manager (github.com)](https://github.com/tiagonmas/Windows-Loopback-Exemption-Manager)
+
+`Windows 8 AppContainer Loopback Utility`官方下载: https://telerik-fiddler.s3.amazonaws.com/fiddler/addons/enableloopbackutility.exe
+
+`Windows 8 AppContainer Loopback Utility`备用下载: [EnableLoopback Utility : Free Download, Borrow, and Streaming : Internet Archive](https://archive.org/details/enableloopback-utility)

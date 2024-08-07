@@ -1,0 +1,155 @@
+---
+layout: post
+title: "使用Lut进行色调变化"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 使用Lut进行色调变化
+
+## 00 前言
+
+Lut采样在Unity中的一次应用.
+
+## 01 处理方法
+
+### 代码来源:
+
+着色调用在Unity的后处理模块中有对应函数, 由于后处理模块内置URP. 这部分函数直接使用即可.
+
+`Library/PackageCache/com.unity.render-pipelines.universal@14.0.9/Shaders/PostProcessing/UberPost.shader`中的
+
+`color = ApplyColorGrading(color, PostExposure, TEXTURE2D_ARGS(_InternalLut, sampler_LinearClamp), LutParams, TEXTURE2D_ARGS(_UserLut, sampler_LinearClamp), UserLutParams, UserLutContribution);`
+
+`Library/PackageCache/com.unity.render-pipelines.universal@14.0.9/Shaders/PostProcessing/Common.hlsl`中的`ApplyColorGrading`方法.
+
+核心代码就以下两行
+
+```c++
+...
+half3 outLut = ApplyLut2D(TEXTURE2D_ARGS(userLutTex, userLutSampler), input, userLutParams);
+input = lerp(input, outLut, userLutContrib);
+...
+```
+
+然后对应的`ApplyLut2D`方法在`Library/PackageCache/com.unity.render-pipelines.core@14.0.9/ShaderLibrary/Color.hlsl`文件中, 代码如下
+
+```c++
+// 2D LUT grading
+// scaleOffset = (1 / lut_width, 1 / lut_height, lut_height - 1)
+real3 ApplyLut2D(TEXTURE2D_PARAM(tex, samplerTex), float3 uvw, float3 scaleOffset)
+{
+    // Strip format where `height = sqrt(width)`
+    uvw.z *= scaleOffset.z;
+    float shift = floor(uvw.z);
+    uvw.xy = uvw.xy * scaleOffset.z * scaleOffset.xy + scaleOffset.xy * 0.5;
+    uvw.x += shift * scaleOffset.y;
+    uvw.xyz = lerp(
+        SAMPLE_TEXTURE2D_LOD(tex, samplerTex, uvw.xy, 0.0).rgb,
+        SAMPLE_TEXTURE2D_LOD(tex, samplerTex, uvw.xy + float2(scaleOffset.y, 0.0), 0.0).rgb,
+        uvw.z - shift
+    );
+    return uvw;
+}
+```
+
+`TEXTURE2D_PARAM(tex, samplerTex)`: 标准的采样宏
+
+`uvw`: 即输入颜色的`rgb`值
+
+`scaleOffset`: 如注释所示, 分别是`(1 / lut_width, 1 / lut_height, lut_height - 1)`, 对应`256*16`的`Lut`图片来说, 即(1/256,1/16,15)
+
+### 具体实现:
+
+关键代码
+
+````
+CBUFFER_START(UnityPerMaterial)
+...
+float _LutLerp;
+...
+CBUFFER_END
+...
+TEXTURE2D(_LutMap);		SAMPLER(sampler_LutMap);
+```
+half3 ApplyColorLut(half3 input,TEXTURE2D_PARAM(lutTex,lutSampler),float lutContrib)
+{
+	UNITY_BRANCH
+	if(lutContrib>0.0)
+	{
+		float3 scaleOffset = float3(0.00390625f,0.0625f,15.0f);
+		half3 output = ApplyLut2D(TEXTURE2D_ARGS(lutTex,lutSampler), saturate(input),scaleOffset);
+		input = lerp(input, output,lutContrib);
+	}
+	return input;
+}
+...
+color.rgb = ApplyColorLut(color.rgb,_LutMap,sampler_LujtMap,LutLerp);
+```
+````
+
+### 注意事项:
+
+- 因为项目直接用的`256*16`的贴图, 所以此时的`scaleOffset`直接可以预计算得到
+- 然后因为项目开启了HDR, 但不想用HRD的Lut(过大), 所以暴力的将`input`进行了`saturate`的处理(否则会导致偏色)
+- 根据情况, 如果要完美解决, 那么需要考虑是否linear空间, 是否HDR, 并分别进行处理.
+- 这种在片元着色器中进行Lut的方式, 仅仅适用于简单工程(无后处理, 无bloom需求), 否则, 则建议在后处理中处理.
+
+
+
+###### 参考网页
+
+- Unity后处理采用的原始Lut
+
+  - [PostProcessing/PostProcessing/Textures/LUTs/NeutralLUT_32.png at v1 · Unity-Technologies/PostProcessing (github.com)](https://github.com/Unity-Technologies/PostProcessing/blob/v1/PostProcessing/Textures/LUTs/NeutralLUT_32.png)
+
+- 直接计算Lut的脚本
+
+  ```
+  #if UNITY_EDITOR
+  using System.Collections;
+  using System.Collections.Generic;
+  using UnityEngine;
+  using UnityEditor;
+  using System.IO;
+  public class CreateLUT
+  {
+      static string FilePath = "Assets/BaseLUT.png";
+      private static int width = 256;
+      private static int height = 16;
+      [MenuItem("Tools/创建基础LUT(有问题, 暂时别用)")]
+      static void CreatLutTex()
+      {
+          var tex = new Texture2D(width,height);
+          var colors = new Color[width,height];
+          for (var b = 0; b < height; b++)
+          {
+              for (var g = 0; g < height; g++)
+              {
+                  for (var r = 0; r < height; r++)
+                  {
+                      colors[r + b * height, g] = new Color(r/(float)height,g/(float)height,b/(float)height);
+                  }
+              }
+          }
+          for (var h = 0; h < width; h++)
+          {
+              for (var v = 0; v < height; v++)
+              {
+                  tex.SetPixel(h, v, colors[h, v]) ;
+              }
+          }
+          tex.Apply();
+          var btys=tex.EncodeToPNG();
+          File.WriteAllBytes(FilePath,btys);
+      }
+  }
+  #endif
+  ```
+
+- [采样器的写法](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-SamplerStates.html)
+
+- [虚幻4的Lut](https://docs.unrealengine.com/4.26/en-US/RenderingAndGraphics/PostProcessEffects/UsingLUTs/)

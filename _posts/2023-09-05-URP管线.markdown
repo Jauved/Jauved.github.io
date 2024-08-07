@@ -32,3 +32,5 @@ tags: URP URP管线
 - [用Unity实现Shadow Map - Richbabe的博客 \| Richbabe Blog](http://richbabe.top/2018/06/27/用Unity实现Shadow-Map/)
 - [Unity URP 渲染管线解析(2) - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/119145598)
 - [Unity URP 屏幕空间UV、ClipSpace结论 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/648842437)
+- [URP Blit 入门 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/619482619)
+- [Custom render passes in Unity (ameye.dev)](https://ameye.dev/notes/scriptable-render-passes/)
