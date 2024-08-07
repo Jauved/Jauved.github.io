@@ -1,0 +1,19 @@
+---
+layout: post
+title: "贴花(Decal)实现"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 贴花(Decal)实现
+
+## 00 前言
+
+## 01 处理方法
+
+###### 参考网页
+
+[Unity Decal 贴花基础入门(2023) - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/666213716)
