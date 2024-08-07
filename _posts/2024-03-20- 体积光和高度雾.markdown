@@ -20,3 +20,4 @@ math: true
 - [MaxwellGengYF/Unity-Volumetric-Light: A powerful volumetric light plugin based on post-processing in Unity3D (github.com)](https://github.com/MaxwellGengYF/Unity-Volumetric-Light)
 - [SlightlyMad/VolumetricLights: Volumetric Lights for Unity (github.com)](https://github.com/SlightlyMad/VolumetricLights)
 - [Signed Distance Field Shadow in Unity - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/37918356#)
+- [游戏中的Volumetric Rendering - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/102114679)
