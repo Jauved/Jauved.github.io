@@ -32,7 +32,7 @@ math: true
   }
   ```
 
-  #### [LOD]([Unity - Manual: ShaderLab: assigning a LOD value to a SubShader (unity3d.com)](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ShaderLOD.html))
+  #### [LOD](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ShaderLOD.html)
 
   Unity内部定义的一个描述着色器计算复杂度的一个值. 全称为Level Of Detail. Unity内部会根据定义的LOD值判断实际使用的时候采用哪一个SubShader. 在此我们更新以下着色器代码结构示例.
 
@@ -316,11 +316,11 @@ math: true
 
   其中各个参数的取值为:
 
-  <state>: Off
+  \<state>: Off
 
-  <[render target](https://docs.unity3d.com/2020.1/Documentation/Manual/SL-Blend.html)>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
+  \<[render target](https://docs.unity3d.com/2020.1/Documentation/Manual/SL-Blend.html)>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
 
-  <source/destination factor>:  One/Zero/SrcColor/SrcAlpha/DstColor/DstAlpha/OneMinusSrcColor/OneMinusSrcAlpha/OneMinusDstColor/OneMinusDstAlpha
+  \<source/destination factor>:  One/Zero/SrcColor/SrcAlpha/DstColor/DstAlpha/OneMinusSrcColor/OneMinusSrcAlpha/OneMinusDstColor/OneMinusDstAlpha
 
   下面以代码块示例. 
 
@@ -378,11 +378,11 @@ math: true
 
   其中各个参数取值:
 
-  <render target>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
+  \<render target>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
 
-  <Op>: Add/Sub/RevSub/Min/Max(这部分是基础Op)
+  \<Op>: Add/Sub/RevSub/Min/Max(这部分是基础Op)
 
-  <Op>: Multiply/Screen/Overlay/Darken/Lighten/ColorDodge/ColorBurn/HardLight/SoftLight/Difference/Exclusion/HSLHue/HSLSaturation/HSLColor/HSLLuminosity(这部分Op需要GLES3.1 AEP+, GL_KHR_blend_equation_advanced, 或者GL_NV_blend_equation_advanced指令集支持. 且只支持RGBA统一运算, 而不支持分别运算(即不支持BlendOp <Op RGB>, <Op Alpha>, 以及BlendOp <render target> <Op RGB>, <Op Alpha>))
+  \<Op>: Multiply/Screen/Overlay/Darken/Lighten/ColorDodge/ColorBurn/HardLight/SoftLight/Difference/Exclusion/HSLHue/HSLSaturation/HSLColor/HSLLuminosity(这部分Op需要GLES3.1 AEP+, GL_KHR_blend_equation_advanced, 或者GL_NV_blend_equation_advanced指令集支持. 且只支持RGBA统一运算, 而不支持分别运算(即不支持BlendOp \<Op RGB>, \<Op Alpha>, 以及BlendOp \<render target> \<Op RGB>, \<Op Alpha>))
 
   代码块示例(Blend Op不能与Blend Command分开使用):
 
@@ -408,9 +408,9 @@ math: true
 
   各个参数取值: 
 
-  <render target>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
+  \<render target>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
 
-  <channels>: 0/R/G/B/A/任意RGBA的组合
+  \<channels>: 0/R/G/B/A/任意RGBA的组合
 
   代码块示例
 
@@ -448,13 +448,13 @@ math: true
 
   适用范围: Pass/SubShader
 
-  取值: <factor>, <units>
+  取值: \<factor>, \<units>
 
   各个参数取值: 
 
-  <factor>: -1到1(官方文档如是, 但实际上可以取超过范围的值)
+  \<factor>: -1到1(官方文档如是, 但实际上可以取超过范围的值)
 
-  <Units>: -1到1(官方文档如是, 但实际上可以取超过范围的值)
+  \<Units>: -1到1(官方文档如是, 但实际上可以取超过范围的值)
 
   默认值: Offset 0 0
 
@@ -474,7 +474,7 @@ math: true
 
   适用范围: SubShader
 
-  取值: UsePass "<Shader object name>/<PASS NAME IN UPPERCASE>"
+  取值: UsePass "\<Shader object name>/\<PASS NAME IN UPPERCASE>"
 
   各个参数取值: 
 
