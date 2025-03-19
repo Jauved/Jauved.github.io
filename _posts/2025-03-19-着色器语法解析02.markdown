@@ -197,7 +197,7 @@ math: true
 
   默认值: False
 
-  注: 当[LODFading](https://docs.unity3d.com/Manual/class-LODGroup.html)被激活时禁用动态合批. (阿喵并没有实际操作案例, 具体可以先研读[相关文档](https://docs.unity3d.com/Manual/class-LODGroup.html)). 动态合批(Dynamic batching)的最大缺陷是会使基于单个物体的模型空间的数据丢失，在模型空间上所作的操作也就会失效, 该Tag就是避免这种情况下产生的渲染缺陷(当然, 渲染缺陷消失的同时动态合批的合批优势也会失去.)
+  注: 当[LODFading](https://docs.unity3d.com/Manual/class-LODGroup.html)被激活时禁用动态合批. (本人并没有实际操作案例, 具体可以先研读[相关文档](https://docs.unity3d.com/Manual/class-LODGroup.html)). 动态合批(Dynamic batching)的最大缺陷是会使基于单个物体的模型空间的数据丢失，在模型空间上所作的操作也就会失效, 该Tag就是避免这种情况下产生的渲染缺陷(当然, 渲染缺陷消失的同时动态合批的合批优势也会失去.)
 
   ##### *IgnoreProjector
 
@@ -478,7 +478,7 @@ math: true
 
   各个参数取值: 
 
-  由示例中会比较好说明, 首先我们制作一个Shader, 调用路径为"Examples/ContainsNamedPass", 并在Pass块中定义其名称为"ExampleNamedPass", 然后, 可以在另一个着色器的SubShader块中使用UsePass Command来使用该Pass(具体Pass的写法会在第四课中进行详细的说明). 值得注意的是, Pass的名称指定时可以随意使用大小写(具体规则请按照图程(四木)的规定来, 我建议使用驼峰命名法), 但使用UsePass调用的时候, Pass名称需要全大写.
+  由示例中会比较好说明, 首先我们制作一个Shader, 调用路径为"Examples/ContainsNamedPass", 并在Pass块中定义其名称为"ExampleNamedPass", 然后, 可以在另一个着色器的SubShader块中使用UsePass Command来使用该Pass(具体Pass的写法会在第四课中进行详细的说明). 值得注意的是, Pass的名称指定时可以随意使用大小写(具体规则请按照图程的规定来, 我建议使用驼峰命名法), 但使用UsePass调用的时候, Pass名称需要全大写.
 
   ```glsl
   Shader "Examples/ContainsNamedPass"
