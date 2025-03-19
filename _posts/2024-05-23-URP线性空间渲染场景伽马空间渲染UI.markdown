@@ -740,8 +740,6 @@ public class SRGBToCameraFeature : ScriptableRendererFeature
   \end{cases}
   $$
 
-- 
-
 - 解为
   $$
   \begin{cases}

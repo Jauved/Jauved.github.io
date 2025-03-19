@@ -1,0 +1,265 @@
+---
+layout: post
+title: "着色器语法解析00"
+categories: [URP, 着色器]
+tags: URP 着色器 Shader
+math: true
+
+
+---
+
+# 着色器语法解析00
+
+## 官方文档
+
+[通用渲染管线概述 \| Universal RP \| 12.1.1 (unity3d.com)](https://docs.unity3d.com/cn/Packages/com.unity.render-pipelines.universal@12.1/manual/index.html)
+
+## 基础着色器(Shader)文件模板解析
+
+### Shader文件
+
+```glsl
+//代码块说明中, "_"代表"空格";
+//请切换到英文输入法, 大部分的中文标点会导致程序报错.
+
+//Shader{}
+//其中Shader_"string"
+//string: 该参数代表着色器在调用时的路径, 以"/"分割子路径
+Shader "StarUnion/Practise/URPUnlitShaderBasic"
+{
+    Properties{}    //面板参数
+    SubShader{}    //着色器代码本体
+    FallBack "VertexLit"	//如果渲染不成功, 则使用""中指定名称的着色器进行渲染.
+    CustomEditor "StandardShaderGUI"	//编辑器中, 使用""中指定的面板脚本绘制自定义面板.
+}
+```
+
+### Propertise块
+
+[Unity - Manual: ShaderLab: defining material properties (unity3d.com)](https://docs.unity3d.com/Manual/SL-Properties.html)
+
+着色器参数声明格式如下
+
+```glsl
+[optional: attribute] name("display text in Inspector", type name) = default value
+```
+
+这里会依次讲解各个部分的填充内容
+
+#### [**[optional: atrribute]**](https://docs.unity3d.com/Manual/SL-Properties.html)
+
+- **作用**: 用于配置特殊的参数规则.
+
+- **规则**: [optional: atrribute](https://docs.unity3d.com/Manual/SL-Properties.html)(可配置属性), 不区分大小写, 但渲染组规则为"**首字母大写+驼峰式大小写**(Camel-Case)".
+
+- **具体参数**:
+
+  - **\[Gamma]**: 适用于**Vector**类**参数**. 这个属性在项目色彩空间为"Gamma"时, 没有任何作用. 在项目色彩空间为"Linear"的情况下, 会让冠以这个属性的**参数**的变换和Gamma空间时变换率一致. (公司暂时不会有Linear空间下的项目, 该属性在实际使用中可以略过)
+
+    第一行和第二行: 在Gamma空间下, 加/不加[Gamma]属性, 数值导致灰度的变化情况.
+
+    第三行: 在Linear空间下, 不加[Gamma]属性, 数值导致灰度的变化情况.(结果正确, 但和Gamma空间不一致)
+
+    第四行: 在Linear空间下, 加上[Gamma]属性, 数值导致灰度的变化情况.(与Gamma空间一致).
+
+    <img src="/assets/image/image-20220520183205814.png" alt="image-20220520183205814" style="zoom:25%;" />
+
+    ```glsl
+    [Gamma]_GammaValue("Gamma修正数值", Range(0,1)) = 0
+    ```
+
+    
+
+
+  - **\[HDR]**: 该属性适用于**贴图**/**颜色**类参数. 如果贴图本身是LDR贴图(公司项目大部分贴图都是LDR贴图), 则会报Warning. 
+
+    ```
+    [HDR]_HDRColor("HDR颜色", Color) = (1,1,1,1)
+    ```
+
+    
+
+
+  - **\[HideInInspector]**: 该属性会让对应的参数在面板上不显示.(不显示但不影响程序调用, 适用于不想被美术调整, 但可以被程序调整的参数)
+
+
+  - **\[MainTexture]**: 该属性适用于**贴图**类参数. 使用该属性的**贴图**类参数, 可以在C#脚本中通过"[Material.mainTexture](https://docs.unity3d.com/ScriptReference/Material-mainTexture.html)"在脚本中获取到. 同时, 如果不使用该属性, 也可以将参数名设置为"**_MainTex**", 达到同样的结果. 另, 如果多个贴图参数都使用了这一属性, 那么只有第一个使用这一属性的参数会生效. 
+    - 注意：当您使用此属性设置主纹理时，当您使用纹理流([Unity - Manual: The Mipmap Streaming system](https://docs.unity.cn/2019.4/Documentation/Manual/TextureStreaming.html))调试视图模式(texture streaming debugging view mode)或自定义调试工具时，纹理在游戏视图中不可见。
+
+
+  - **[MainColor]**: 该属性适用于**颜色**类参数. 使用该属性的**颜色**类参数, 可以在C#脚本中通过"[Material.color](https://docs.unity3d.com/ScriptReference/Material-color.html)"在脚本中获取到. 同时, 如果不使用该参数, 也可以将参数名设置为"**_Color**", 达到同样的结果. 另, 如果多个颜色参数都使用了这一属性, 那么只有第一个使用这一属性的参数会生效. 
+
+
+  - **[NoScaleOffset]**: 该属性适用于**贴图**类参数. 使用该属性的**贴图**类参数, 在面板上不会出现Scale和Offset调整框.
+
+
+  - **[Normal]**: 该属性适用于**贴图**类参数. 使用该属性的**贴图**类参数, 会检测该参数所赋值是否设置为"Normal Map", 如果不是, 则会提醒.
+
+
+  - **[PerRendererData]**: 该属性适用于**贴图**类参数, 表示该参数是通过不同"per-renderer data", 以"[MaterialPropertyBlock](https://docs.unity3d.com/ScriptReference/MaterialPropertyBlock.html)"形式传入. 在面板上, 该参数显示为"只读".
+
+
+#### name
+
+- **作用**: 该名称用于建立Propertise面板参数与Shader公共参数的关联, 两者的名称要统一, 在"**公共参数**"部分会详细说明.
+
+- **规则**:
+
+  - 以"**_**"开头, "**首字母大写+驼峰式大小写**(Camel-Case)" 
+
+    ```glsl
+    _NoScaleOffsetTex("简化参数贴图", 2D) = "white" {}
+    ```
+
+  - 贴图类: **_**[*]**Tex**
+
+    ```tex
+    _MainTex
+    _NormalTex
+    _FlowTex
+    _AnisotropyTex
+    ...
+    ```
+
+    
+
+  - 颜色类: 暂定
+
+  - 值类: 暂定
+
+  
+
+#### ("display text in Inspector", type name) = default value
+
+- **作用**: 面板显示, 及初始值赋予.
+
+##### 	"display text in Inspector"
+
+- **作用**: 面板上显示的参数名, 可以用中文, 建议尽量用中文.
+
+- **规则**: 通常为"name"的直接翻译.
+
+  ```tex
+  "主贴图"
+  "法线贴图"
+  "Flow贴图"
+  "各向异性贴图"
+  ...
+  ```
+
+  
+
+##### 	type name
+
+- **作用**: 面板上根据不同的type name调用不同的面板显示.
+
+- **规则**: 不区分大小写, 但渲染组规则为"**首字母大写**".
+
+- **具体参数**: 
+
+  - Float: 通常数值.
+
+  - Range(0.0, 1.0): 浮点数范围. 其中0.0和1.0可以替换为任意的浮点数.
+
+  - Color: 颜色.
+
+  - Int: 整数数值, 2020版本还在使用, 但2021版本多一个"**Integer**"供使用. 两者区别为, "**Int**"返回的仍旧是浮点数(测试下来类似将面板的数据进行了floor()函数处理), "**Interger**"返回的是整数.
+
+  - Vector: 面板上为Vector4.
+
+  - 2D: Texture2D, 2D贴图.
+
+  - 2DArray: [Texture2DArray](https://docs.unity3d.com/Manual/class-Texture2DArray.html), 要求是OpenGL ES3.0及以上. 检测API为"[SystemInfo.supports2DArrayTextures](https://docs.unity3d.com/ScriptReference/SystemInfo-supports2DArrayTextures.html)". [Unity技术分享（100）｜ Texture2DArray、粒子系统的性能开销…… ](https://baijiahao.baidu.com/s?id=1593107166928627425&wfr=spider&for=pc)
+
+  - 3D: [Texture3D](https://docs.unity.cn/cn/2019.4/Manual/class-Texture3D.html), 3D贴图.  但官方文档里面的256\*256*256, RGBA32, 大小为512MB, 但实际代码生成如下, 为64MB.
+
+    ![image-20220521193654221](/assets/image/image-20220521193654221.png)
+
+  - Cube: Cubemap, 用于天空盒或者反射盒.
+
+  - CubeArray: [Cubemap arrays](https://docs.unity3d.com/Manual/class-CubemapArray.html). 同[Texture2DArray](https://docs.unity3d.com/Manual/class-Texture2DArray.html), 仅仅是对象换成了Cubemap.
+
+##### default value
+
+- 作用: 面板上的参数默认值.
+
+- 规则:
+
+  - Float: 任何Float允许的数值皆可. 
+
+    ```tex
+    _SimpleFloat("普通数值", Float) = 0
+    _SimpleFloat("普通数值", Float) = 0.5
+    ```
+
+  - Range: 任何Float允许的数值皆可, 但建议初始值在Range范围内.
+
+    ```tex
+    _Range("范围", Range(0.0,1.0)) = 0
+    _Range("范围", Range(0.0,100.0)) = 10
+    _Range("范围", Range(200.0,100.0)) = 110
+    ```
+
+    - Color: (f,f,f,f)
+
+      ```tex
+      _SimpleColor("普通颜色", Color) = (1,1,1,1)
+      _SimpleColor("普通颜色", Color) = (0,0,0,1)
+      _SimpleColor("普通颜色", Color) = (1,0,0,1)
+      _SimpleColor("普通颜色", Color) = (0.5,0.5,0.5,1)
+      _SimpleColor("普通颜色", Color) = (.5,.5,.5,1)
+      ```
+
+    - Int: 任意整数皆可(在2020版本中, 仍旧是以浮点数存储的, 严格来说, 任何浮点数皆可)
+
+      ```tex
+      _Int("整数", Int) = 0
+      _Int("整数", Int) = 1
+      ```
+
+    - Vector: (f,f,f,f) 
+
+      ```tex
+      _Vector("向量", Vector) = (0,0,0,0)
+      ```
+
+    - 2D: "[color]" {}, 其中[color]为black, gray, white, red, bump. 其中bump是Normal图专用, 具体值为RGBA: 0.5,0.5,1,0.5. 另, 如果不填, 则默认值为gray. 另, 如果[color]指定为black时, 在ASTC纹理平台(苹果), 其具体值为RGBA: 0,0,0,1, 而在ETC纹理平台(安卓), 其具体值为RGBA: 0,0,0,0. 基于以上建议, 如果需要在多平台兼容且用到纹理Alpha值, 则需要注意此差别.
+
+      [ASTC纹理压缩格式详解 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/158740249)
+
+      [[2018.1\]Unity贴图压缩格式设置 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/113366420)
+
+      ```
+      _Tex("贴图", 2D) = "" {}
+      _Tex("贴图", 2D) = "white" {}
+      _Tex("贴图", 2D) = "gray" {}
+      _Tex("贴图", 2D) = "black" {}
+      _Tex("贴图", 2D) = "red" {}
+      _Tex("贴图", 2D) = "bump" {}
+      ```
+
+    - 2DArray: "" {}
+
+      ```tex
+      _TexArray("贴图组", 2DArray) = "" {}
+      ```
+
+    - 3D: "" {}
+
+      ```tex
+      _3DTex("3D贴图", 3D) = "" {}
+      ```
+
+    - Cube: "" {}
+
+      ```tex
+      _CubeMap("Cube贴图", Cube) = "" {}
+      ```
+
+    - CubeArray: "" {}
+
+      ```tex
+      _CubeMapArray("Cube贴图组", CubeArray) = "" {}
+      ```
+
+###### 参考网页
