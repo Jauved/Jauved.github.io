@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "着色器语法解析00"
+title: "着色器语法解析02"
 categories: [URP, 着色器]
 tags: URP 着色器 Shader
 math: true
@@ -8,545 +8,545 @@ math: true
 
 ---
 
-- - # Lesson03
+- # 着色器语法解析02
 
-    ## 官方文档
-    
-    [通用渲染管线概述 \| Universal RP \| 12.1.1 (unity3d.com)](https://docs.unity3d.com/cn/Packages/com.unity.render-pipelines.universal@12.1/manual/index.html)
-    
-    [Unity - Manual: The Shader class (unity3d.com)](https://docs.unity3d.com/Manual/shader-objects.html#order-of-operations)
-    
-    ### SubShader块
-    
-    [Unity - Manual: ShaderLab: defining a SubShader (unity3d.com)](https://docs.unity3d.com/Manual/SL-SubShader.html)
-    
-    #### 基础结构
-    
-    ```glsl
-    SubShader
-    {
-        LOD 100		//与程序的高低配配置相关参数, 官方文档位置https://docs.unity3d.com/Manual/SL-ShaderLOD.html
-        Tags{}		//Unity内置的预编译参数, 以Tag形式记录, 官方文档https://docs.unity3d.com/Manual/SL-SubShaderTags.html
-        // ShaderLab commands that apply to the whole SubShader go here.
-    	Pass{}
-    }
-    ```
-    
-    #### [LOD]([Unity - Manual: ShaderLab: assigning a LOD value to a SubShader (unity3d.com)](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ShaderLOD.html))
-    
-    Unity内部定义的一个描述着色器计算复杂度的一个值. 全称为Level Of Detail. Unity内部会根据定义的LOD值判断实际使用的时候采用哪一个SubShader. 在此我们更新以下着色器代码结构示例.
-    
-    默认值: LOD默认值为0(待验证)
-    
-    在Lesson01中, 我们描述的着色器代码结构如下
-    
-    ```glsl
-    Shader "StarUnion/Practise/URPUnlitShaderBasic"
-    {
-        Properties{}    //面板参数
-        SubShader{}    //着色器代码本体
-        FallBack "VertexLit"	//如果渲染不成功, 则使用""中指定名称的着色器进行渲染.
-        CustomEditor "StandardShaderGUI"	//编辑器中, 使用""中指定的面板脚本绘制自定义面板.
-    }
-    ```
-    
-    加入LOD后, 着色器代码结构如下
-    
-    ```glsl
-    Shader "StarUnion/Practise/URPUnlitShaderBasicLOD"
-    {
-        Properties{}    //面板参数
-        SubShader{
-            LOD 100
-        }    //着色器代码本体 SubShader01
-        SubShader{
-            LOD 150
-        }    //着色器代码本体 SubShader02
-        SubShader{
-            LOD 200
-        }    //着色器代码本体 SubShader03
-        //其他SubShader代码块...
-        FallBack "VertexLit"	//如果渲染不成功, 则使用""中指定名称的着色器进行渲染.
-        CustomEditor "StandardShaderGUI"	//编辑器中, 使用""中指定的面板脚本绘制自定义面板.
-    }
-    ```
-    
-    值得注意的是, LOD值必须由小到大排列, 因为Unity在实际使用的时候, 会由上至下, 选取第一个等于低于规定值(这个值一般是图程或者主程在代码中控制的)的SubShader进行渲染使用. 具体[页面](https://docs.unity3d.com/Manual/SL-ShaderLOD.html). 在该页面中也说明了具体设置LOD的前端Api为[ Shader.maximumLOD](https://docs.unity3d.com/ScriptReference/Shader-maximumLOD.html)和[Shader.globalMaximumLOD](https://docs.unity3d.com/ScriptReference/Shader-globalMaximumLOD.html).
-    
-    打个比方:
-    
-    图程或主程通过某种方式, 判断目前终端是低端机, 那么通过脚本命令, 设置[Shader.globalMaximumLOD](https://docs.unity3d.com/ScriptReference/Shader-globalMaximumLOD.html)的值为100, 那么接下来, 只有LOD等于或低于100的SubShader会被使用.
-    
-    #### [Tags](https://docs.unity3d.com/Manual/SL-SubShaderTags.html)
-    
-    ##### 基础结构
-    
-    Tags { “[name1]” = “[value1]” “[name2]” = “[value2]”}
-    
-    伪代码如下
-    
-    ```glsl
-    Shader "StarUnion/Practise/URPUnlitShaderBasicTag"
-    {
-        Properties{}    //面板参数
-        SubShader{
-            LOD 100
-            //Tags { “[name1]” = “[value1]” “[name2]” = “[value2]”}
-            Tags{
-                "RenderPipeline" = "UniversalRenderPipeline"
-                "Queue" = "Geometry" //"Queue" = "Geometry+1"
-                "RenderType" = "Opaque"
-                "ForceNoShadowCasting" = "False"
-                "DisableBatching" = "False"
-                "IgnoreProjector" = "False" //该Tag仅在Built-in管线中生效, 由于目前都是基于URP关键做着色器操作, 所以这一条可以忽略.
-                "PreviewType" = "Sphere"
-                "CanUseSpriteAtlas" = "Ture" //该Tag在2020.1及以上版本中, 只对在之前版本中创建的工程生效. 在2020.1及以上版本中新创建的对象, 该Tag不生效(基于Unity文档, 未验证)
-                }
-            ...
-        }
-    
-        FallBack "VertexLit"	//如果渲染不成功, 则使用""中指定名称的着色器进行渲染.
-        CustomEditor "StandardShaderGUI"	//编辑器中, 使用""中指定的面板脚本绘制自定义面板.
-    }
-    
-    
-    
-    ```
-    
-    ##### RenderPipeline
-    
-    取值: UniversalRenderPipeline/HighDefinitionRenderPipeline
-    
-    默认值: 无(该Tag只有在Unity内建的两个SRP管线中生效)
-    
-    意义: 用于指定Unity内建的两个SRP管线, 以便于使用管线中的功能.
-    
-    ##### Queue
-    
-    取值: Background/Geometry/AlphaTest/Transparent/Overlay
-    
-    默认值: Geometry
-    
-    额外参数: + 任意整数
-    
-    ```glsl
-    "Queue" = "Geometry+10"
-    ```
-    
-    注: 
-    
-    在2500之前, 物体是由近往远渲染(基于摄像机), 在2501之后, 物体是由远往近渲染. 
-    
-    | 名称                                 | 对应的Int值(但不能直接填写该数据)                            |
-    | ------------------------------------ | ------------------------------------------------------------ |
-    | Background                           | 1000                                                         |
-    | Geometry                             | 2000                                                         |
-    | AlphaTest                            | 2450                                                         |
-    | 不透明与半透明分界线                 | 2500                                                         |
-    | Built-in管线中的天空盒(Unity5.x之后) | 2500.5(着色器具体Queue值是1000, 但实际上很可能是管线上强制让天空盒在不透明物体渲染和半透明之间进行渲染) |
-    | Transparent                          | 3000                                                         |
-    | Overlay                              | 4000                                                         |
-    
-    ##### [RenderType](https://docs.unity3d.com/Manual/SL-ShaderReplacement.html)
-    
-    取值: Opaque/Transparent/TransparentCutout/Background/Overlay/TreeOpaque/TreeTransparentCutout/TreeBillboard/Grass/GrassBillboard
-    
-    默认值: Opaque
-    
-    注: 主要用于[**替代渲染(Replacing shaders)**](https://docs.unity3d.com/Manual/SL-ShaderReplacement.html), 比如Game视图显示OverDraw的时候, 就是用的替代渲染完成的. 具体规则需要在管线中进行定义. 相关前端伪代码示例如下:
-    
-    ```c#
-    void Start() {
-        camera.SetReplacementShader (EffectShader, "RenderType");
-    }
-    ```
-    
-    相关着色器伪代码如下:
-    
-    ```glsl
-    Shader "EffectShader" {
-         SubShader {
-             Tags { "RenderType"="Opaque" }
-             Pass {
-                 ...
-             }
-         }
-         SubShader {
-             Tags { "RenderType"="SomethingElse" }
-             Pass {
-                 ...
-             }
-         }
-     ...
-     }
-    ```
-    
-    此时, 在这个摄像机下, 所有的RenderType为Opaque的着色器将使用EffectShader中的第一个SubShader来进行替换渲染, 所有RenderType为SomethingElse的着色器将使用EffectShader中的第二个SubShader来进行替代渲染.
-    
-    ##### ForceNoShadowCasting
-    
-    取值: True/False
-    
-    默认值: False
-    
-    注: 一般是在使用替代渲染时, 不希望从其他的SubShader中继承阴影Pass时使用.
-    
-    ##### DisableBatching
-    
-    取值: True/False/[LODFading](https://docs.unity3d.com/Manual/class-LODGroup.html)
-    
-    默认值: False
-    
-    注: 当[LODFading](https://docs.unity3d.com/Manual/class-LODGroup.html)被激活时禁用动态合批. (阿喵并没有实际操作案例, 具体可以先研读[相关文档](https://docs.unity3d.com/Manual/class-LODGroup.html)). 动态合批(Dynamic batching)的最大缺陷是会使基于单个物体的模型空间的数据丢失，在模型空间上所作的操作也就会失效, 该Tag就是避免这种情况下产生的渲染缺陷(当然, 渲染缺陷消失的同时动态合批的合批优势也会失去.)
-    
-    ##### *IgnoreProjector
-    
-    取值: True/False
-    
-    默认值: False
-    
-    注: 该Tag仅在Built-in管线中生效, 指的是让该Tag值为True的物体不受Unity的[Projectors](https://docs.unity3d.com/Manual/class-Projector.html)影响.
-    
-    ##### PreviewType
-    
-    取值: Sphere/Plane/Skybox
-    
-    默认值: Sphere
-    
-    注: 这个Tag影响材质球预览时右下角显示的基础Mesh的形状.
-    
-    ##### *CanUseSpriteAtlas
-    
-    取值: True/False
-    
-    默认值: True
-    
-    注: 该Tag可以设置这个着色器参与渲染的对象能否使用Unity的[Legacy Sprite Packer](https://docs.unity3d.com/Manual/SpritePacker.html), 值得注意的是Unity 2020.1及以上版本中, 已经用[Sprite Atlas](https://docs.unity3d.com/Manual/class-SpriteAtlas.html)取代了Speite Packer, 所以该Tag也随之失效(基于Unity文档, 未验证).
-    
-    #### Shaderlab Commands
-    
-    ##### 基础结构
-    
-    ```glsl
-    Shader "example" {
-        SubShader {
-        	AlphaToMask Off //当没有使用MSAA时, 不写或将AlphaToMask设置为Off.
-        	Blend SrcAlpha OneMinusSrcAlpha //基于Alpha值进行混合.
-        	BlendOp Add //混合用的源与目标之间, 使用加的方式.
-        	ColorMask RGBA //最终将RGBA都写入Render Target.
-        	Conservative False //由GPU来决定像素填充.
-        	Cull Back //剔除背面, 一般不透明渲染采用.
-            Offset 0 0 //指不进行Offset.
-            //Stencil //会单独用一课来详细说明.
-            //UsePass //建议不使用.
-            //GrabPass //URP管线已经抛弃.
-            ZClip True
-            ZTest LEqual
-            ZWrite On
-            // ...
-        }
-        SubShader {
-            // ...
-        }
-        // ...
-    }
-    ```
-    
-    
-    
-    ##### [Category block](https://docs.unity3d.com/Manual/SL-Other.html)
-    
-    最特殊的Shaderlab Command, 是用来在所有SubShader中应用Command块的语法.  其位置也与其他Shader Command不同. 注意, 该Command本质上是一个Copy-Pasting过程, 所以对于Pass结构前的所有语句都生效, 即对SubShader的Tag也生效.
-    
-    ```glsl
-    Shader "example" {
-    Category {
-        Tags
-            {
-                "RenderType" = "Opaque"
-                "RenderPipeline" = "UniversalPipeline"
-                "PreviewType" = "Sphere"
-            } //等同于在每个SubShader中都加入这部分Tag.
-        Blend One One //这个Shader Commands命令会应用于每个SubShader中. 等同于在每个SubShader中加入Blend One One
-        SubShader {
-            //Tags{...}
-            //Blend One One
-            Pass{}
-        }
-        SubShader {
-            //Tags{...}
-            //Blend One One
-            Pass{}
-        }
-        // ...
-    }
-    }
-    ```
-    
-    ##### [AlphaToMask](https://docs.unity3d.com/Manual/SL-AlphaToMask.html)
-    
-    当开启MSAA时, 用于降低过度混淆(excessive aliasing)(就是Alpha混合的贴图, 产生的黑边). 当没有开启MSAA时, 启用AlphaToMask将根据graphics APIs不同和GPU不同产生不可预料的结果.(说人话就是没有开MSAA的情况下, 不写或者将AlphaToMask设置为Off).
-    
-    适用范围: Pass/SubShader
-    
-    取值: On/Off
-    
-    默认值: AlphaToMask Off
-    
-    ##### [Blend](https://docs.unity3d.com/Manual/SL-Blend.html)
-    
-    用于指定当前渲染的图像和之前渲染的图像之间叠加的方式.
-    
-    [更多语法细节](https://docs.unity3d.com/2019.3/Documentation/Manual/SL-Blend.html)
-    
-    适用范围: Pass/SubShader
-    
-    取值: 过于复杂, 有下面6种情况, 
-    
-    ```glsl
-    Blend <state>
-    Blend <render target> <state>
-    Blend <source factor> <destination factor>
-    Blend <render target> <source factor> <destination factor>
-    Blend <source factor RGB> <destination factor RGB>, <source factor alpha> <destination factor alpha>
-    Blend <render target> <source factor RGB> <destination factor RGB>, <source factor alpha> <destination factor alpha>
-    ```
-    
-    默认值: Blend Off
-    
-    其中各个参数的取值为:
-    
-    <state>: Off
-    
-    <[render target](https://docs.unity3d.com/2020.1/Documentation/Manual/SL-Blend.html)>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
-    
-    <source/destination factor>:  One/Zero/SrcColor/SrcAlpha/DstColor/DstAlpha/OneMinusSrcColor/OneMinusSrcAlpha/OneMinusDstColor/OneMinusDstAlpha
-    
-    下面以代码块示例. 
-    
-    ```glsl
-    Blend Off //Blend <state> //这句示例指关闭混合.此为Blend Commands的默认值.
-    Blend 1 Off //Blend <render target> <state> //指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2.
-    Blend 1 One Zero //代表指定编号为1的render target, 只显示当前渲染结果, 抛弃之前渲染结果, 一般不透明渲染使用该混合模式.
-    Blend One Zero //Blend <source factor> <destination factor> //这句示例指只显示当前渲染结果, 抛弃之前渲染结果, 一般不透明渲染使用该混合模式.
-    Blend SrcAlpha OneMinusSrcAlpha //这句示例指通过Alpha值进行渲染结果的混合.
-    Blend One Zero, SrcAlpha OneMinusSrcAlpha //这句示例指颜色部分按照只显示当前渲染结果, 抛弃之前渲染结果, 同时根据Alpha值进行渲染结果的混合.
-    Blend 1 One Zero, SrcAlpha OneMinusSrcAlpha //代表指定编号为1的render target, 颜色部分按照只显示当前渲染结果, 抛弃之前渲染结果, 同时根据Alpha值进行渲染结果的混合.
-    ```
-    
-    注: 
-    
-    混合计算原理
-    
-    ```glsl
-    finalValue = sourceFactor * sourceValue operation destinationFactor * destinationValue
-    ```
-    
-    常用混合代码
-    
-    ```glsl
-    Blend SrcAlpha OneMinusSrcAlpha //半透明, Alpha Blend.
-    Blend One OneMinusSrcAlpha //预乘半透明.
-    Blend One One //叠加.
-    Blend OneMinusDstColor One //柔和叠加.
-    Blend DstColor Zero //乘法叠加.
-    Blend DstColor SrcColor //2x 乘法叠加.
-    Blend One Zero //传统不透明. 等价于Blend Off
-    Blend Off //默认值, 传统不透明.
-    ```
-    
-    注: 关于Blend One Zero等价于Blend Off, 可以参考这篇[UWA文档](https://answer.uwa4d.com/question/5a1a8e710aef30913881b489).
-    
-    ##### [BlendOp](https://docs.unity3d.com/Manual/SL-BlendOp.html)(blending operations)
-    
-    用于改变Blend叠加的时候的运算符号.
-    
-    [更多语法细节](https://docs.unity3d.com/2019.3/Documentation/Manual/SL-Blend.html)
-    
-    适用范围: Pass/SubShader
-    
-    取值: 过于复杂, 有以下几种情况
-    
-    ```glsl
-    BlendOp <Op>
-    BlendOp <render target> <Op>
-    BlendOp <Op RGB>, <Op Alpha>
-    BlendOp <render target> <Op RGB>, <Op Alpha>
-    ```
-    
-    默认值: BlendOp Add
-    
-    其中各个参数取值:
-    
-    <render target>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
-    
-    <Op>: Add/Sub/RevSub/Min/Max(这部分是基础Op)
-    
-    <Op>: Multiply/Screen/Overlay/Darken/Lighten/ColorDodge/ColorBurn/HardLight/SoftLight/Difference/Exclusion/HSLHue/HSLSaturation/HSLColor/HSLLuminosity(这部分Op需要GLES3.1 AEP+, GL_KHR_blend_equation_advanced, 或者GL_NV_blend_equation_advanced指令集支持. 且只支持RGBA统一运算, 而不支持分别运算(即不支持BlendOp <Op RGB>, <Op Alpha>, 以及BlendOp <render target> <Op RGB>, <Op Alpha>))
-    
-    代码块示例(Blend Op不能与Blend Command分开使用):
-    
-    ```glsl
-    Blend SrcAlpha One
-    BlendOp RevSub         
-    ```
-    
-    ##### [ColorMask](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ColorMask.html)
-    
-    用于标定当前的渲染结果中的哪些通道数值会写入最终的render target.
-    
-    适用范围: Pass/SubShader
-    
-    取值: 
-    
-    ```glsl
-    ColorMask <channels>
-    ColorMask <channels> <render target> //指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2.
-    ```
-    
-    默认值: ColorMask RBGA
-    
-    各个参数取值: 
-    
-    <render target>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
-    
-    <channels>: 0/R/G/B/A/任意RGBA的组合
-    
-    代码块示例
-    
-    ```glsl
-    ColorMask RGB //渲染结果写入RGB通道, 而不写入A通道;
-    ColorMask A	//渲染结果只写入A通道, 一般用于带透明度的黑色影子.
-    ColorMask RB //渲染结果只写入RB通道, 乱写的, 不知道用来干嘛的.
-    ```
-    
-    ##### [Conservative](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-Conservative.html)
-    
-    设定为True, 则只要triangle projections(即标定的顶点)接触到的像素, 都会走fragment(片元渲染). 如果设定为False, 则必须要满足GPU的设置时(覆盖范围要超过像素的一定百分比)才会走fragment(片元渲染). 一般用于基于GPU的occlusion culling, collision detection, visibility detection.
-    
-    这意味着开启这个Command, 会有更多的fragment shader被调用.
-    
-    适用范围: Pass/SubShader
-    
-    取值: True/False
-    
-    默认值: Conservative False
-    
-    ##### [Cull](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-Cull.html)
-    
-    用来决定剔除前向/后向/不剔除. 
-    
-    适用范围: Pass/SubShader
-    
-    取值: Back/Front/Off
-    
-    默认值: Cull Back
-    
-    ##### [Offset](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-Offset.html)
-    
-    全称是depth offset或者depth bias, 当两个几何物体处于同一深度时(z-fighting), 通过depth offset可以修正其"错误". 除了通过该Shaderlab Command来从着色器解决, 也可以通过[RenderStateBlock](https://docs.unity3d.com/2020.3/Documentation/ScriptReference/Rendering.RenderStateBlock.html)来设定单个几何体, 或通过[CommandBuffer.SetGlobalDepthBias](https://docs.unity3d.com/2020.3/Documentation/ScriptReference/Rendering.CommandBuffer.SetGlobalDepthBias.html)来设定全局depth offset.
-    
-    适用范围: Pass/SubShader
-    
-    取值: <factor>, <units>
-    
-    各个参数取值: 
-    
-    <factor>: -1到1(官方文档如是, 但实际上可以取超过范围的值)
-    
-    <Units>: -1到1(官方文档如是, 但实际上可以取超过范围的值)
-    
-    默认值: Offset 0 0
-    
-    深度偏移计算原理:
-    
-    ```glsl
-    finalOffset = slope * <factor> + depthUnit * <units>; //这里的slope指由系统计算出的多边形深度斜率的最大值，多边形越是与近裁剪面平行，m就越接近于0, 反之则越接近于无限(最大值. 即slope值). 这里的depthUnit指的是基于GPU的最小深度单位, 这个值根据设备不同而不同.
-    ```
-    
-    ##### *[Stencil](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-Stencil.html)
-    
-    模板测试, 相当于额外的, 自定义的, 类似"深度测试"的, 影响渲染用的因子. 非常抽象和复杂, 会在之后的课程中进行详细解析.
-    
-    适用范围: Pass/SubShader
-    
-    ##### [UsePass](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-UsePass.html)
-    
-    适用范围: SubShader
-    
-    取值: UsePass "<Shader object name>/<PASS NAME IN UPPERCASE>"
-    
-    各个参数取值: 
-    
-    由示例中会比较好说明, 首先我们制作一个Shader, 调用路径为"Examples/ContainsNamedPass", 并在Pass块中定义其名称为"ExampleNamedPass", 然后, 可以在另一个着色器的SubShader块中使用UsePass Command来使用该Pass(具体Pass的写法会在第四课中进行详细的说明). 值得注意的是, Pass的名称指定时可以随意使用大小写(具体规则请按照图程(四木)的规定来, 我建议使用驼峰命名法), 但使用UsePass调用的时候, Pass名称需要全大写.
-    
-    ```glsl
-    Shader "Examples/ContainsNamedPass"
-    {
-        SubShader
-        {
-            Pass
-            {    
-                  Name "ExampleNamedPass"
-                
-                  // The rest of the Pass contents go here.
-            }
-        }
-    }
-    ```
-    
-    
-    
-    ```glsl
-    Shader "Examples/UsesNamedPass"
-    {
-        SubShader
-        {
-            UsePass "Examples/ContainsNamedPass/EXAMPLENAMEDPASS"
-        }
-    }
-    ```
-    
-    注意: 如果命名的 Shader 对象包含多个 SubShader, Unity 会**遍历**SubShader, 直到找到第一个支持的包含具有给定名称的 Pass 的 SubShader. 在编译阶段会导致一定的性能消耗(当然, 由于编译阶段是在PC端完成的, 即只会对打包速度有影响.)
-    
-    ##### [*GrabPass](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-GrabPass.html)
-    
-    URP/HDRP/SRP已经不支持该Command, 所以跳过.
-    
-    ##### [ZClip](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ZClip.html)
-    
-    适用范围: Pass/SubShader
-    
-    用来定义超出裁剪框的片元的深度值处理方式. 主要用于stencil shadow 渲染, 这样的话, 当几何体超出远裁剪面的时候几乎不用做处理, 可以减少渲染操作数. 但同时有可能造成"不正确的Z顺序(incorrect Z ordering)". 当取值为Ture时, 即只保留裁剪框内物体对像素的影响. 当取值为False时, 则将采用类似Clamp的方式, 即在近裁剪面内的片元, 当作在近裁剪面上, 在远裁剪面外的片元, 当作在远裁剪面上.
-    
-    喵言喵语: 这里的stencil shadow rendering(渲染)出现的因为裁剪框的问题, 参照该[网页](https://www.gamedev.net/forums/topic/352148-found-problemproblem-with-z-fail-stencil-shadows-clippingrendering/). 大意就是, 在远裁剪框外的物体会导致整个屏幕都被阴影覆盖. 另外, stencil shadow rendering应该是指[stencil shadow volume](https://en.wikipedia.org/wiki/Shadow_volume)(或简写为[shadow volume](https://en.wikipedia.org/wiki/Shadow_volume))技术, 该技术被申请为了技术专利. 间接导致了Doom3发行时的麻烦. 更多关于shadow volume技术可以在其[wiki页面](https://en.wikipedia.org/wiki/Shadow_volume)查询. 说人话就是, 当不适用该技术时, 大概率不会用到这个Command. 要使用这个技术时, 将ZClip设为False.
-    
-    取值: True/False
-    
-    默认值: ZClip True
-    
-    喵言喵语: 实际操作时, 通常的渲染看不到结果的不同. 即该语句在通常渲染中可忽略(大概).
-    
-    ##### [ZTest](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ZTest.html)
-    
-    适用范围: Pass/SubShader
-    
-    根据深度值进行额外的渲染结果筛选. 需要和ZWrite配合使用. Less代表"低于", 可以理解为"远离摄像机", Equal代表"等于", Greater代表"高于", 可以理解为"靠近摄像机", Always代表"总是(放弃治疗)".
-    
-    取值: Less/LEqual/Equal/GEqual/Greater/NotEqual/Always
-    
-    默认值: ZTest LEqual
-    
-    ##### [ZWrite](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-ZWrite.html)
-    
-    适用范围: Pass/SubShader
-    
-    用来定义是否根据和摄像机的距离, 将深度值写入. 写入的深度值会用于其他渲染的ZTest过程. 一般来说, 半透明物体都不写入深度. 不透明物体都要写入深度.
-    
-    取值: On/Off
-    
-    默认值: ZWrite On
-    
-    
+  ## 官方文档
+
+  [通用渲染管线概述 \| Universal RP \| 12.1.1 (unity3d.com)](https://docs.unity3d.com/cn/Packages/com.unity.render-pipelines.universal@12.1/manual/index.html)
+
+  [Unity - Manual: The Shader class (unity3d.com)](https://docs.unity3d.com/Manual/shader-objects.html#order-of-operations)
+
+  ### SubShader块
+
+  [Unity - Manual: ShaderLab: defining a SubShader (unity3d.com)](https://docs.unity3d.com/Manual/SL-SubShader.html)
+
+  #### 基础结构
+
+  ```glsl
+  SubShader
+  {
+      LOD 100		//与程序的高低配配置相关参数, 官方文档位置https://docs.unity3d.com/Manual/SL-ShaderLOD.html
+      Tags{}		//Unity内置的预编译参数, 以Tag形式记录, 官方文档https://docs.unity3d.com/Manual/SL-SubShaderTags.html
+      // ShaderLab commands that apply to the whole SubShader go here.
+  	Pass{}
+  }
+  ```
+
+  #### [LOD]([Unity - Manual: ShaderLab: assigning a LOD value to a SubShader (unity3d.com)](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ShaderLOD.html))
+
+  Unity内部定义的一个描述着色器计算复杂度的一个值. 全称为Level Of Detail. Unity内部会根据定义的LOD值判断实际使用的时候采用哪一个SubShader. 在此我们更新以下着色器代码结构示例.
+
+  默认值: LOD默认值为0(待验证)
+
+  在Lesson01中, 我们描述的着色器代码结构如下
+
+  ```glsl
+  Shader "StarUnion/Practise/URPUnlitShaderBasic"
+  {
+      Properties{}    //面板参数
+      SubShader{}    //着色器代码本体
+      FallBack "VertexLit"	//如果渲染不成功, 则使用""中指定名称的着色器进行渲染.
+      CustomEditor "StandardShaderGUI"	//编辑器中, 使用""中指定的面板脚本绘制自定义面板.
+  }
+  ```
+
+  加入LOD后, 着色器代码结构如下
+
+  ```glsl
+  Shader "StarUnion/Practise/URPUnlitShaderBasicLOD"
+  {
+      Properties{}    //面板参数
+      SubShader{
+          LOD 100
+      }    //着色器代码本体 SubShader01
+      SubShader{
+          LOD 150
+      }    //着色器代码本体 SubShader02
+      SubShader{
+          LOD 200
+      }    //着色器代码本体 SubShader03
+      //其他SubShader代码块...
+      FallBack "VertexLit"	//如果渲染不成功, 则使用""中指定名称的着色器进行渲染.
+      CustomEditor "StandardShaderGUI"	//编辑器中, 使用""中指定的面板脚本绘制自定义面板.
+  }
+  ```
+
+  值得注意的是, LOD值必须由小到大排列, 因为Unity在实际使用的时候, 会由上至下, 选取第一个等于低于规定值(这个值一般是图程或者主程在代码中控制的)的SubShader进行渲染使用. 具体[页面](https://docs.unity3d.com/Manual/SL-ShaderLOD.html). 在该页面中也说明了具体设置LOD的前端Api为[ Shader.maximumLOD](https://docs.unity3d.com/ScriptReference/Shader-maximumLOD.html)和[Shader.globalMaximumLOD](https://docs.unity3d.com/ScriptReference/Shader-globalMaximumLOD.html).
+
+  打个比方:
+
+  图程或主程通过某种方式, 判断目前终端是低端机, 那么通过脚本命令, 设置[Shader.globalMaximumLOD](https://docs.unity3d.com/ScriptReference/Shader-globalMaximumLOD.html)的值为100, 那么接下来, 只有LOD等于或低于100的SubShader会被使用.
+
+  #### [Tags](https://docs.unity3d.com/Manual/SL-SubShaderTags.html)
+
+  ##### 基础结构
+
+  Tags { “[name1]” = “[value1]” “[name2]” = “[value2]”}
+
+  伪代码如下
+
+  ```glsl
+  Shader "StarUnion/Practise/URPUnlitShaderBasicTag"
+  {
+      Properties{}    //面板参数
+      SubShader{
+          LOD 100
+          //Tags { “[name1]” = “[value1]” “[name2]” = “[value2]”}
+          Tags{
+              "RenderPipeline" = "UniversalRenderPipeline"
+              "Queue" = "Geometry" //"Queue" = "Geometry+1"
+              "RenderType" = "Opaque"
+              "ForceNoShadowCasting" = "False"
+              "DisableBatching" = "False"
+              "IgnoreProjector" = "False" //该Tag仅在Built-in管线中生效, 由于目前都是基于URP关键做着色器操作, 所以这一条可以忽略.
+              "PreviewType" = "Sphere"
+              "CanUseSpriteAtlas" = "Ture" //该Tag在2020.1及以上版本中, 只对在之前版本中创建的工程生效. 在2020.1及以上版本中新创建的对象, 该Tag不生效(基于Unity文档, 未验证)
+              }
+          ...
+      }
+  
+      FallBack "VertexLit"	//如果渲染不成功, 则使用""中指定名称的着色器进行渲染.
+      CustomEditor "StandardShaderGUI"	//编辑器中, 使用""中指定的面板脚本绘制自定义面板.
+  }
+  
+  
+  
+  ```
+
+  ##### RenderPipeline
+
+  取值: UniversalRenderPipeline/HighDefinitionRenderPipeline
+
+  默认值: 无(该Tag只有在Unity内建的两个SRP管线中生效)
+
+  意义: 用于指定Unity内建的两个SRP管线, 以便于使用管线中的功能.
+
+  ##### Queue
+
+  取值: Background/Geometry/AlphaTest/Transparent/Overlay
+
+  默认值: Geometry
+
+  额外参数: + 任意整数
+
+  ```glsl
+  "Queue" = "Geometry+10"
+  ```
+
+  注: 
+
+  在2500之前, 物体是由近往远渲染(基于摄像机), 在2501之后, 物体是由远往近渲染. 
+
+  | 名称                                 | 对应的Int值(但不能直接填写该数据)                            |
+  | ------------------------------------ | ------------------------------------------------------------ |
+  | Background                           | 1000                                                         |
+  | Geometry                             | 2000                                                         |
+  | AlphaTest                            | 2450                                                         |
+  | 不透明与半透明分界线                 | 2500                                                         |
+  | Built-in管线中的天空盒(Unity5.x之后) | 2500.5(着色器具体Queue值是1000, 但实际上很可能是管线上强制让天空盒在不透明物体渲染和半透明之间进行渲染) |
+  | Transparent                          | 3000                                                         |
+  | Overlay                              | 4000                                                         |
+
+  ##### [RenderType](https://docs.unity3d.com/Manual/SL-ShaderReplacement.html)
+
+  取值: Opaque/Transparent/TransparentCutout/Background/Overlay/TreeOpaque/TreeTransparentCutout/TreeBillboard/Grass/GrassBillboard
+
+  默认值: Opaque
+
+  注: 主要用于[**替代渲染(Replacing shaders)**](https://docs.unity3d.com/Manual/SL-ShaderReplacement.html), 比如Game视图显示OverDraw的时候, 就是用的替代渲染完成的. 具体规则需要在管线中进行定义. 相关前端伪代码示例如下:
+
+  ```c#
+  void Start() {
+      camera.SetReplacementShader (EffectShader, "RenderType");
+  }
+  ```
+
+  相关着色器伪代码如下:
+
+  ```glsl
+  Shader "EffectShader" {
+       SubShader {
+           Tags { "RenderType"="Opaque" }
+           Pass {
+               ...
+           }
+       }
+       SubShader {
+           Tags { "RenderType"="SomethingElse" }
+           Pass {
+               ...
+           }
+       }
+   ...
+   }
+  ```
+
+  此时, 在这个摄像机下, 所有的RenderType为Opaque的着色器将使用EffectShader中的第一个SubShader来进行替换渲染, 所有RenderType为SomethingElse的着色器将使用EffectShader中的第二个SubShader来进行替代渲染.
+
+  ##### ForceNoShadowCasting
+
+  取值: True/False
+
+  默认值: False
+
+  注: 一般是在使用替代渲染时, 不希望从其他的SubShader中继承阴影Pass时使用.
+
+  ##### DisableBatching
+
+  取值: True/False/[LODFading](https://docs.unity3d.com/Manual/class-LODGroup.html)
+
+  默认值: False
+
+  注: 当[LODFading](https://docs.unity3d.com/Manual/class-LODGroup.html)被激活时禁用动态合批. (阿喵并没有实际操作案例, 具体可以先研读[相关文档](https://docs.unity3d.com/Manual/class-LODGroup.html)). 动态合批(Dynamic batching)的最大缺陷是会使基于单个物体的模型空间的数据丢失，在模型空间上所作的操作也就会失效, 该Tag就是避免这种情况下产生的渲染缺陷(当然, 渲染缺陷消失的同时动态合批的合批优势也会失去.)
+
+  ##### *IgnoreProjector
+
+  取值: True/False
+
+  默认值: False
+
+  注: 该Tag仅在Built-in管线中生效, 指的是让该Tag值为True的物体不受Unity的[Projectors](https://docs.unity3d.com/Manual/class-Projector.html)影响.
+
+  ##### PreviewType
+
+  取值: Sphere/Plane/Skybox
+
+  默认值: Sphere
+
+  注: 这个Tag影响材质球预览时右下角显示的基础Mesh的形状.
+
+  ##### *CanUseSpriteAtlas
+
+  取值: True/False
+
+  默认值: True
+
+  注: 该Tag可以设置这个着色器参与渲染的对象能否使用Unity的[Legacy Sprite Packer](https://docs.unity3d.com/Manual/SpritePacker.html), 值得注意的是Unity 2020.1及以上版本中, 已经用[Sprite Atlas](https://docs.unity3d.com/Manual/class-SpriteAtlas.html)取代了Speite Packer, 所以该Tag也随之失效(基于Unity文档, 未验证).
+
+  #### Shaderlab Commands
+
+  ##### 基础结构
+
+  ```glsl
+  Shader "example" {
+      SubShader {
+      	AlphaToMask Off //当没有使用MSAA时, 不写或将AlphaToMask设置为Off.
+      	Blend SrcAlpha OneMinusSrcAlpha //基于Alpha值进行混合.
+      	BlendOp Add //混合用的源与目标之间, 使用加的方式.
+      	ColorMask RGBA //最终将RGBA都写入Render Target.
+      	Conservative False //由GPU来决定像素填充.
+      	Cull Back //剔除背面, 一般不透明渲染采用.
+          Offset 0 0 //指不进行Offset.
+          //Stencil //会单独用一课来详细说明.
+          //UsePass //建议不使用.
+          //GrabPass //URP管线已经抛弃.
+          ZClip True
+          ZTest LEqual
+          ZWrite On
+          // ...
+      }
+      SubShader {
+          // ...
+      }
+      // ...
+  }
+  ```
+
+  
+
+  ##### [Category block](https://docs.unity3d.com/Manual/SL-Other.html)
+
+  最特殊的Shaderlab Command, 是用来在所有SubShader中应用Command块的语法.  其位置也与其他Shader Command不同. 注意, 该Command本质上是一个Copy-Pasting过程, 所以对于Pass结构前的所有语句都生效, 即对SubShader的Tag也生效.
+
+  ```glsl
+  Shader "example" {
+  Category {
+      Tags
+          {
+              "RenderType" = "Opaque"
+              "RenderPipeline" = "UniversalPipeline"
+              "PreviewType" = "Sphere"
+          } //等同于在每个SubShader中都加入这部分Tag.
+      Blend One One //这个Shader Commands命令会应用于每个SubShader中. 等同于在每个SubShader中加入Blend One One
+      SubShader {
+          //Tags{...}
+          //Blend One One
+          Pass{}
+      }
+      SubShader {
+          //Tags{...}
+          //Blend One One
+          Pass{}
+      }
+      // ...
+  }
+  }
+  ```
+
+  ##### [AlphaToMask](https://docs.unity3d.com/Manual/SL-AlphaToMask.html)
+
+  当开启MSAA时, 用于降低过度混淆(excessive aliasing)(就是Alpha混合的贴图, 产生的黑边). 当没有开启MSAA时, 启用AlphaToMask将根据graphics APIs不同和GPU不同产生不可预料的结果.(说人话就是没有开MSAA的情况下, 不写或者将AlphaToMask设置为Off).
+
+  适用范围: Pass/SubShader
+
+  取值: On/Off
+
+  默认值: AlphaToMask Off
+
+  ##### [Blend](https://docs.unity3d.com/Manual/SL-Blend.html)
+
+  用于指定当前渲染的图像和之前渲染的图像之间叠加的方式.
+
+  [更多语法细节](https://docs.unity3d.com/2019.3/Documentation/Manual/SL-Blend.html)
+
+  适用范围: Pass/SubShader
+
+  取值: 过于复杂, 有下面6种情况, 
+
+  ```glsl
+  Blend <state>
+  Blend <render target> <state>
+  Blend <source factor> <destination factor>
+  Blend <render target> <source factor> <destination factor>
+  Blend <source factor RGB> <destination factor RGB>, <source factor alpha> <destination factor alpha>
+  Blend <render target> <source factor RGB> <destination factor RGB>, <source factor alpha> <destination factor alpha>
+  ```
+
+  默认值: Blend Off
+
+  其中各个参数的取值为:
+
+  <state>: Off
+
+  <[render target](https://docs.unity3d.com/2020.1/Documentation/Manual/SL-Blend.html)>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
+
+  <source/destination factor>:  One/Zero/SrcColor/SrcAlpha/DstColor/DstAlpha/OneMinusSrcColor/OneMinusSrcAlpha/OneMinusDstColor/OneMinusDstAlpha
+
+  下面以代码块示例. 
+
+  ```glsl
+  Blend Off //Blend <state> //这句示例指关闭混合.此为Blend Commands的默认值.
+  Blend 1 Off //Blend <render target> <state> //指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2.
+  Blend 1 One Zero //代表指定编号为1的render target, 只显示当前渲染结果, 抛弃之前渲染结果, 一般不透明渲染使用该混合模式.
+  Blend One Zero //Blend <source factor> <destination factor> //这句示例指只显示当前渲染结果, 抛弃之前渲染结果, 一般不透明渲染使用该混合模式.
+  Blend SrcAlpha OneMinusSrcAlpha //这句示例指通过Alpha值进行渲染结果的混合.
+  Blend One Zero, SrcAlpha OneMinusSrcAlpha //这句示例指颜色部分按照只显示当前渲染结果, 抛弃之前渲染结果, 同时根据Alpha值进行渲染结果的混合.
+  Blend 1 One Zero, SrcAlpha OneMinusSrcAlpha //代表指定编号为1的render target, 颜色部分按照只显示当前渲染结果, 抛弃之前渲染结果, 同时根据Alpha值进行渲染结果的混合.
+  ```
+
+  注: 
+
+  混合计算原理
+
+  ```glsl
+  finalValue = sourceFactor * sourceValue operation destinationFactor * destinationValue
+  ```
+
+  常用混合代码
+
+  ```glsl
+  Blend SrcAlpha OneMinusSrcAlpha //半透明, Alpha Blend.
+  Blend One OneMinusSrcAlpha //预乘半透明.
+  Blend One One //叠加.
+  Blend OneMinusDstColor One //柔和叠加.
+  Blend DstColor Zero //乘法叠加.
+  Blend DstColor SrcColor //2x 乘法叠加.
+  Blend One Zero //传统不透明. 等价于Blend Off
+  Blend Off //默认值, 传统不透明.
+  ```
+
+  注: 关于Blend One Zero等价于Blend Off, 可以参考这篇[UWA文档](https://answer.uwa4d.com/question/5a1a8e710aef30913881b489).
+
+  ##### [BlendOp](https://docs.unity3d.com/Manual/SL-BlendOp.html)(blending operations)
+
+  用于改变Blend叠加的时候的运算符号.
+
+  [更多语法细节](https://docs.unity3d.com/2019.3/Documentation/Manual/SL-Blend.html)
+
+  适用范围: Pass/SubShader
+
+  取值: 过于复杂, 有以下几种情况
+
+  ```glsl
+  BlendOp <Op>
+  BlendOp <render target> <Op>
+  BlendOp <Op RGB>, <Op Alpha>
+  BlendOp <render target> <Op RGB>, <Op Alpha>
+  ```
+
+  默认值: BlendOp Add
+
+  其中各个参数取值:
+
+  <render target>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
+
+  <Op>: Add/Sub/RevSub/Min/Max(这部分是基础Op)
+
+  <Op>: Multiply/Screen/Overlay/Darken/Lighten/ColorDodge/ColorBurn/HardLight/SoftLight/Difference/Exclusion/HSLHue/HSLSaturation/HSLColor/HSLLuminosity(这部分Op需要GLES3.1 AEP+, GL_KHR_blend_equation_advanced, 或者GL_NV_blend_equation_advanced指令集支持. 且只支持RGBA统一运算, 而不支持分别运算(即不支持BlendOp <Op RGB>, <Op Alpha>, 以及BlendOp <render target> <Op RGB>, <Op Alpha>))
+
+  代码块示例(Blend Op不能与Blend Command分开使用):
+
+  ```glsl
+  Blend SrcAlpha One
+  BlendOp RevSub         
+  ```
+
+  ##### [ColorMask](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ColorMask.html)
+
+  用于标定当前的渲染结果中的哪些通道数值会写入最终的render target.
+
+  适用范围: Pass/SubShader
+
+  取值: 
+
+  ```glsl
+  ColorMask <channels>
+  ColorMask <channels> <render target> //指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2.
+  ```
+
+  默认值: ColorMask RBGA
+
+  各个参数取值: 
+
+  <render target>: 1/2/3.../7(1到7的整数, 指定render target要求 OpenGL 4.0+, GL_ARB_draw_buffers_blend, 或OpenGL ES 3.2才可以支持MRT(multiple render target), 一般用于不同的Pass采取不同的混合策略, [官方论坛问答](https://forum.unity.com/threads/multiple-render-targets-separate-blending-mode-for-each-target.320847/), [示例工程](https://github.com/keijiro/UnityMrtTest)).
+
+  <channels>: 0/R/G/B/A/任意RGBA的组合
+
+  代码块示例
+
+  ```glsl
+  ColorMask RGB //渲染结果写入RGB通道, 而不写入A通道;
+  ColorMask A	//渲染结果只写入A通道, 一般用于带透明度的黑色影子.
+  ColorMask RB //渲染结果只写入RB通道, 乱写的, 不知道用来干嘛的.
+  ```
+
+  ##### [Conservative](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-Conservative.html)
+
+  设定为True, 则只要triangle projections(即标定的顶点)接触到的像素, 都会走fragment(片元渲染). 如果设定为False, 则必须要满足GPU的设置时(覆盖范围要超过像素的一定百分比)才会走fragment(片元渲染). 一般用于基于GPU的occlusion culling, collision detection, visibility detection.
+
+  这意味着开启这个Command, 会有更多的fragment shader被调用.
+
+  适用范围: Pass/SubShader
+
+  取值: True/False
+
+  默认值: Conservative False
+
+  ##### [Cull](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-Cull.html)
+
+  用来决定剔除前向/后向/不剔除. 
+
+  适用范围: Pass/SubShader
+
+  取值: Back/Front/Off
+
+  默认值: Cull Back
+
+  ##### [Offset](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-Offset.html)
+
+  全称是depth offset或者depth bias, 当两个几何物体处于同一深度时(z-fighting), 通过depth offset可以修正其"错误". 除了通过该Shaderlab Command来从着色器解决, 也可以通过[RenderStateBlock](https://docs.unity3d.com/2020.3/Documentation/ScriptReference/Rendering.RenderStateBlock.html)来设定单个几何体, 或通过[CommandBuffer.SetGlobalDepthBias](https://docs.unity3d.com/2020.3/Documentation/ScriptReference/Rendering.CommandBuffer.SetGlobalDepthBias.html)来设定全局depth offset.
+
+  适用范围: Pass/SubShader
+
+  取值: <factor>, <units>
+
+  各个参数取值: 
+
+  <factor>: -1到1(官方文档如是, 但实际上可以取超过范围的值)
+
+  <Units>: -1到1(官方文档如是, 但实际上可以取超过范围的值)
+
+  默认值: Offset 0 0
+
+  深度偏移计算原理:
+
+  ```glsl
+  finalOffset = slope * <factor> + depthUnit * <units>; //这里的slope指由系统计算出的多边形深度斜率的最大值，多边形越是与近裁剪面平行，m就越接近于0, 反之则越接近于无限(最大值. 即slope值). 这里的depthUnit指的是基于GPU的最小深度单位, 这个值根据设备不同而不同.
+  ```
+
+  ##### *[Stencil](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-Stencil.html)
+
+  模板测试, 相当于额外的, 自定义的, 类似"深度测试"的, 影响渲染用的因子. 非常抽象和复杂, 会在之后的课程中进行详细解析.
+
+  适用范围: Pass/SubShader
+
+  ##### [UsePass](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-UsePass.html)
+
+  适用范围: SubShader
+
+  取值: UsePass "<Shader object name>/<PASS NAME IN UPPERCASE>"
+
+  各个参数取值: 
+
+  由示例中会比较好说明, 首先我们制作一个Shader, 调用路径为"Examples/ContainsNamedPass", 并在Pass块中定义其名称为"ExampleNamedPass", 然后, 可以在另一个着色器的SubShader块中使用UsePass Command来使用该Pass(具体Pass的写法会在第四课中进行详细的说明). 值得注意的是, Pass的名称指定时可以随意使用大小写(具体规则请按照图程(四木)的规定来, 我建议使用驼峰命名法), 但使用UsePass调用的时候, Pass名称需要全大写.
+
+  ```glsl
+  Shader "Examples/ContainsNamedPass"
+  {
+      SubShader
+      {
+          Pass
+          {    
+                Name "ExampleNamedPass"
+              
+                // The rest of the Pass contents go here.
+          }
+      }
+  }
+  ```
+
+  
+
+  ```glsl
+  Shader "Examples/UsesNamedPass"
+  {
+      SubShader
+      {
+          UsePass "Examples/ContainsNamedPass/EXAMPLENAMEDPASS"
+      }
+  }
+  ```
+
+  注意: 如果命名的 Shader 对象包含多个 SubShader, Unity 会**遍历**SubShader, 直到找到第一个支持的包含具有给定名称的 Pass 的 SubShader. 在编译阶段会导致一定的性能消耗(当然, 由于编译阶段是在PC端完成的, 即只会对打包速度有影响.)
+
+  ##### [*GrabPass](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-GrabPass.html)
+
+  URP/HDRP/SRP已经不支持该Command, 所以跳过.
+
+  ##### [ZClip](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ZClip.html)
+
+  适用范围: Pass/SubShader
+
+  用来定义超出裁剪框的片元的深度值处理方式. 主要用于stencil shadow 渲染, 这样的话, 当几何体超出远裁剪面的时候几乎不用做处理, 可以减少渲染操作数. 但同时有可能造成"不正确的Z顺序(incorrect Z ordering)". 当取值为Ture时, 即只保留裁剪框内物体对像素的影响. 当取值为False时, 则将采用类似Clamp的方式, 即在近裁剪面内的片元, 当作在近裁剪面上, 在远裁剪面外的片元, 当作在远裁剪面上.
+
+  喵言喵语: 这里的stencil shadow rendering(渲染)出现的因为裁剪框的问题, 参照该[网页](https://www.gamedev.net/forums/topic/352148-found-problemproblem-with-z-fail-stencil-shadows-clippingrendering/). 大意就是, 在远裁剪框外的物体会导致整个屏幕都被阴影覆盖. 另外, stencil shadow rendering应该是指[stencil shadow volume](https://en.wikipedia.org/wiki/Shadow_volume)(或简写为[shadow volume](https://en.wikipedia.org/wiki/Shadow_volume))技术, 该技术被申请为了技术专利. 间接导致了Doom3发行时的麻烦. 更多关于shadow volume技术可以在其[wiki页面](https://en.wikipedia.org/wiki/Shadow_volume)查询. 说人话就是, 当不适用该技术时, 大概率不会用到这个Command. 要使用这个技术时, 将ZClip设为False.
+
+  取值: True/False
+
+  默认值: ZClip True
+
+  喵言喵语: 实际操作时, 通常的渲染看不到结果的不同. 即该语句在通常渲染中可忽略(大概).
+
+  ##### [ZTest](https://docs.unity3d.com/2020.3/Documentation/Manual/SL-ZTest.html)
+
+  适用范围: Pass/SubShader
+
+  根据深度值进行额外的渲染结果筛选. 需要和ZWrite配合使用. Less代表"低于", 可以理解为"远离摄像机", Equal代表"等于", Greater代表"高于", 可以理解为"靠近摄像机", Always代表"总是(放弃治疗)".
+
+  取值: Less/LEqual/Equal/GEqual/Greater/NotEqual/Always
+
+  默认值: ZTest LEqual
+
+  ##### [ZWrite](https://docs.unity3d.com/2019.4/Documentation/Manual/SL-ZWrite.html)
+
+  适用范围: Pass/SubShader
+
+  用来定义是否根据和摄像机的距离, 将深度值写入. 写入的深度值会用于其他渲染的ZTest过程. 一般来说, 半透明物体都不写入深度. 不透明物体都要写入深度.
+
+  取值: On/Off
+
+  默认值: ZWrite On
+
+  
 
 ###### 参考网页
