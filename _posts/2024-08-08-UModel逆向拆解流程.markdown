@@ -1,0 +1,59 @@
+---
+layout: post
+title: "UModel逆向拆解流程"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# UModel逆向拆解流程
+
+## 00 步骤
+
+- 软件准备
+  - UModel: [UE Viewer \| Gildor's Homepage](https://www.gildor.org/en/projects/umodel#files)
+  - Blender: [blender.org - Home of the Blender project - Free and Open 3D Creation Software](https://www.blender.org/)
+  - Blender psk导入插件: [Unreal PSK/PSA (.psk/.psa) — Blender Extensions](https://extensions.blender.org/add-ons/io-scene-psk-psa/)
+
+- 找到游戏Paks所在的目录类似`...\Project\Content\Paks`
+
+- 使用UModel进行预览并导出psk文件
+
+  - 如果能确认UE版本最好, 无法确认的情况下只能尝试
+  - 如果对方使用了比较新的UE版本, 则可能需要使用对应的UE中的SDK重新构建UModel
+    - UModel源码工程中`libs/oodle`中的ReadMe读一下, 会直到从哪里获得oodle的SDK
+  - SMTVV对应的版本是4.26/4.27, 且需要关闭动画导出, 可以导出蒙皮文件.
+
+- 进入Blender, 按照以下步骤安装psk导入插件
+
+  For Blender 4.2 and higher, it is recommended to download the latest version from the [Blender Extensions](https://extensions.blender.org/add-ons/io-scene-psk-psa/) platform.
+
+  For Blender 4.1 and lower, you can install the addon manually by following these steps:
+
+  1. Download the .zip file of the latest compatible version for your Blender version (see [Legacy Compatibility](https://github.com/DarklightGames/io_scene_psk_psa#legacy-compatibility)).
+  2. Open Blender.
+  3. Navigate to the Blender Preferences (`Edit` > `Preferences`).
+  4. Select the `Add-ons` tab.
+  5. Click the `Install...` button.
+  6. Select the .zip file that you downloaded earlier and click `Install Add-on`.
+  7. Enable the newly added `Import-Export: PSK/PSA Importer/Exporter` addon.
+
+- 导入psk文件后, 将父物体的缩放调整为0.01, 然后应用变换
+  ![image-20240808111237885](/assets/image/image-20240808111237885.png)
+
+- 此时可以导入Unity并正常使用
+
+###### 参考网页
+
+[一次提取虚幻引擎游戏素材并导入Blender的过程及问题记录 - 哔哩哔哩 (bilibili.com)](https://www.bilibili.com/read/cv21533012/)
+
+UModel源码: [gildor2/UEViewer: Viewer and exporter for Unreal Engine 1-4 assets (UE Viewer). (github.com)](https://github.com/gildor2/UEViewer)
+
+o_scene_psk_psa源码: [Releases · DarklightGames/io_scene_psk_psa (github.com)](https://github.com/DarklightGames/io_scene_psk_psa/releases)
+
+[CS.RIN.RU - Steam Underground Community • View topic - Collection of AES encryption keys for UE4/5 games](https://cs.rin.ru/forum/viewtopic.php?f=10&t=100672&sid=da3390169328a6a2bde3292fa037c7b2)
+
+[SteamDB](https://steamdb.info/)
+
