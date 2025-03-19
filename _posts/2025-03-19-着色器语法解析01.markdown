@@ -1,0 +1,123 @@
+---
+layout: post
+title: "着色器语法解析00"
+categories: [URP, 着色器]
+tags: URP 着色器 Shader
+math: true
+
+
+---
+
+# 着色器语法解析01
+
+## 官方文档
+
+[通用渲染管线概述 \| Universal RP \| 12.1.1 (unity3d.com)](https://docs.unity3d.com/cn/Packages/com.unity.render-pipelines.universal@12.1/manual/index.html)
+
+### Propertise块
+
+[Unity - Manual: ShaderLab: defining material properties (unity3d.com)](https://docs.unity3d.com/Manual/SL-Properties.html)
+
+[Unity - Scripting API: MaterialPropertyDrawer (unity3d.com)](https://docs.unity3d.com/2020.3/Documentation/ScriptReference/MaterialPropertyDrawer.html)
+
+Propertise块UI语句
+
+```glsl
+[Header(Custom Material Inspector)]//代表面板标题
+[Space]//代表空一个单位距离
+[Space(50)]//代表空50个单位距离
+```
+
+着色器参数声明格式如下
+
+```glsl
+[optional: attribute] name("display text in Inspector", type name) = default value
+```
+
+#### [**[optional: atrribute]**](https://docs.unity3d.com/Manual/SL-Properties.html)
+
+- **作用**: 用于配置特殊的参数规则.
+
+- **规则**: [optional: atrribute](https://docs.unity3d.com/Manual/SL-Properties.html)(可配置属性), 不区分大小写, 但渲染组规则为"**首字母大写+驼峰式大小写**(Camel-Case)".
+
+- **进阶参数**:
+
+  - **[MaterialToggle]**: 勾选框, 结果是, 当界面上该勾选框勾选时, 返回1, 未勾选时, 返回0. 通常和[预编译](https://zhuanlan.zhihu.com/p/77043332)宏配合使用. 关于[预编译](https://zhuanlan.zhihu.com/p/77043332), 其中multi_compile是全局预编译, key数量上限为256, multi_compile_local是本地, key数量上限为64.
+
+    ```glsl
+    [MaterialToggle]_Toggle("勾选框", Float) = 0
+    //对应的预编译伪代码
+    #pragma multi_compile_local __ _TOGGLE_ON
+    #ifdef TOGGLE01_ON
+        DoSomething();
+    #else
+        DoSomethingElse();
+    #endif
+    ```
+
+  - **[Toggle]**: 勾选框, 同[MaterialToggle].
+
+  - **[Toggle(KEYWORD)]**:  直接指定KeyWord, 而不是通过变量名直接生成.
+
+    ```glsl
+    [Toggle(ENABLE_EXAMPLE_FEATURE)] _ExampleFeatureEnabled ("Enable example feature", Float) = 0
+    //对应的预编译伪代码
+    #pragma multi_compile __ ENABLE_EXAMPLE_FEATURE
+    #ifdef ENABLE_EXAMPLE_FEATURE
+        DoSomething();//勾选激活
+    #else
+        DoSomethingElse();//不勾选激活
+    #endif
+    ```
+
+  - **[ToggleOff(KEYWORD)]**: 勾选框, 所不同的是, 该勾选框, 在勾选时, 是把KeyWord关闭, 不勾选时是激活.
+
+    ```glsl
+    [ToggleOff(_FEATURE_TEST)]_Toggle03("勾选框OFF", Int) = 0
+    //对应的预编译伪代码
+    #pragma multi_compile_local __ _FEATURE_TEST
+    #ifdef _TOGGLE_TEST
+        DoSomething();//不勾选激活
+    #else
+        DoSomethingElse();//勾选激活
+    #endif
+    ```
+
+  - **[Enum(选项1,值1,选项2,值2,选项3,值3...)]**: 下拉选择, 结果是, 选项对应返回值. 选项和值最多能支持7组. 具体可见[Unity - Scripting API: MaterialPropertyDrawer (unity3d.com)](https://docs.unity3d.com/2020.3/Documentation/ScriptReference/MaterialPropertyDrawer.html)
+
+    ```glsl
+    [Enum(Off,0,On,1)]_ZWrite("ZWrite", float) = 0
+    ```
+
+  - **[Enum(任意枚举)]**: 下拉选择, 通过预先定义的枚举定义选项以及值. Unity内建渲染部分的枚举[Unity - Scripting API: BlendMode (unity3d.com)](https://docs.unity3d.com/ScriptReference/Rendering.BlendMode.html).
+
+    <img src="/assets/image/image-20220526103555483.png" alt="image-20220526103555483" style="zoom: 50%;" />
+
+    ```glsl
+    [Enum(UnityEngine.Rendering.CullMode)]_Cull("Cull Mode", Int) = 2
+    [Enum(UnityEngine.Rendering.BlendMode)]_SrcBlend("SrcBlend Mode", Int) = 5
+    [Enum(UnityEngine.Rendering.BlendMode)]_DstBlend("DstBlend Mode", Int) = 10
+    [Enum(UnityEngine.Rendering.BlendOp)]_BlendOp("Blend Op", Int) = 0
+    [Enum(UnityEngine.Rendering.CompareFunction)]_ZTest("ZTest", Int) = 4
+    ```
+
+  - **[KeywordEnum(KEYWORD1, KEYWORD2, KEYWORD3...)]**: 关键词枚举, 通常和[预编译](https://zhuanlan.zhihu.com/p/77043332)宏配合使用.
+
+    ```glsl
+    [KeywordEnum(None, Add, Multiply)] _Overlay ("Overlay mode", Float) = 0
+    //对应的预编译伪代码
+    #pragma multi_compile _OVERLAY_NONE _OVERLAY_ADD _OVERLAY_MULTIPLY
+    #ifdef _OVERLAY_NONE
+        DoSomething01();
+    #endif
+    #ifdef _OVERLAY_ADD
+    	DoSomething02();
+    #endif
+    #ifdef _OVERLAY_MULTIPLY
+    	DoSomething03();
+    #endif
+    ```
+
+    
+
+###### 参考网页

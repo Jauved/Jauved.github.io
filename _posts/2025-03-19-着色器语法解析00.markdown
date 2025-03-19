@@ -200,66 +200,66 @@ Shader "StarUnion/Practise/URPUnlitShaderBasic"
     _Range("范围", Range(200.0,100.0)) = 110
     ```
 
-    - Color: (f,f,f,f)
+  - Color: (f,f,f,f)
 
-      ```tex
-      _SimpleColor("普通颜色", Color) = (1,1,1,1)
-      _SimpleColor("普通颜色", Color) = (0,0,0,1)
-      _SimpleColor("普通颜色", Color) = (1,0,0,1)
-      _SimpleColor("普通颜色", Color) = (0.5,0.5,0.5,1)
-      _SimpleColor("普通颜色", Color) = (.5,.5,.5,1)
-      ```
+    ```tex
+    _SimpleColor("普通颜色", Color) = (1,1,1,1)
+    _SimpleColor("普通颜色", Color) = (0,0,0,1)
+    _SimpleColor("普通颜色", Color) = (1,0,0,1)
+    _SimpleColor("普通颜色", Color) = (0.5,0.5,0.5,1)
+    _SimpleColor("普通颜色", Color) = (.5,.5,.5,1)
+    ```
 
-    - Int: 任意整数皆可(在2020版本中, 仍旧是以浮点数存储的, 严格来说, 任何浮点数皆可)
+  - Int: 任意整数皆可(在2020版本中, 仍旧是以浮点数存储的, 严格来说, 任何浮点数皆可)
 
-      ```tex
-      _Int("整数", Int) = 0
-      _Int("整数", Int) = 1
-      ```
+    ```tex
+    _Int("整数", Int) = 0
+    _Int("整数", Int) = 1
+    ```
 
-    - Vector: (f,f,f,f) 
+  - Vector: (f,f,f,f) 
 
-      ```tex
-      _Vector("向量", Vector) = (0,0,0,0)
-      ```
+    ```tex
+    _Vector("向量", Vector) = (0,0,0,0)
+    ```
 
-    - 2D: "[color]" {}, 其中[color]为black, gray, white, red, bump. 其中bump是Normal图专用, 具体值为RGBA: 0.5,0.5,1,0.5. 另, 如果不填, 则默认值为gray. 另, 如果[color]指定为black时, 在ASTC纹理平台(苹果), 其具体值为RGBA: 0,0,0,1, 而在ETC纹理平台(安卓), 其具体值为RGBA: 0,0,0,0. 基于以上建议, 如果需要在多平台兼容且用到纹理Alpha值, 则需要注意此差别.
+  - 2D: "[color]" {}, 其中[color]为black, gray, white, red, bump. 其中bump是Normal图专用, 具体值为RGBA: 0.5,0.5,1,0.5. 另, 如果不填, 则默认值为gray. 另, 如果[color]指定为black时, 在ASTC纹理平台(苹果), 其具体值为RGBA: 0,0,0,1, 而在ETC纹理平台(安卓), 其具体值为RGBA: 0,0,0,0. 基于以上建议, 如果需要在多平台兼容且用到纹理Alpha值, 则需要注意此差别.
 
-      [ASTC纹理压缩格式详解 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/158740249)
+    [ASTC纹理压缩格式详解 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/158740249)
 
-      [[2018.1\]Unity贴图压缩格式设置 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/113366420)
+    [[2018.1\]Unity贴图压缩格式设置 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/113366420)
 
-      ```
-      _Tex("贴图", 2D) = "" {}
-      _Tex("贴图", 2D) = "white" {}
-      _Tex("贴图", 2D) = "gray" {}
-      _Tex("贴图", 2D) = "black" {}
-      _Tex("贴图", 2D) = "red" {}
-      _Tex("贴图", 2D) = "bump" {}
-      ```
+    ```
+    _Tex("贴图", 2D) = "" {}
+    _Tex("贴图", 2D) = "white" {}
+    _Tex("贴图", 2D) = "gray" {}
+    _Tex("贴图", 2D) = "black" {}
+    _Tex("贴图", 2D) = "red" {}
+    _Tex("贴图", 2D) = "bump" {}
+    ```
 
-    - 2DArray: "" {}
+  - 2DArray: "" {}
 
-      ```tex
-      _TexArray("贴图组", 2DArray) = "" {}
-      ```
+    ```tex
+    _TexArray("贴图组", 2DArray) = "" {}
+    ```
 
-    - 3D: "" {}
+  - 3D: "" {}
 
-      ```tex
-      _3DTex("3D贴图", 3D) = "" {}
-      ```
+    ```tex
+    _3DTex("3D贴图", 3D) = "" {}
+    ```
 
-    - Cube: "" {}
+  - Cube: "" {}
 
-      ```tex
-      _CubeMap("Cube贴图", Cube) = "" {}
-      ```
+    ```tex
+    _CubeMap("Cube贴图", Cube) = "" {}
+    ```
 
-    - CubeArray: "" {}
+  - CubeArray: "" {}
 
-      ```tex
-      _CubeMapArray("Cube贴图组", CubeArray) = "" {}
-      ```
+    ```tex
+    _CubeMapArray("Cube贴图组", CubeArray) = "" {}
+    ```
 
 ###### 参考网页
