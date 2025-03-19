@@ -123,30 +123,70 @@ tags: Jekyll blog
 
 - Typora兼容
 
-  - 笔者使用Typora作为写作的软件, 而Jekyll使用的md语言是属于kramdown方言, 两者的语法会有差异
-
-  - 参考[jekyll下Markdown的填坑技巧 \| Weclome to eipi10](https://eipi10.cn/others/2019/12/07/jekyll-markdown-skills/), 进行处理.(笔者还没有开始处理, 开始处理后会尝试写相关的Blog)
-
-  - Typora本地的图片加载和Jekyll的加载策略不同, 网站显示正常的图片在本地显示不正常.
-
-    - 笔者在工程根目录下创建了一个`_docs`目录, 将文章源文件放置在里面
-
-    - 在`_docs`目录下放置一个`.assets/image/`文件夹用来放置图片, 设置好Typora.
-
-    - 然后通过python的脚本, 完成以下工作
-
-      - 文本格式预处理(还没有开始做)
-
-      - 将`_docs/.assets/image/`下的文件全部拷贝到`/assets/image/`中
-
-      - 将`_docs`下的`.md`文件拷贝到`_post`文件夹下, 并将其中的`.assets/image`/替换为`/assets/image/`.
-
-      - 再将`.md`文件重命名为`.markdown`.
-
-      - 脚本代码附在文章最后.
+    - 笔者使用Typora作为写作的软件, 而Jekyll使用的md语言是属于kramdown方言, 两者的语法会有差异
 
 
-## 7. 附录: 
+    - 参考[jekyll下Markdown的填坑技巧 \| Weclome to eipi10](https://eipi10.cn/others/2019/12/07/jekyll-markdown-skills/), 进行处理.(笔者还没有开始处理, 开始处理后会尝试写相关的Blog)
+
+
+    - Typora本地的图片加载和Jekyll的加载策略不同, 网站显示正常的图片在本地显示不正常.
+
+      - 笔者在工程根目录下创建了一个`_docs`目录, 将文章源文件放置在里面
+
+      - 在`_docs`目录下放置一个`.assets/image/`文件夹用来放置图片, 设置好Typora.
+
+      - 然后通过python的脚本, 完成以下工作
+
+        - 文本格式预处理(还没有开始做)
+
+        - 将`_docs/.assets/image/`下的文件全部拷贝到`/assets/image/`中
+
+        - 将`_docs`下的`.md`文件拷贝到`_post`文件夹下, 并将其中的`.assets/image`/替换为`/assets/image/`.
+
+        - 再将`.md`文件重命名为`.markdown`.
+
+        - 脚本代码附在文章最后.
+
+
+
+## 7. 升级
+
+-  如果发现自己的Blog无法通过`Action`编译, 先尝试进行升级, 访问Blog的[Git仓库](https://github.com/cotes2020/chirpy-starter), 以Zip的形式下载, 将文件进行覆盖升级
+
+- 重要: `_config.yml`文件中, 由于有一些个人的配置, 建议使用对比工具进行合并, 或者你也可以选择重新录入一遍自定义的部分
+
+- 加入的htmlProofer会对http开头的链接进行报错而无法通过编译, 此时用命令参数允许即可
+
+  - 报错信息类似
+    ```cmd
+    http://www.aaa.com/ is not an HTTPS link
+    ```
+
+    
+
+  - 在自己的工程中的`.github\workflows\pages-deploy.yml`文件中找到程序块, 加入`\-\-no-enforce-https \`, 这个命令是忽略对http网址的检查, 具体见[htmlProof作者对于类似问题的回答](https://github.com/gjtorikian/html-proofer/issues/727).
+    ```yaml
+    ...
+          - name: Test site
+            run: |
+              bundle exec htmlproofer _site \
+                \-\-disable-external \
+                \-\-no-enforce-https \
+                \-\-ignore-urls "/^http:\/\/127.0.0.1/,/^http:\/\/0.0.0.0/,/^http:\/\/localhost/"
+    ...
+    ```
+
+- 另外, `<>`会被识别为图片链接, 在不需要将这个识别为图片链接的时候, 用转义符`\`进行处理, 否则会报错
+
+  - 报错信息类似于
+    ```cmd
+    image has no src or srcset attribute
+    ```
+
+    
+
+
+## 8. 附录: 
 
 ###### 参考网页
 
