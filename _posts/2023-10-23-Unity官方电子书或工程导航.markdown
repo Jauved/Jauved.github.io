@@ -10,7 +10,11 @@ math: true
 
 ## 00 前言
 
-<font color=orange>Unity官方</font>经常会在Blog中附带电子书用来介绍新的管线或系统. Unity官方的Github账号中也会发布一些工程案例. 但没有一个整合的地方. 所以这里以Blog的形式进行整合归类.
+<font color=orange>Unity官方</font>经常会在Blog中附带[电子书](https://unity.com/resources)用来介绍新的管线或系统. Unity官方的Github账号中也会发布一些工程案例. Unity自己有整合, 但只针对最新的版本. 所以这里以Blog的形式进行整合归类.
+
+[官方整合](https://unity.com/how-to#all-ebooks)
+
+搜索关键词: e-book, guide, practice, whitepaper
 
 ## 01 [电子书](https://blog.unity.com/search?q=E-book)
 
@@ -25,6 +29,14 @@ math: true
 - [Move on over to the Universal Render Pipeline with our advanced guide \| Unity Blog](https://blog.unity.com/engine-platform/move-on-over-to-the-universal-render-pipeline-with-our-advanced-guide)
 
   关于URP的电子书.
+
+- [Introduction to the Universal Render Pipeline for advanced Unity creators \| Unity](https://unity.com/resources/introduction-universal-render-pipeline-for-advanced-unity-creators)
+
+- [See the Unity 2022 LTS updates to two of our biggest e-books: URP and HDRP for advanced users](https://unity.com/blog/engine-platform/unity-2022-lts-updates-urp-hdrp-e-books)
+
+  Unity2022LTS的管线电子书合集
+
+- [Recipes for popular visual effects using the Universal Render Pipeline](https://unity.com/resources/the-universal-render-pipeline-cookbook-unity-2022-lts-edition)
 
 ---
 
@@ -57,8 +69,15 @@ math: true
 
   设计模式, 以及[案例](https://github.com/Unity-Technologies/game-programming-patterns-demo).
 
+- [Level up your code with design patterns and SOLID E-book \| Unity](https://unity.com/resources/design-patterns-solid-ebook)
+
 - [How to architect code as your project scales \| Avoiding technical debt \| Unity](https://unity.com/how-to/how-architect-code-your-project-scales)
   关于扩展代码的方法, 其中提到了重构.
+
+- [C# Code Style Guide (Unity 6 edition) \| Unity](https://unity.com/resources/c-sharp-style-guide-unity-6)
+  关于代码规范的建议, 基于Unity 6版本
+
+- [Formatting best practices for C# scripting in Unity](https://unity.com/how-to/formatting-best-practices-c-scripting-unity)
 
 
 ---
@@ -77,6 +96,13 @@ math: true
 
   移动端优化
 
+- [Ultimate guide to profiling Unity games \| Unity](https://unity.com/resources/ultimate-guide-to-profiling-unity-games)
+  关于如何分析Unity游戏性能
+
+- [Optimize your game performance for mobile \| Unity](https://unity.com/resources/unity-e-book-optimize-your-mobile-game-performance)
+
+- [Formatting best practices for C# scripting in Unity](https://unity.com/how-to/formatting-best-practices-c-scripting-unity)
+
 ---
 
 ### UI
@@ -92,6 +118,50 @@ math: true
 - [Boost your game’s ROI by avoiding hidden costs \| Unity Blog](https://blog.unity.com/games/boost-your-games-roi-by-avoiding-hidden-costs)
 
   关于通过避免潜在的花销提升ROI(投资回报率)? 指导经营的电子书.
+
+---
+
+### 渲染
+
+- [The definitive guide to lighting in the HDRP \| Unity](https://unity.com/resources/lighting-hdrp-guide)
+
+---
+
+### 特效
+
+- [The definitive guide to creating advanced visual effects in Unity \| Unity](https://unity.com/resources/definitive-guide-to-creating-visual-effects)
+
+---
+
+### 动画
+
+- [Definitive guide to animation with Unity 2022 LTS \| Unity](https://unity.com/resources/definitive-guide-animation-unity-2022-lts-ebook)
+
+---
+
+### TA
+
+- [Unity for Technical Artists: key toolsets and workflows](https://unity.com/resources/tech-artists-key-toolsets)
+
+  2020
+
+- [Unity for technical artists: Key toolsets and workflows (2021 LTS) \| Unity](https://unity.com/resources/unity-for-technical-artists-key-toolsets-and-workflows)
+
+  2021
+
+---
+
+### 其他
+
+- [The Ultimate Unity Gamedev Field Guide \| Unity](https://unity.com/resources/unity-game-dev-field-guide)
+- [Unity 6 Graphics Learning Resources \| Unity Blog](https://unity.com/blog/unity-6-graphics-learning-resources)
+  Unity6电子书导航合集
+- [80+ tips to increase productivity in Unity 2022 LTS \| Unity](https://unity.com/resources/improve-workflow-unity-2022-lts-ebook)
+- [Top tips for improving your workflows and productivity with Unity 2020 LTS \| Unity](https://unity.com/resources/improve-workflow-unity-2020-lts)
+- [E-book: Best practices from successful mobile indies](https://unity.com/resources/best-practices-from-successful-mobile-indies)
+- [Create modular game architecture in Unity with ScriptableObjects \| Unity](https://unity.com/resources/create-modular-game-architecture-with-scriptable-objects-ebook)
+
+---
 
 ### Demo
 
