@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "UnityShader内置变量"
-categories: [URP, 后处理]
-tags: URP 后处理 DepthOfField
+categories: [URP, 渲染]
+tags: URP Shader 渲染
 math: true
 
 ---

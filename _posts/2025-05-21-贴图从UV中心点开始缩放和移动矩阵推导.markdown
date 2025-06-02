@@ -1,0 +1,553 @@
+---
+layout: post
+title: "贴图从UV中心点开始缩放和移动矩阵推导"
+categories: [URP, 渲染]
+tags: URP 渲染 矩阵 Unity
+math: true
+
+
+---
+
+# 贴图从UV中心点开始缩放和移动矩阵推导
+
+## 00 通常的UV缩放和移动
+
+在`shaderlab`着色器编程中, 一般会用类似如下伪代码的形式来缩放和移动`uv`, 最终形成缩放和移动图像的目的
+
+```c
+float4 _textureName_ST
+...
+float2 uvScaleTransform = TRANSFORM_TEX(uv, _textureName);
+...
+#define TRANSFORM_TEX(tex, name) ((tex.xy) * name##_ST.xy + name##_ST.zw)
+...
+// 实际上就等于
+float2 uvScaleTransform = uv.xy * _textureName_ST.xy + _textureName_ST.zw;
+```
+
+写成矩阵形式就是
+
+```c
+...
+float3x3 uvScaleTransMatrix = float3x3(
+                                        _BaseMap_ST.x,0,_BaseMap_ST.z,
+                                        0,_BaseMap_ST.y,_BaseMap_ST.w,
+                                        0,0,1
+                                        );
+o.uv = mul(uvScaleTransMatrix,float3(v.uv,1)).xy;
+...
+```
+
+## 01 基于图片中心的缩放和位移
+
+下面是实验值, 后续会进行分析, 并在测试用例中给出理论修正后的最终矩阵
+
+```c
+// 由三个矩阵组成
+// 移动回原处
+// 矩阵A
+float3x3 MoveBack = float3x3(
+    1, 0, 0.5,
+    0, 1, 0.5,
+    0, 0, 1
+);
+// 对于坐标系来说, 是将坐标系缩小, 到原来的1/_BaseMap_ST.x, 对于对象来说是扩大_BaseMap_ST.x倍
+// 由于坐标缩放了, 所以位移也缩放了?
+// 矩阵S
+float3x3 uvScaleMatrix = float3x3(
+    rcp(_BaseMap_ST.x), 0, 0,
+    0, rcp(_BaseMap_ST.y), 0,
+    0, 0, 1
+);
+
+// 矩阵T
+float3x3 uvTransMatrix = float3x3(
+    1, 0, -_BaseMap_ST.z,
+    0, 1, -_BaseMap_ST.w,
+    0, 0, 1
+);
+
+// 矩阵B
+// float3x3 uvScaleTransMatrix = float3x3(
+//     rcp(_BaseMap_ST.x), 0, -_BaseMap_ST.z * rcp(_BaseMap_ST.x),
+//     0, rcp(_BaseMap_ST.y), -_BaseMap_ST.w * rcp(_BaseMap_ST.y),
+//     0, 0, 1
+// );
+float3x3 uvScaleTransMatrix = mul(uvScaleMatrix,uvTransMatrix);//为什么这里是先位移在缩放?
+// (对于点来说, 是把0.5,0.5的点移动到坐标原点) 对于坐标系来说, 是将坐标原点移动到0.5,0.5的位置
+// 矩阵C
+float3x3 PivotOffset = float3x3(
+    1, 0, -0.5,
+    0, 1, -0.5,
+    0, 0, 1
+);
+
+...
+// 最终的函数 M = mul(A,mul(B,C))
+// https://matrixcalc.org/zh-CN/
+// Scale=_ST.xy, Trans=_ST.zw, Pivot=你希望的图片缩放中心(比如0.5,0.5)
+float3x3 MatrixScaleInTextureMid(float2 Scale, float2 Trans, float2 Pivot)
+{
+    return float3x3(rcp(Scale.x), 0, Pivot.x * (1 - rcp(Scale.x)) - rcp(Scale.x) * Trans.x,
+                    0, rcp(Scale.y), Pivot.y * (1 - rcp(Scale.y)) - rcp(Scale.y) * Trans.y,
+                    0, 0, 1);
+}
+```
+
+写成矩阵形式是
+
+$$
+
+{M}_{final}
+=
+\begin{pmatrix}
+rcp({s}_{x}) & 0 & {p}_{x}*(1-rcp({s}_{x}))-rcp({s}_{x})*{t}_{x}\\
+0 & rcp({s}_{y}) & {p}_{y}*(1-rcp({s}_{y}))-rcp({s}_{y})*{t}_{y}\\
+0 & 0 & 1
+\end{pmatrix}
+
+$$
+
+
+## 02 思考
+
+### Q:
+
+为什么, 明明通常是TRS, 先缩放, 后旋转, 再平移. 但是推出矩阵B的时候, 却是先位移再缩放? 而且我在前后还各有一次基于缩放中心的偏移, 即矩阵A和矩阵C, 为什么第二次的位移并不会受缩放值影响?
+
+### A:
+
+通常我们所认为的TRS矩阵, 是作用于空间内物体/物体的点. 此时空间本身是不变的, 而是物体本身的坐标变换.
+
+而对`uv`空间进行操作, 同时还要让图像按照预期进行变换, 那么实际上应该用逆矩阵, 即
+
+$$
+
+(TRS)^{-1}\\
+而又有\\
+(TRS)^{-1}=S^{-1}R^{-1}T^{-1}
+
+$$
+
+
+---
+
+具体到目前的需求:
+
+- 物体进行的操作是:
+
+  - 先在**原点**缩放, 然后围绕**原点**旋转, 然后相对于**原点**位移
+
+  - 如果希望缩放/旋转/位移的中心有偏移, 那么就先偏移位移中心到原点(**如果你希望的中心是(x,y)点, 那么就要-(x,y), 来回归原点**), 再在原点缩放, 围绕原点缩放, 然后相对于原点位移, 再将偏移中心到原点的操作取消
+
+  - 矩阵操作为:
+    $$
+    P
+    =
+    \left(\begin{matrix}
+    1 & 0 & -p_x\\
+    0 & 1 & -p_y\\
+    0 & 0 & 1
+    \end{matrix}\right)
+    \;\;\;\;
+    S
+    =
+    \left(\begin{matrix}
+    s_x & 0 & 0\\
+    0 & s_y & 0\\
+    0 & 0 & 1
+    \end{matrix}\right)
+    \;\;\;\;
+    T
+    =
+    \left(\begin{matrix}
+    1 & 0 & t_x\\
+    0 & 1 & t_y\\
+    0 & 0 & 1
+    \end{matrix}\right)
+    \;\;\;\;
+    P^{-1}
+    =
+    \left(\begin{matrix}
+    1 & 0 & p_x\\
+    0 & 1 & p_y\\
+    0 & 0 & 1
+    \end{matrix}\right)
+    
+    \\
+    按照矩阵从右往左计算的方式最终的矩阵为
+    \\
+    M_{object}=P^{-1}TSP
+    $$
+    
+
+- 空间应该进行的操作**理论上**是:
+
+$$
+
+\begin{aligned}
+M_{space} &= M_{object}^{-1}=(P^{-1}TSP)^{-1}=P^{-1}S^{-1}T^{-1}P\\
+&=
+\left(\begin{matrix}
+1 & 0 & p_x\\
+0 & 1 & p_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+rcp(s_x) & 0 & 0\\
+0 & rcp(s_y) & 0\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -t_x\\
+0 & 1 & -t_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -p_x\\
+0 & 1 & -p_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\end{aligned}
+
+$$
+
+## 03 验证
+
+先给出"实验"出来的矩阵运算过程
+
+$$
+
+\left(\begin{matrix}
+1 & 0 & -{t}_{x} \\
+0 & 1 & -{t}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -{p}_{x} \\
+0 & 1 & -{p}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+=
+\left(\begin{matrix}
+1 & 0 & -{p}_{x}-{t}_{x} \\
+0 & 1 & -{p}_{x}-{t}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+
+$$
+
+$$
+
+\left(\begin{matrix}
+rcp({s}_{x}) & 0 & 0 \\
+0 & rcp({s}_{y}) & 0 \\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -{p}_{x}-{t}_{x} \\
+0 & 1 & -{p}_{x}-{t}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+=
+\left(\begin{matrix}
+rcp({s}_{x}) & 0 & -{p}_{x}*rcp({s}_{x})-{t}_{x}*rcp({s}_{x}) \\
+0 & rcp({s}_{y}) & -{p}_{y}*rcp({s}_{y})-{t}_{y}*rcp({s}_{y}) \\
+0 & 0 & 1
+\end{matrix}\right)
+
+$$
+
+$$
+
+\left(\begin{matrix}
+1 & 0 & {p}_{x} \\
+0 & 1 & {p}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+rcp({s}_{x}) & 0 & -{p}_{x}*rcp({s}_{x})-{t}_{x}*rcp({s}_{x}) \\
+0 & rcp({s}_{y}) & -{p}_{y}*rcp({s}_{y})-{t}_{y}*rcp({s}_{y}) \\
+0 & 0 & 1
+\end{matrix}\right)
+=
+\left(\begin{matrix}
+rcp({s}_{x}) & 0 & {p}_{x}*(1-rcp({s}_{x}))-{t}_{x}*rcp({s}_{x}) \\
+0 & rcp({s}_{y}) & {p}_{y}*(1-rcp({s}_{y}))-{t}_{y}*rcp({s}_{y}) \\
+0 & 0 & 1
+\end{matrix}\right)
+
+$$
+
+总体运算过程是
+
+$$
+
+\left(\begin{matrix}
+1 & 0 & {p}_{x} \\
+0 & 1 & {p}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+rcp({s}_{x}) & 0 & 0 \\
+0 & rcp({s}_{y}) & 0 \\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -{t}_{x} \\
+0 & 1 & -{t}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -{p}_{x} \\
+0 & 1 & -{p}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+
+$$
+
+与理论结果一致, 证毕.
+
+
+
+## 04 延申思考
+
+Q: 为什么默认的`uv`采用缩放中心始终在(0,0)点的缩放方式?
+
+A: 因为:
+
+- 美术人员一般在使用这几个参数的时候, 都是为了让图案能阵列显示, 至于位移后的缩放中心点变动几乎没有需求
+- [mad](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/mad)在GPU中是一个运算符, 比先加后乘节省一次命令调用.
+
+```
+// r0 = v0.x * c0.x + c1.x
+mad r0, v0.x, c0.x, c1.x
+// r0 = (v0.x + c1.x) * c0.x
+add r_tmp, v0.x, c1.x
+mul r0 r_tmp, c0.x
+```
+
+
+
+## 05 测试用例:
+
+```c
+Shader "TestCase/UVScaleTransMatrix" {
+    Properties {
+        [MainTex] _BaseMap("Main Texture", 2D) = "White" {}
+        [NoScaleOffset]_2ndMap("2nd Texture",2D) = "White" {}
+        [Enum(Classic,0,ClassicScaledTrans,1, Matrix,2, MatrixAllInOne,3)]_uvScaleTransType("UV变化方式", Int)= 0
+    }
+    SubShader {
+        Tags {
+            "RenderType"="Opaque" "RenderPipeline" = "UniversalPipeline"
+        }
+        LOD 100
+
+        Pass {
+            Tags {
+                "LightMode" = "UniversalForward"
+            }
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float2 uv : TEXCOORD0;
+                float4 vertex : SV_POSITION;
+            };
+
+            TEXTURE2D(_BaseMap);
+            SAMPLER(sampler_BaseMap);
+            TEXTURE2D(_2ndMap);
+            float4 _BaseMap_ST;
+            float _uvScaleTransType;
+
+            // 最终的函数 M = mul(A,mul(B,C))
+            // https://matrixcalc.org/zh-CN/
+            // Scale=_ST.xy, Trans=_ST.zw, Pivot=你希望的图片缩放中心(比如0.5,0.5)
+            float3x3 MatrixScaleInTextureMid(float2 Scale, float2 Trans, float2 Pivot)
+            {
+                return float3x3(rcp(Scale.x), 0, Pivot.x * (1 - rcp(Scale.x)) - rcp(Scale.x) * Trans.x,
+                                0, rcp(Scale.y), Pivot.y * (1 - rcp(Scale.y)) - rcp(Scale.y) * Trans.y,
+                                0, 0, 1);
+            }
+
+            v2f vert(appdata v)
+            {
+                v2f o;
+                o.vertex = TransformObjectToHClip(v.vertex.xyz);
+                // 对于坐标系来说, 是将坐标系缩小, 到原来的1/_BaseMap_ST.x, 对于对象来说是扩大_BaseMap_ST.x倍
+                // 由于坐标缩放了, 所以位移也缩放了?
+                // 矩阵S
+                float3x3 uvScaleMatrix = float3x3(
+                    rcp(_BaseMap_ST.x), 0, 0,
+                    0, rcp(_BaseMap_ST.y), 0,
+                    0, 0, 1
+                );
+
+                // 矩阵T
+                float3x3 uvTransMatrix = float3x3(
+                    1, 0, -_BaseMap_ST.z,
+                    0, 1, -_BaseMap_ST.w,
+                    0, 0, 1
+                );
+                
+                if (_uvScaleTransType == 0)
+                {
+                    // 始终以UV00点做位移和缩放
+                    // o.uv = TRANSFORM_TEX(v.uv, _BaseMap);
+                    o.uv = v.uv/_BaseMap_ST.xy-_BaseMap_ST.zw;
+                }
+                else if (_uvScaleTransType == 1)
+                {
+                    // 以移动后的UV00点做位移和缩放
+                    // o.uv = mul(mul(uvScaleMatrix, uvTransMatrix),float3(v.uv,1)).xy;
+                    o.uv = (v.uv - _BaseMap_ST.zw) / _BaseMap_ST.xy;
+                }
+                else if (_uvScaleTransType == 2)
+                {
+                    // 由三个矩阵组成
+                    // 移动回原处
+                    // 矩阵A
+                    float3x3 MoveBack = float3x3(
+                        1, 0, 0.5,
+                        0, 1, 0.5,
+                        0, 0, 1
+                    );
+
+                    // 矩阵B
+                    // float3x3 uvScaleTransMatrix = float3x3(
+                    //     rcp(_BaseMap_ST.x), 0, -_BaseMap_ST.z * rcp(_BaseMap_ST.x),
+                    //     0, rcp(_BaseMap_ST.y), -_BaseMap_ST.w * rcp(_BaseMap_ST.y),
+                    //     0, 0, 1
+                    // );
+                    float3x3 uvScaleTransMatrix = mul(uvScaleMatrix, uvTransMatrix);
+
+                    // (对于点来说, 是把0.5,0.5的点移动到坐标原点) 对于坐标系来说, 是将坐标原点移动到0.5,0.5的位置
+                    // 矩阵C
+                    float3x3 PivotOffset = float3x3(
+                        1, 0, -0.5,
+                        0, 1, -0.5,
+                        0, 0, 1
+                    );
+                    float3x3 finalMatrix = mul(MoveBack, mul(uvScaleTransMatrix, PivotOffset));
+                    o.uv = mul(finalMatrix, float3(v.uv, 1)).xy;
+                }
+                else if (_uvScaleTransType == 3)
+                {
+                    o.uv = mul(MatrixScaleInTextureMid(_BaseMap_ST.xy, _BaseMap_ST.zw, float2(0.5, 0.5)), float3(v.uv, 1)).xy;
+                }
+                else
+                {
+                    o.uv = v.uv;
+                }
+
+                return o;
+            }
+
+            half4 frag(v2f i) : SV_Target
+            {
+                half4 finalColor;
+                if (_uvScaleTransType == 1)
+                {
+                    finalColor = SAMPLE_TEXTURE2D(_2ndMap, sampler_BaseMap, i.uv);
+                }
+                else
+                {
+                    finalColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv);
+                }
+                return finalColor;
+            }
+            ENDHLSL
+        }
+
+        Pass {
+            Name "DepthOnly"
+            Tags {
+                "LightMode" = "DepthOnly"
+            }
+
+            ZWrite On
+            ColorMask 0
+
+            HLSLPROGRAM
+            #pragma exclude_renderers gles gles3 glcore
+            #pragma target 4.5
+
+            #pragma vertex DepthOnlyVertex
+            #pragma fragment DepthOnlyFragment
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature_local_fragment _ALPHATEST_ON
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            ENDHLSL
+        }
+
+        Pass {
+            Name "DepthNormalsOnly"
+            Tags {
+                "LightMode" = "DepthNormalsOnly"
+            }
+
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma exclude_renderers gles gles3 glcore
+            #pragma target 4.5
+
+            #pragma vertex DepthNormalsVertex
+            #pragma fragment DepthNormalsFragment
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature_local_fragment _ALPHATEST_ON
+
+            // -------------------------------------
+            // Unity defined keywords
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT // forward-only variant
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitDepthNormalsPass.hlsl"
+            ENDHLSL
+        }
+    }
+}
+```
+
+
+
+###### 参考网页
+
+[矩阵计算器](https://matrixcalc.org/zh-CN/)

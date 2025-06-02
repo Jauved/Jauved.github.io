@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "水体渲染"
-categories: [URP, 后处理]
-tags: URP 后处理 DepthOfField
+categories: [URP, 渲染]
+tags: URP 渲染 材质
 math: true
 
 

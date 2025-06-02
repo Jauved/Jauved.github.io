@@ -2,7 +2,7 @@
 layout: post
 title: "基于Jekyll的Mathjax语法替换"
 categories: [其他, Blog]
-tags: Jekyll blog Mathjax
+tags: Jekyll blog Mathjax 公式 数学
 math: true
 ---
 
