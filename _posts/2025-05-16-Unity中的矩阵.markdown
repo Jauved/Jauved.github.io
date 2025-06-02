@@ -1,0 +1,1219 @@
+---
+layout: post
+title: "Unity中的矩阵"
+categories: [Unity, 渲染]
+tags: URP shader 矩阵
+math: true
+
+
+---
+
+# Unity中的矩阵
+
+## 00 坐标变换, 前置信息与约定
+
+首先，将三维点 $p=(x,y,z)$ 表示为齐次坐标向量：
+
+$$
+
+{P}
+=
+\begin{pmatrix}
+x \\[4pt]
+y \\[4pt]
+z \\[4pt]
+1
+\end{pmatrix}
+
+$$
+
+构造在各轴方向上分别平移 $(t\_x,t\_y,t\_z)$ 的 $4\times4 $平移矩阵：
+
+$$
+
+T(t_x,t_y,t_z)
+=
+\begin{pmatrix}
+1 & 0 & 0 & t_x\\[4pt]
+0 & 1 & 0 & t_y\\[4pt]
+0 & 0 & 1 & t_z\\[4pt]
+0 & 0 & 0 & 1
+\end{pmatrix}
+
+$$
+
+这是列主序(column-major)的构建方式, 即前三列对应坐标的每一个轴上的三轴缩放, 最后一列对应每一个轴上的位移. 
+
+**注意, 列主序和行主序, 仅仅是指代表位移的那部分参数排列在最后一列还是最后一行**.
+
+我把这种构建的形式称之为**`Space layout`**, 
+
+把先填充第一行, 再填充第二行..., 称之为**在`Space layout`中按行填充**, 在Unity的`shaderlab`中默认是右乘, 即`mul(Mr, v)`.
+
+把先填充第一列, 再填充第二列..., 称之为**在`Space layout`中按列填充**, 如果在Unity的`shaderlab`中结果要和`mul(Mr, v)`一样, 那么可以用左乘的方式来替代, 即`mul(v, Mc)`.
+
+## 01 C#构建方式(`name Space:System.Numerics`)
+
+[Matrix4x4.cs](https://referencesource.microsoft.com/#System.Numerics/System/Numerics/Matrix4x4.cs)
+
+```c#
+
+namespace System.Numerics
+{
+ 	#region Public Fields
+    /// <summary>
+    /// Value at row 1, column 1 of the matrix.
+    /// </summary>
+    public float M11;
+    /// <summary>
+    /// Value at row 1, column 2 of the matrix.
+    /// </summary>
+    public float M12;
+    /// <summary>
+    /// Value at row 1, column 3 of the matrix.
+    /// </summary>
+    public float M13;
+    /// <summary>
+    /// Value at row 1, column 4 of the matrix.
+    /// </summary>
+    public float M14;
+
+    /// <summary>
+    /// Value at row 2, column 1 of the matrix.
+    /// </summary>
+    public float M21;
+    /// <summary>
+    /// Value at row 2, column 2 of the matrix.
+    /// </summary>
+    public float M22;
+    /// <summary>
+    /// Value at row 2, column 3 of the matrix.
+    /// </summary>
+    public float M23;
+    /// <summary>
+    /// Value at row 2, column 4 of the matrix.
+    /// </summary>
+    public float M24;
+
+    /// <summary>
+    /// Value at row 3, column 1 of the matrix.
+    /// </summary>
+    public float M31;
+    /// <summary>
+    /// Value at row 3, column 2 of the matrix.
+    /// </summary>
+    public float M32;
+    /// <summary>
+    /// Value at row 3, column 3 of the matrix.
+    /// </summary>
+    public float M33;
+    /// <summary>
+    /// Value at row 3, column 4 of the matrix.
+    /// </summary>
+    public float M34;
+
+    /// <summary>
+    /// Value at row 4, column 1 of the matrix.
+    /// </summary>
+    public float M41;
+    /// <summary>
+    /// Value at row 4, column 2 of the matrix.
+    /// </summary>
+    public float M42;
+    /// <summary>
+    /// Value at row 4, column 3 of the matrix.
+    /// </summary>
+    public float M43;
+    /// <summary>
+    /// Value at row 4, column 4 of the matrix.
+    /// </summary>
+    public float M44;
+    #endregion Public Fields
+        
+    /// <summary>
+    /// Constructs a Matrix4x4 from the given components.
+    /// </summary>
+    public Matrix4x4(float m11, float m12, float m13, float m14,
+                     float m21, float m22, float m23, float m24,
+                     float m31, float m32, float m33, float m34,
+                     float m41, float m42, float m43, float m44)
+    {
+        this.M11 = m11;
+        this.M12 = m12;
+        this.M13 = m13;
+        this.M14 = m14;
+
+        this.M21 = m21;
+        this.M22 = m22;
+        this.M23 = m23;
+        this.M24 = m24;
+
+        this.M31 = m31;
+        this.M32 = m32;
+        this.M33 = m33;
+        this.M34 = m34;
+
+        this.M41 = m41;
+        this.M42 = m42;
+        this.M43 = m43;
+        this.M44 = m44;
+    }
+...
+}
+```
+
+很明显, C#的构建方式, 是**在Space layout中按行填充**
+使用伪代码:
+
+```c#
+using System.Numerics;
+
+Matrix4x4 M = new Matrix4x4
+(
+    M11, M12, M13, M14,
+    M21, M22, M23, M24,
+    M31, M32, M33, M34,
+    M41, M42, M43, M44
+)
+```
+
+构建出来的就是
+
+$$
+
+M
+=
+\begin{pmatrix}
+{M}_{11} & {M}_{12} & {M}_{13} & {M}_{14}\\[4pt]
+{M}_{21} & {M}_{22} & {M}_{23} & {M}_{24}\\[4pt]
+{M}_{31} & {M}_{32} & {M}_{33} & {M}_{34}\\[4pt]
+{M}_{41} & {M}_{42} & {M}_{43} & {M}_{44}
+\end{pmatrix}
+
+$$
+
+## 02 Unity引擎在C#中构建, 默认的C#构建方式有三种
+
+[Unity - Scripting API: Matrix4x4](https://docs.unity3d.com/6000.1/Documentation/ScriptReference/Matrix4x4.html)
+
+```c#
+// memory layout:
+//
+//                   row no (=vertical)
+//                  |  0   1   2   3
+//               ---+----------------
+//               0  | m00 m10 m20 m30
+// column no     1  | m01 m11 m21 m31
+// (=horiz)      2  | m02 m12 m22 m32
+//               3  | m03 m13 m23 m33
+// 这段注释太误导人了, 这行注释仅仅是介绍了内存的结构
+// 具体的空间上的行列结构恰好是转置过来, 注意, row, 行, column, 列
+// 实际空间位置
+// Space layout
+//                   column no (=horiz)
+//                  |  0   1   2   3
+//               ---+----------------
+//               0  | m00 m01 m02 m03
+// row no        1  | m10 m11 m12 m13
+// (=vertical)   2  | m20 m21 m22 m23
+//               3  | m30 m31 m32 m33
+
+// 按照Vector4构建
+// 在Space layout中按列填充
+_1stMatrix4X4 = new Matrix4x4(
+    new Vector4(1, 0, 1, 1),
+    new Vector4(1, 1, 0, 1),
+    new Vector4(0, 0, 1, 1),
+    new Vector4(1, 1, 0, 0));
+
+// 按照元素构建出来的和着色器构建读取出来的是一样的
+// 与系统构建方式也一样
+// 在Space layout中按行填充
+_2ndMatrix4X4 = new Matrix4x4
+{
+    m00 = 1, m01 = 0, m02 = 1, m03 = 1,
+    m10 = 1, m11 = 1, m12 = 0, m13 = 1,
+    m20 = 0, m21 = 0, m22 = 1, m23 = 1,
+    m30 = 1, m31 = 1, m32 = 0, m33 = 0
+};
+
+// 按照顺序构建
+// 在Space layout中按列填充
+_3rdMatrix4X4 = new Matrix4x4
+{
+    [0] = 1, [1] = 0, [2] = 1, [3] = 1,
+    [4] = 1, [5] = 1, [6] = 0, [7] = 1,
+    [8] = 0, [9] = 0, [10] = 1, [11] = 1,
+    [12] = 1, [13] = 1, [14] = 0, [15] = 0
+};
+
+```
+
+`Unity`特有的`C#`中的`Matrix4x4`的构建方式如下:
+
+```C#
+    public Matrix4x4(Vector4 column0, Vector4 column1, Vector4 column2, Vector4 column3)
+    {
+        this.m00 = column0.x; this.m01 = column1.x; this.m02 = column2.x; this.m03 = column3.x;
+        this.m10 = column0.y; this.m11 = column1.y; this.m12 = column2.y; this.m13 = column3.y;
+        this.m20 = column0.z; this.m21 = column1.z; this.m22 = column2.z; this.m23 = column3.z;
+        this.m30 = column0.w; this.m31 = column1.w; this.m32 = column2.w; this.m33 = column3.w;
+    }
+```
+
+- Unity在C#中构建并传入着色器的矩阵是列主序(`column-major`), 即, 变换矩阵的位置在最后一列. 
+- 数据访问方式
+  -  Matrix[a,b],  第a行第b列,  行+(列*4), 即, 我要访问`m.m13`(ty)这个数据, 实际上访问的是第二行第四列的数据, 即(1+3\*4), 13号(第14个)数据.
+  - Matrix[13], 第14个数据, 代表的是m.m13, 此时要将数据从列开始数才可以达到这个需求.
+  - 注: 原本系统的Matrix4x4是没有这两个函数的, 所以, **推测就是为了写出这两个数据访问函数, 所以才采用了特殊的内存构建形式**.
+
+
+## 03 `Shaderlab`中的`float4x4`
+
+```c
+_M4x4=float4x4(0.5,0,0.5,1,//这里采用0.5, 0, 0.5的原因是1,0,1这个颜色是渲染出错的颜色, 容易造成混淆
+                1,1,0,1,
+                0,0,1,1,
+                1,1,0,0);
+o.M0 = float4(_M4x4[0][0],_M4x4[0][1],_M4x4[0][2],_M4x4[0][3]);
+o.M1 = float4(_M4x4[1][0],_M4x4[1][1],_M4x4[1][2],_M4x4[1][3]);
+o.M2 = float4(_M4x4[2][0],_M4x4[2][1],_M4x4[2][2],_M4x4[2][3]);
+o.M3 = float4(_M4x4[3][0],_M4x4[3][1],_M4x4[3][2],_M4x4[3][3]);
+...
+_M4x4 = float4x4(i.M0[0],i.M0[1],i.M0[2],i.M0[3],
+                 i.M1[0],i.M1[1],i.M1[2],i.M1[3],
+                 i.M2[0],i.M2[1],i.M2[2],i.M2[3],
+                 i.M3[0],i.M3[1],i.M3[2],i.M3[3]
+                );
+_M4x4 = float4x4(i.M0,
+                 i.M1,
+                 i.M2,
+                 i.M3
+                );
+
+// 经测试, float4x4()按照顺序构建是在Space layout中按行填充, 与Unity的C#按照顺序构建方式不同
+// 伪函数为
+//float4x4 M = float4x4
+//(
+//    m00, m01, m02, m03,
+//    m10, m11, m12, m13,
+//    m20, m21, m22, m23,
+//    m30, m31, m32, m33
+//);
+
+// 经测试, float4x4()按照float4构建是在Space layout中按行填充, 与Unity的C#按照Vector4构建方式不同
+//float4x4 M = float4x4
+//(
+//	  M0,
+//	  M1,
+//	  M2,
+//	  M3
+//)
+```
+
+这两种构建方式的结果, 都与Unity的Matrix4x4中的**按照元素**这个构建方式结果一样, **在`Space layout`中按行填充**
+
+```c#
+// 这个函数构建出来的和着色器构建读取出来的是一样的
+// 与系统构建方式也一样
+// 在Space layout中按行填充
+_2ndMatrix4X4 = new Matrix4x4
+{
+    m00 = 1, m01 = 0, m02 = 1, m03 = 1,
+    m10 = 1, m11 = 1, m12 = 0, m13 = 1,
+    m20 = 0, m21 = 0, m22 = 1, m23 = 1,
+    m30 = 1, m31 = 1, m32 = 0, m33 = 0
+};
+```
+
+再次强调: 
+
+`Unity`在C#的Matrix4x4中的
+`Matrix4x4(Vector4, Vector4, Vector4, Vector4)`是**在Space layout中按列填充**
+而`Shaderlab`中的
+`float4x4(float4, float4, float4, float4)`是**在Space layout中按行填充**
+两者形式相似, 但填充结果是**转置**的.
+
+`unity`在C#的Matrix4x4中的
+Matrix4x4([0],[1],[2]...[15])是**在Space layout中按列填充**
+而`Shaderlab`中的
+float4x4(float,float,float.....)是**在Space layout中按行填充**
+两者形式相似, 但填充结果是**转置**的.
+
+## 04 关于右乘和左乘
+
+右乘: 向量在矩阵右边, `mul(M,v)`
+左乘: 向量在矩阵左边, `mul(v,M)`
+
+**在`Space layout`中按行填充**, 在Unity的`shaderlab`中默认是右乘, 即`mul(Mr, v)`
+**在`Space layout`中按列填充**, 在Unity的`shaderlab`中默认是左乘, 即`mul(v, Mc)`
+
+示例: 
+
+```c++
+half3x3 tangentToWorld = half3x3(input.tangentWS.xyz, bitangent.xyz, input.normalWS.xyz);
+...
+inputData.normalWS = TransformTangentToWorld(normalTS, tangentToWorld);
+```
+
+`TransformTangentToWorld`函数的定义在`SpaceTransforms.hlsl`文件中, 如下
+
+```
+real3 TransformTangentToWorld(float3 dirTS, real3x3 tangentToWorld)
+{
+    // Note matrix is in row major convention with left multiplication as it is build on the fly
+    return mul(dirTS, tangentToWorld);
+}
+```
+
+此处`mul`采用的是左乘(`mul(float4, matrix4x4)`), 而通常的Unity矩阵变换用的是右乘(`mul(matrix4x4, float4)`), 见下
+
+```
+float3 TransformObjectToWorld(float3 positionOS)
+{
+    #if defined(SHADER_STAGE_RAY_TRACING)
+    return mul(ObjectToWorld3x4(), float4(positionOS, 1.0)).xyz;
+    #else
+    return mul(GetObjectToWorldMatrix(), float4(positionOS, 1.0)).xyz;
+    #endif
+}
+```
+
+通过以上示例说明
+
+- 使用
+  ````c++
+  float3x3(
+  float3(m00,m01,m02),
+  float3(m10,m11,m12),
+  float3(m20,m21,m22)
+  )
+  ````
+  
+  构建时, 此时构建的矩阵如下:
+  $$
+  M
+  =
+  \begin{pmatrix}
+  {m}_{00} & {m}_{01} & {m}_{02}\\[4pt]
+  {m}_{10} & {m}_{11} & {m}_{12}\\[4pt]
+  {m}_{20} & {m}_{21} & {m}_{22}
+  \end{pmatrix}
+  $$
+  
+- 通常的变化矩阵是列主序(每一列控制每个轴的变化)的方式, 使用右乘, 如Unity的变化矩阵
+  `mul(GetObjectToWorldMatrix(), float4(positionOS, 1.0)).xyz;`
+
+- 而如果构建矩阵的时候, 并不是按照列矩阵构建的, 比如使用float3x3
+  ```
+  // 比如
+  half3x3 tangentToWorld = half3x3(input.tangentWS.xyz, bitangent.xyz, input.normalWS.xyz);
+  ```
+
+  
+  $$
+  half3\times3\;tangetToWorld
+  =
+  \begin{pmatrix}
+  input.tangentWS.x & input.tangentWS.y & input.tangentWS.z\\
+  input.bitangent.x & input.bitangent.y & input.bitangent.z\\
+  input.normalWS.x & input.normalWS.y & input.normalWS.z\\
+  \end{pmatrix}
+  $$
+  如切线方向的变化矩阵, 则使用左乘, 
+  `mul(dirTS, tangentToWorld);`
+
+  因为我们实际需要的矩阵, 是每一列都需要描述某个轴向的三个轴的情况, 比如x轴向定为`tangent`方向, y轴向定为`bitangent`方向, z轴向定为`normal`方向
+  $$
+  half3\times3\;tangetToWorld
+  =
+  \begin{pmatrix}
+  input.tangentWS.x & input.bitangent.x & input.normalWS.x\\
+  input.tangentWS.y & input.bitangent.y & input.normalWS.y\\
+  input.tangentWS.z & input.bitangent.z & input.normalWS.z\\
+  \end{pmatrix}
+  $$
+  如果是这样构建的矩阵, 则使用右乘, 本质上等于左乘转置矩阵.
+
+## 05 初始疑问
+
+`hlsl`中, `float3x3()`这个是如何构建矩阵的?
+
+通过实际验证, float3x3这个`hlsl`方法是如下方式构建的
+
+比如
+
+```c
+//在Space layout中按行填充
+float3x3
+(
+	m00, m01, m02,
+    m10, m11, m12,
+    m20, m21, m22
+)
+```
+
+构建出的是
+
+$$
+
+float3\times3\;M
+=
+\begin{pmatrix}
+{m}_{00} & {m}_{01} & {m}_{02} \\
+{m}_{10} & {m}_{11} & {m}_{12} \\
+{m}_{20} & {m}_{21} & {m}_{22}
+\end{pmatrix}
+
+$$
+
+## 06 总结
+
+- `Space layout`实际上是`colume-major`(列主序), 即位移放在最后一列
+- C#原生与`Shaderlab`用的是同一套构建和标识方式, **在`Space layout`中按行填充**;
+- C#原生只有按元素与按顺序填入的方式, 都是**在`Space layout`中按行填充**;
+- Unity的C#按元素构建矩阵的方式, 是**在`Space layout`中按行填充**
+- Unity的C#的按`Vector4`与按顺序构建矩阵的方式, 是**在`Space layout`中按列填充**
+
+## 07 Unity `Matrix4x4.cs`的源码
+
+[UnityCsReference/Runtime/Export/Math/Matrix4x4.cs at 855e967c9bc64eb0df1641410973c1923e82725d · Unity-Technologies/UnityCsReference](https://github.com/Unity-Technologies/UnityCsReference/blob/855e967c9bc64eb0df1641410973c1923e82725d/Runtime/Export/Math/Matrix4x4.cs)
+
+```c#
+// Unity C# reference source
+// Copyright (c) Unity Technologies. For terms of use, see
+// https://unity3d.com/legal/licenses/Unity_Reference_Only_License
+
+using System;
+using System.Runtime.InteropServices;
+using scm = System.ComponentModel;
+using uei = UnityEngine.Internal;
+using UnityEngine.Scripting;
+using UnityEngine.Bindings;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+
+namespace UnityEngine
+{
+    // A standard 4x4 transformation matrix.
+    [StructLayout(LayoutKind.Sequential)]
+    [RequiredByNativeCode(Optional = true, GenerateProxy = true)]
+    [NativeClass("Matrix4x4f")]
+    [Unity.IL2CPP.CompilerServices.Il2CppEagerStaticClassConstruction]
+    public partial struct Matrix4x4 : IEquatable<Matrix4x4>, IFormattable
+    {
+        // memory layout:
+        //
+        //                row no (=vertical)
+        //               |  0   1   2   3
+        //            ---+----------------
+        //            0  | m00 m10 m20 m30
+        // column no  1  | m01 m11 m21 m31
+        // (=horiz)   2  | m02 m12 m22 m32
+        //            3  | m03 m13 m23 m33
+        // 这段注释太误导人了, 这行注释仅仅是介绍了内存的结构
+        // 具体的空间上的行列结构恰好是转置过来, 注意, row, 行, column, 列
+        // 实际空间位置
+        // Space layout
+        //                   column no (=horiz)
+        //                  |  0   1   2   3
+        //               ---+----------------
+        //               0  | m00 m01 m02 m03
+        // row no        1  | m10 m11 m12 m13
+        // (=vertical)   2  | m20 m21 m22 m23
+        //               3  | m30 m31 m32 m33
+
+        ///*undocumented*
+        [NativeName("m_Data[0]")]
+        public float m00;
+        ///*undocumented*
+        [NativeName("m_Data[1]")]
+        public float m10;
+        ///*undocumented*
+        [NativeName("m_Data[2]")]
+        public float m20;
+        ///*undocumented*
+        [NativeName("m_Data[3]")]
+        public float m30;
+
+        ///*undocumented*
+        [NativeName("m_Data[4]")]
+        public float m01;
+        ///*undocumented*
+        [NativeName("m_Data[5]")]
+        public float m11;
+        ///*undocumented*
+        [NativeName("m_Data[6]")]
+        public float m21;
+        ///*undocumented*
+        [NativeName("m_Data[7]")]
+        public float m31;
+
+        ///*undocumented*
+        [NativeName("m_Data[8]")]
+        public float m02;
+        ///*undocumented*
+        [NativeName("m_Data[9]")]
+        public float m12;
+        ///*undocumented*
+        [NativeName("m_Data[10]")]
+        public float m22;
+        ///*undocumented*
+        [NativeName("m_Data[11]")]
+        public float m32;
+
+        ///*undocumented*
+        [NativeName("m_Data[12]")]
+        public float m03;
+        ///*undocumented*
+        [NativeName("m_Data[13]")]
+        public float m13;
+        ///*undocumented*
+        [NativeName("m_Data[14]")]
+        public float m23;
+        ///*undocumented*
+        [NativeName("m_Data[15]")]
+        public float m33;
+
+        public Matrix4x4(Vector4 column0, Vector4 column1, Vector4 column2, Vector4 column3)
+        {
+            this.m00 = column0.x; this.m01 = column1.x; this.m02 = column2.x; this.m03 = column3.x;
+            this.m10 = column0.y; this.m11 = column1.y; this.m12 = column2.y; this.m13 = column3.y;
+            this.m20 = column0.z; this.m21 = column1.z; this.m22 = column2.z; this.m23 = column3.z;
+            this.m30 = column0.w; this.m31 = column1.w; this.m32 = column2.w; this.m33 = column3.w;
+        }
+
+        // Access element at [row, column].
+        public float this[int row, int column]
+        {
+            [MethodImpl(MethodImplOptionsEx.AggressiveInlining)]
+            get
+            {
+                return this[row + column * 4];
+            }
+
+            [MethodImpl(MethodImplOptionsEx.AggressiveInlining)]
+            set
+            {
+                this[row + column * 4] = value;
+            }
+        }
+
+        // Access element at sequential index (0..15 inclusive).
+        public float this[int index]
+        {
+            get
+            {
+                switch (index)
+                {
+                    case 0: return m00;
+                    case 1: return m10;
+                    case 2: return m20;
+                    case 3: return m30;
+                    case 4: return m01;
+                    case 5: return m11;
+                    case 6: return m21;
+                    case 7: return m31;
+                    case 8: return m02;
+                    case 9: return m12;
+                    case 10: return m22;
+                    case 11: return m32;
+                    case 12: return m03;
+                    case 13: return m13;
+                    case 14: return m23;
+                    case 15: return m33;
+                    default:
+                        throw new IndexOutOfRangeException("Invalid matrix index!");
+                }
+            }
+
+            set
+            {
+                switch (index)
+                {
+                    case 0: m00 = value; break;
+                    case 1: m10 = value; break;
+                    case 2: m20 = value; break;
+                    case 3: m30 = value; break;
+                    case 4: m01 = value; break;
+                    case 5: m11 = value; break;
+                    case 6: m21 = value; break;
+                    case 7: m31 = value; break;
+                    case 8: m02 = value; break;
+                    case 9: m12 = value; break;
+                    case 10: m22 = value; break;
+                    case 11: m32 = value; break;
+                    case 12: m03 = value; break;
+                    case 13: m13 = value; break;
+                    case 14: m23 = value; break;
+                    case 15: m33 = value; break;
+
+                    default:
+                        throw new IndexOutOfRangeException("Invalid matrix index!");
+                }
+            }
+        }
+
+        // used to allow Matrix4x4s to be used as keys in hash tables
+        [MethodImpl(MethodImplOptionsEx.AggressiveInlining)]
+        public override int GetHashCode()
+        {
+            return GetColumn(0).GetHashCode() ^ (GetColumn(1).GetHashCode() << 2) ^ (GetColumn(2).GetHashCode() >> 2) ^ (GetColumn(3).GetHashCode() >> 1);
+        }
+
+        // also required for being able to use Matrix4x4s as keys in hash tables
+        [MethodImpl(MethodImplOptionsEx.AggressiveInlining)]
+        public override bool Equals(object other)
+        {
+            if (other is Matrix4x4 m)
+                return Equals(m);
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptionsEx.AggressiveInlining)]
+        public bool Equals(Matrix4x4 other)
+        {
+            return GetColumn(0).Equals(other.GetColumn(0))
+                && GetColumn(1).Equals(other.GetColumn(1))
+                && GetColumn(2).Equals(other.GetColumn(2))
+                && GetColumn(3).Equals(other.GetColumn(3));
+        }
+
+        // Multiplies two matrices.
+        public static Matrix4x4 operator*(Matrix4x4 lhs, Matrix4x4 rhs)
+        {
+            Matrix4x4 res;
+            res.m00 = lhs.m00 * rhs.m00 + lhs.m01 * rhs.m10 + lhs.m02 * rhs.m20 + lhs.m03 * rhs.m30;
+            res.m01 = lhs.m00 * rhs.m01 + lhs.m01 * rhs.m11 + lhs.m02 * rhs.m21 + lhs.m03 * rhs.m31;
+            res.m02 = lhs.m00 * rhs.m02 + lhs.m01 * rhs.m12 + lhs.m02 * rhs.m22 + lhs.m03 * rhs.m32;
+            res.m03 = lhs.m00 * rhs.m03 + lhs.m01 * rhs.m13 + lhs.m02 * rhs.m23 + lhs.m03 * rhs.m33;
+
+            res.m10 = lhs.m10 * rhs.m00 + lhs.m11 * rhs.m10 + lhs.m12 * rhs.m20 + lhs.m13 * rhs.m30;
+            res.m11 = lhs.m10 * rhs.m01 + lhs.m11 * rhs.m11 + lhs.m12 * rhs.m21 + lhs.m13 * rhs.m31;
+            res.m12 = lhs.m10 * rhs.m02 + lhs.m11 * rhs.m12 + lhs.m12 * rhs.m22 + lhs.m13 * rhs.m32;
+            res.m13 = lhs.m10 * rhs.m03 + lhs.m11 * rhs.m13 + lhs.m12 * rhs.m23 + lhs.m13 * rhs.m33;
+
+            res.m20 = lhs.m20 * rhs.m00 + lhs.m21 * rhs.m10 + lhs.m22 * rhs.m20 + lhs.m23 * rhs.m30;
+            res.m21 = lhs.m20 * rhs.m01 + lhs.m21 * rhs.m11 + lhs.m22 * rhs.m21 + lhs.m23 * rhs.m31;
+            res.m22 = lhs.m20 * rhs.m02 + lhs.m21 * rhs.m12 + lhs.m22 * rhs.m22 + lhs.m23 * rhs.m32;
+            res.m23 = lhs.m20 * rhs.m03 + lhs.m21 * rhs.m13 + lhs.m22 * rhs.m23 + lhs.m23 * rhs.m33;
+
+            res.m30 = lhs.m30 * rhs.m00 + lhs.m31 * rhs.m10 + lhs.m32 * rhs.m20 + lhs.m33 * rhs.m30;
+            res.m31 = lhs.m30 * rhs.m01 + lhs.m31 * rhs.m11 + lhs.m32 * rhs.m21 + lhs.m33 * rhs.m31;
+            res.m32 = lhs.m30 * rhs.m02 + lhs.m31 * rhs.m12 + lhs.m32 * rhs.m22 + lhs.m33 * rhs.m32;
+            res.m33 = lhs.m30 * rhs.m03 + lhs.m31 * rhs.m13 + lhs.m32 * rhs.m23 + lhs.m33 * rhs.m33;
+
+            return res;
+        }
+
+        // Transforms a [[Vector4]] by a matrix.
+        public static Vector4 operator*(Matrix4x4 lhs, Vector4 vector)
+        {
+            Vector4 res;
+            res.x = lhs.m00 * vector.x + lhs.m01 * vector.y + lhs.m02 * vector.z + lhs.m03 * vector.w;
+            res.y = lhs.m10 * vector.x + lhs.m11 * vector.y + lhs.m12 * vector.z + lhs.m13 * vector.w;
+            res.z = lhs.m20 * vector.x + lhs.m21 * vector.y + lhs.m22 * vector.z + lhs.m23 * vector.w;
+            res.w = lhs.m30 * vector.x + lhs.m31 * vector.y + lhs.m32 * vector.z + lhs.m33 * vector.w;
+            return res;
+        }
+
+        //*undoc*
+        public static bool operator==(Matrix4x4 lhs, Matrix4x4 rhs)
+        {
+            // Returns false in the presence of NaN values.
+            return lhs.GetColumn(0) == rhs.GetColumn(0)
+                && lhs.GetColumn(1) == rhs.GetColumn(1)
+                && lhs.GetColumn(2) == rhs.GetColumn(2)
+                && lhs.GetColumn(3) == rhs.GetColumn(3);
+        }
+
+        //*undoc*
+        public static bool operator!=(Matrix4x4 lhs, Matrix4x4 rhs)
+        {
+            // Returns true in the presence of NaN values.
+            return !(lhs == rhs);
+        }
+
+        // Get a column of the matrix.
+        public Vector4 GetColumn(int index)
+        {
+            switch (index)
+            {
+                case 0: return new Vector4(m00, m10, m20, m30);
+                case 1: return new Vector4(m01, m11, m21, m31);
+                case 2: return new Vector4(m02, m12, m22, m32);
+                case 3: return new Vector4(m03, m13, m23, m33);
+                default:
+                    throw new IndexOutOfRangeException("Invalid column index!");
+            }
+        }
+
+        // Returns a row of the matrix.
+        public Vector4 GetRow(int index)
+        {
+            switch (index)
+            {
+                case 0: return new Vector4(m00, m01, m02, m03);
+                case 1: return new Vector4(m10, m11, m12, m13);
+                case 2: return new Vector4(m20, m21, m22, m23);
+                case 3: return new Vector4(m30, m31, m32, m33);
+                default:
+                    throw new IndexOutOfRangeException("Invalid row index!");
+            }
+        }
+
+        public Vector3 GetPosition()
+        {
+            return new Vector3(m03, m13, m23);
+        }
+
+        // Sets a column of the matrix.
+        public void SetColumn(int index, Vector4 column)
+        {
+            this[0, index] = column.x;
+            this[1, index] = column.y;
+            this[2, index] = column.z;
+            this[3, index] = column.w;
+        }
+
+        // Sets a row of the matrix.
+        public void SetRow(int index, Vector4 row)
+        {
+            this[index, 0] = row.x;
+            this[index, 1] = row.y;
+            this[index, 2] = row.z;
+            this[index, 3] = row.w;
+        }
+
+        // Transforms a position by this matrix, with a perspective divide. (generic)
+        public Vector3 MultiplyPoint(Vector3 point)
+        {
+            Vector3 res;
+            float w;
+            res.x = this.m00 * point.x + this.m01 * point.y + this.m02 * point.z + this.m03;
+            res.y = this.m10 * point.x + this.m11 * point.y + this.m12 * point.z + this.m13;
+            res.z = this.m20 * point.x + this.m21 * point.y + this.m22 * point.z + this.m23;
+            w = this.m30 * point.x + this.m31 * point.y + this.m32 * point.z + this.m33;
+
+            w = 1F / w;
+            res.x *= w;
+            res.y *= w;
+            res.z *= w;
+            return res;
+        }
+
+        // Transforms a position by this matrix, without a perspective divide. (fast)
+        public Vector3 MultiplyPoint3x4(Vector3 point)
+        {
+            Vector3 res;
+            res.x = this.m00 * point.x + this.m01 * point.y + this.m02 * point.z + this.m03;
+            res.y = this.m10 * point.x + this.m11 * point.y + this.m12 * point.z + this.m13;
+            res.z = this.m20 * point.x + this.m21 * point.y + this.m22 * point.z + this.m23;
+            return res;
+        }
+
+        // Transforms a direction by this matrix.
+        public Vector3 MultiplyVector(Vector3 vector)
+        {
+            Vector3 res;
+            res.x = this.m00 * vector.x + this.m01 * vector.y + this.m02 * vector.z;
+            res.y = this.m10 * vector.x + this.m11 * vector.y + this.m12 * vector.z;
+            res.z = this.m20 * vector.x + this.m21 * vector.y + this.m22 * vector.z;
+            return res;
+        }
+
+        // Transforms a plane by this matrix.
+        public Plane TransformPlane(Plane plane)
+        {
+            var ittrans = this.inverse;
+
+            float x = plane.normal.x, y = plane.normal.y, z = plane.normal.z, w = plane.distance;
+            // note: a transpose is part of this transformation
+            var a = ittrans.m00 * x + ittrans.m10 * y + ittrans.m20 * z + ittrans.m30 * w;
+            var b = ittrans.m01 * x + ittrans.m11 * y + ittrans.m21 * z + ittrans.m31 * w;
+            var c = ittrans.m02 * x + ittrans.m12 * y + ittrans.m22 * z + ittrans.m32 * w;
+            var d = ittrans.m03 * x + ittrans.m13 * y + ittrans.m23 * z + ittrans.m33 * w;
+
+            return new Plane(new Vector3(a, b, c), d);
+        }
+
+        // Creates a scaling matrix.
+        public static Matrix4x4 Scale(Vector3 vector)
+        {
+            Matrix4x4 m;
+            m.m00 = vector.x; m.m01 = 0F; m.m02 = 0F; m.m03 = 0F;
+            m.m10 = 0F; m.m11 = vector.y; m.m12 = 0F; m.m13 = 0F;
+            m.m20 = 0F; m.m21 = 0F; m.m22 = vector.z; m.m23 = 0F;
+            m.m30 = 0F; m.m31 = 0F; m.m32 = 0F; m.m33 = 1F;
+            return m;
+        }
+
+        // Creates a translation matrix.
+        public static  Matrix4x4 Translate(Vector3 vector)
+        {
+            Matrix4x4 m;
+            m.m00 = 1F; m.m01 = 0F; m.m02 = 0F; m.m03 = vector.x;
+            m.m10 = 0F; m.m11 = 1F; m.m12 = 0F; m.m13 = vector.y;
+            m.m20 = 0F; m.m21 = 0F; m.m22 = 1F; m.m23 = vector.z;
+            m.m30 = 0F; m.m31 = 0F; m.m32 = 0F; m.m33 = 1F;
+            return m;
+        }
+
+        // Creates a rotation matrix. Note: Assumes unit quaternion
+        public static Matrix4x4 Rotate(Quaternion q)
+        {
+            // Precalculate coordinate products
+            float x = q.x * 2.0F;
+            float y = q.y * 2.0F;
+            float z = q.z * 2.0F;
+            float xx = q.x * x;
+            float yy = q.y * y;
+            float zz = q.z * z;
+            float xy = q.x * y;
+            float xz = q.x * z;
+            float yz = q.y * z;
+            float wx = q.w * x;
+            float wy = q.w * y;
+            float wz = q.w * z;
+
+            // Calculate 3x3 matrix from orthonormal basis
+            Matrix4x4 m;
+            m.m00 = 1.0f - (yy + zz); m.m10 = xy + wz; m.m20 = xz - wy; m.m30 = 0.0F;
+            m.m01 = xy - wz; m.m11 = 1.0f - (xx + zz); m.m21 = yz + wx; m.m31 = 0.0F;
+            m.m02 = xz + wy; m.m12 = yz - wx; m.m22 = 1.0f - (xx + yy); m.m32 = 0.0F;
+            m.m03 = 0.0F; m.m13 = 0.0F; m.m23 = 0.0F; m.m33 = 1.0F;
+            return m;
+        }
+
+        // Matrix4x4.zero is of questionable usefulness considering C# sets everything to 0 by default, however:
+        //  1. it's consistent with other Math structs in Unity such as Vector2, Vector3 and Vector4,
+        //  2. "Matrix4x4.zero" is arguably more readable than "new Matrix4x4()",
+        //  3. it's already in the API ..
+        static readonly Matrix4x4 zeroMatrix = new Matrix4x4(new Vector4(0, 0, 0, 0),
+            new Vector4(0, 0, 0, 0),
+            new Vector4(0, 0, 0, 0),
+            new Vector4(0, 0, 0, 0));
+
+        // Returns a matrix with all elements set to zero (RO).
+        public static Matrix4x4 zero { get { return zeroMatrix; } }
+
+        static readonly Matrix4x4 identityMatrix = new Matrix4x4(new Vector4(1, 0, 0, 0),
+            new Vector4(0, 1, 0, 0),
+            new Vector4(0, 0, 1, 0),
+            new Vector4(0, 0, 0, 1));
+
+        // Returns the identity matrix (RO).
+        public static Matrix4x4 identity    { [MethodImpl(MethodImplOptionsEx.AggressiveInlining)] get { return identityMatrix; } }
+
+        [MethodImpl(MethodImplOptionsEx.AggressiveInlining)]
+        public override string ToString()
+        {
+            return ToString(null, null);
+        }
+
+        [MethodImpl(MethodImplOptionsEx.AggressiveInlining)]
+        public string ToString(string format)
+        {
+            return ToString(format, null);
+        }
+
+        [MethodImpl(MethodImplOptionsEx.AggressiveInlining)]
+        public string ToString(string format, IFormatProvider formatProvider)
+        {
+            if (string.IsNullOrEmpty(format))
+                format = "F5";
+            if (formatProvider == null)
+                formatProvider = CultureInfo.InvariantCulture.NumberFormat;
+            return string.Format("{0}\t{1}\t{2}\t{3}\n{4}\t{5}\t{6}\t{7}\n{8}\t{9}\t{10}\t{11}\n{12}\t{13}\t{14}\t{15}\n",
+                m00.ToString(format, formatProvider), m01.ToString(format, formatProvider), m02.ToString(format, formatProvider), m03.ToString(format, formatProvider),
+                m10.ToString(format, formatProvider), m11.ToString(format, formatProvider), m12.ToString(format, formatProvider), m13.ToString(format, formatProvider),
+                m20.ToString(format, formatProvider), m21.ToString(format, formatProvider), m22.ToString(format, formatProvider), m23.ToString(format, formatProvider),
+                m30.ToString(format, formatProvider), m31.ToString(format, formatProvider), m32.ToString(format, formatProvider), m33.ToString(format, formatProvider));
+        }
+    }
+} //namespace
+```
+
+## 08 测试用例
+
+着色器
+
+```c
+Shader "TestCase/MatrixCheck" {
+    Properties {
+        [MaterialToggle]_OutMatrix("C#矩阵", Int) = 0
+        [Enum(Float,0,Float4,1,float4x4,2)]_shaderlabMatrixType("Shaderlab矩阵", Int)= 0
+    }
+    SubShader {
+        Tags {
+            "RenderType"="Opaque" "RenderPipeline" = "UniversalPipeline"
+        }
+        LOD 100
+
+        Pass {
+            Tags {
+                "LightMode" = "UniversalForward"
+            }
+            HLSLPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                float2 uv : TEXCOORD0;
+            };
+
+            struct v2f
+            {
+                float2 uv : TEXCOORD0;
+                float4 vertex : SV_POSITION;
+                float4 M0: TEXCOORD1;
+                float4 M1: TEXCOORD2;
+                float4 M2: TEXCOORD3;
+                float4 M3: TEXCOORD4;
+            };
+
+            sampler2D _MainTex;
+            float4 _MainTex_ST;
+            float4x4 _M4x4;
+            float4x4 _M4x4out;
+            bool _OutMatrix;
+            float _shaderlabMatrixType;
+
+            v2f vert(appdata v)
+            {
+                v2f o;
+                o.vertex = TransformObjectToHClip(v.vertex.xyz);
+                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                _M4x4 = float4x4(0.5, 0, 0.5, 1,
+                                 1, 1, 0, 1,
+                                 0, 0, 1, 1,
+                                 1, 1, 0, 0);
+                o.M0 = float4(_M4x4[0][0], _M4x4[0][1], _M4x4[0][2], _M4x4[0][3]);
+                o.M1 = float4(_M4x4[1][0], _M4x4[1][1], _M4x4[1][2], _M4x4[1][3]);
+                o.M2 = float4(_M4x4[2][0], _M4x4[2][1], _M4x4[2][2], _M4x4[2][3]);
+                o.M3 = float4(_M4x4[3][0], _M4x4[3][1], _M4x4[3][2], _M4x4[3][3]);
+                return o;
+            }
+
+            half4 frag(v2f i) : SV_Target
+            {
+                float4x4 _M4x4_1st = float4x4(i.M0[0], i.M0[1], i.M0[2], i.M0[3],
+                                              i.M1[0], i.M1[1], i.M1[2], i.M1[3],
+                                              i.M2[0], i.M2[1], i.M2[2], i.M2[3],
+                                              i.M3[0], i.M3[1], i.M3[2], i.M3[3]
+                );
+                float4x4 _M4x4_2nd = float4x4(i.M0,
+                                              i.M1,
+                                              i.M2,
+                                              i.M3
+                );
+                float4x4 _M4x4_3rd = float4x4(_M4x4_1st[0][0], _M4x4_1st[0][1], _M4x4_1st[0][2], _M4x4_1st[0][3],
+                                              _M4x4_1st[1][0], _M4x4_1st[1][1], _M4x4_1st[1][2], _M4x4_1st[1][3],
+                                              _M4x4_1st[2][0], _M4x4_1st[2][1], _M4x4_1st[2][2], _M4x4_1st[2][3],
+                                              _M4x4_1st[3][0], _M4x4_1st[3][1], _M4x4_1st[3][2], _M4x4_1st[3][3]
+                );
+                if (_shaderlabMatrixType == 0)
+                {
+                    _M4x4 = _M4x4_1st;
+                }
+                else if (_shaderlabMatrixType == 1)
+                {
+                    _M4x4 = _M4x4_2nd;
+                }
+                else if (_shaderlabMatrixType == 2)
+                {
+                    _M4x4 = _M4x4_3rd;
+                }
+                if (_OutMatrix)
+                {
+                    _M4x4 = _M4x4out;
+                }
+                return float4(_M4x4[0][0], _M4x4[0][1], _M4x4[0][2], _M4x4[0][3]);
+            }
+            ENDHLSL
+        }
+
+        Pass {
+            Name "DepthOnly"
+            Tags {
+                "LightMode" = "DepthOnly"
+            }
+
+            ZWrite On
+            ColorMask 0
+
+            HLSLPROGRAM
+            #pragma exclude_renderers gles gles3 glcore
+            #pragma target 4.5
+
+            #pragma vertex DepthOnlyVertex
+            #pragma fragment DepthOnlyFragment
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature_local_fragment _ALPHATEST_ON
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            ENDHLSL
+        }
+
+        Pass {
+            Name "DepthNormalsOnly"
+            Tags {
+                "LightMode" = "DepthNormalsOnly"
+            }
+
+            ZWrite On
+
+            HLSLPROGRAM
+            #pragma exclude_renderers gles gles3 glcore
+            #pragma target 4.5
+
+            #pragma vertex DepthNormalsVertex
+            #pragma fragment DepthNormalsFragment
+
+            // -------------------------------------
+            // Material Keywords
+            #pragma shader_feature_local_fragment _ALPHATEST_ON
+
+            // -------------------------------------
+            // Unity defined keywords
+            #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT // forward-only variant
+
+            //--------------------------------------
+            // GPU Instancing
+            #pragma multi_compile_instancing
+            #pragma multi_compile _ DOTS_INSTANCING_ON
+
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitDepthNormalsPass.hlsl"
+            ENDHLSL
+        }
+    }
+}
+```
+
+c#脚本
+
+```c#
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using Unity.Mathematics;
+using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+// using Matrix4x4 = System.Numerics.Matrix4x4;
+
+public class MatrixCheck : MonoBehaviour
+{
+    private Matrix4x4 _1stMatrix4X4;
+    private Matrix4x4 _2ndMatrix4X4;
+    private Matrix4x4 _3rdMatrix4X4;
+    private Matrix4x4 _4thMatrix4X4;
+    public SwitchMatrix switchMatrix = SwitchMatrix.Matrix1;
+
+    public enum SwitchMatrix
+    {
+        Matrix1,
+        Matrix2,
+        Matrix3
+    }
+    // Start is called before the first frame update
+    void Start()
+    {
+        // memory layout:
+        //
+        //                row no (=vertical)
+        //               |  0   1   2   3
+        //            ---+----------------
+        //            0  | m00 m10 m20 m30
+        // column no  1  | m01 m11 m21 m31
+        // (=horiz)   2  | m02 m12 m22 m32
+        //            3  | m03 m13 m23 m33
+        // 这段注释太误导人了, 这行注释仅仅是介绍了内存的结构
+        // 具体的空间上的行列结构恰好是转置过来, 注意, row, 行, column, 列
+        // 实际空间位置
+        // Space layout
+        //                   column no (=horiz)
+        //                  |  0   1   2   3
+        //               ---+----------------
+        //               0  | m00 m01 m02 m03
+        // row no        1  | m10 m11 m12 m13
+        // (=vertical)   2  | m20 m21 m22 m23
+        //               3  | m30 m31 m32 m33
+        
+        // 在Space layout中按列填充
+        _1stMatrix4X4 = new Matrix4x4(new Vector4(1, 0, 1, 1),
+            new Vector4(1, 1, 0, 1),
+            new Vector4(0, 0, 1, 1),
+            new Vector4(1, 1, 0, 0));
+        
+        // 这个函数构建出来的和着色器构建读取出来的是一样的
+        // 在Space layout中按行填充
+        _2ndMatrix4X4 = new Matrix4x4
+        {
+            m00 = 1, m01 = 0, m02 = 1, m03 = 1,
+            m10 = 1, m11 = 1, m12 = 0, m13 = 1,
+            m20 = 0, m21 = 0, m22 = 1, m23 = 1,
+            m30 = 1, m31 = 1, m32 = 0, m33 = 0
+        };
+        // 在Space layout中按列填充
+        _3rdMatrix4X4 = new Matrix4x4
+        {
+            [0] = 1, [1] = 0, [2] = 1, [3] = 1,
+            [4] = 1, [5] = 1, [6] = 0, [7] = 1,
+            [8] = 0, [9] = 0, [10] = 1, [11] = 1,
+            [12] = 1, [13] = 1, [14] = 0, [15] = 0
+        };
+        
+        System.Numerics.Matrix4x4 _4thSystemMatrix4X4  = new System.Numerics.Matrix4x4
+        {
+            M11 = 1, M12 = 0, M13 = 1, M14 = 1,
+            M21 = 1, M22 = 1, M23 = 0, M24 = 1,
+            M31 = 0, M32 = 0, M33 = 1, M34 = 1,
+            M41 = 1, M42 = 1, M43 = 0, M44 = 0
+        };
+        
+        System.Numerics.Matrix4x4 _5thSystemMatrix4X4 = new System.Numerics.Matrix4x4
+        (
+            1, 0, 1, 1,
+            1, 1, 0, 1,
+            0, 0, 1, 1,
+            1, 1, 0, 0
+        );
+        GetComponent<Renderer>().material.SetMatrix("_M4x4out", _1stMatrix4X4);
+    }
+
+    private void OnGUI()
+    {
+        float4x4 curMatrix4x4 = switchMatrix switch
+        {
+            SwitchMatrix.Matrix1 => _1stMatrix4X4,
+            SwitchMatrix.Matrix2 => _2ndMatrix4X4,
+            SwitchMatrix.Matrix3 => _3rdMatrix4X4,
+            _ => _1stMatrix4X4
+        };
+        
+        GetComponent<Renderer>().material.SetMatrix("_M4x4out", curMatrix4x4);
+    }
+}
+```
+
+
+
+###### 参考网页
+
+[UnityCsReference/Runtime/Export/Math/Matrix4x4.cs at 855e967c9bc64eb0df1641410973c1923e82725d · Unity-Technologies/UnityCsReference](https://github.com/Unity-Technologies/UnityCsReference/blob/855e967c9bc64eb0df1641410973c1923e82725d/Runtime/Export/Math/Matrix4x4.cs)
+
+[www.bilibili.com](https://www.bilibili.com/opus/660099382063923205)
