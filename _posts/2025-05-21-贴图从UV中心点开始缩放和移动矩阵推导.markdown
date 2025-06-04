@@ -142,45 +142,42 @@ $$
 
   - 矩阵操作为:
     $$
-    P
+    {P}
     =
     \left(\begin{matrix}
-    1 & 0 & -p_x\\
-    0 & 1 & -p_y\\
+    1 & 0 & -{p}_{x} \\
+    0 & 1 & -{p}_{y} \\
     0 & 0 & 1
-    \end{matrix}\right)
-    \;\;\;\;
-    S
+    \end{matrix}\right),
+    {S}
     =
     \left(\begin{matrix}
-    s_x & 0 & 0\\
-    0 & s_y & 0\\
+    {s}_{x} & 0 & 0 \\
+    0 & {s}_{y} & 0 \\
     0 & 0 & 1
-    \end{matrix}\right)
-    \;\;\;\;
-    T
+    \end{matrix}\right),
+    {T}
     =
     \left(\begin{matrix}
-    1 & 0 & t_x\\
-    0 & 1 & t_y\\
+    1 & 0 & {t}_{x} \\
+    0 & 1 & {t}_{y} \\
     0 & 0 & 1
-    \end{matrix}\right)
-    \;\;\;\;
-    P^{-1}
+    \end{matrix}\right),
+    {P}^{-1}
     =
     \left(\begin{matrix}
-    1 & 0 & p_x\\
-    0 & 1 & p_y\\
+    1 & 0 & {p}_{x} \\
+    0 & 1 & {p}_{y} \\
     0 & 0 & 1
     \end{matrix}\right)
     
     \\
     按照矩阵从右往左计算的方式最终的矩阵为
     \\
-    M_{object}=P^{-1}TSP
+    {M}_{object}={P}^{-1}{TSP}
     $$
     
-
+  
 - 空间应该进行的操作**理论上**是:
 
 $$
