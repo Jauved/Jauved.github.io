@@ -447,7 +447,7 @@ float3 TransformObjectToWorld(float3 positionOS)
 //在Space layout中按行填充
 float3x3
 (
-	m00, m01, m02,
+    m00, m01, m02,
     m10, m11, m12,
     m20, m21, m22
 )
