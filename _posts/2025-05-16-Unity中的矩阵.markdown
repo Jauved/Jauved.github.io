@@ -2,7 +2,7 @@
 layout: post
 title: "Unity中的矩阵"
 categories: [Unity, 渲染]
-tags: URP shader 矩阵
+tags: URP Shader 矩阵
 math: true
 
 
@@ -42,11 +42,11 @@ T(t_x,t_y,t_z)
 
 $$
 
-这是列主序(column-major)的构建方式, 即前三列对应坐标的每一个轴上的三轴缩放, 最后一列对应每一个轴上的位移. 
+这是列主序(column-major)的构建方式, 即前三列对应坐标的每一个轴上的三轴缩放, 最后一列对应每一个轴上的位移.
 
 **注意, 列主序和行主序, 仅仅是指代表位移的那部分参数排列在最后一列还是最后一行**.
 
-我把这种构建的形式称之为**`Space layout`**, 
+我把这种构建的形式称之为**`Space layout`**,
 
 把先填充第一行, 再填充第二行..., 称之为**在`Space layout`中按行填充**, 在Unity的`shaderlab`中默认是右乘, 即`mul(Mr, v)`.
 
@@ -60,7 +60,7 @@ $$
 
 namespace System.Numerics
 {
- 	#region Public Fields
+    #region Public Fields
     /// <summary>
     /// Value at row 1, column 1 of the matrix.
     /// </summary>
@@ -129,7 +129,7 @@ namespace System.Numerics
     /// </summary>
     public float M44;
     #endregion Public Fields
-        
+
     /// <summary>
     /// Constructs a Matrix4x4 from the given components.
     /// </summary>
@@ -261,7 +261,7 @@ _3rdMatrix4X4 = new Matrix4x4
     }
 ```
 
-- Unity在C#中构建并传入着色器的矩阵是列主序(`column-major`), 即, 变换矩阵的位置在最后一列. 
+- Unity在C#中构建并传入着色器的矩阵是列主序(`column-major`), 即, 变换矩阵的位置在最后一列.
 - 数据访问方式
   -  Matrix[a,b],  第a行第b列,  行+(列*4), 即, 我要访问`m.m13`(ty)这个数据, 实际上访问的是第二行第四列的数据, 即(1+3\*4), 13号(第14个)数据.
   - Matrix[13], 第14个数据, 代表的是m.m13, 此时要将数据从列开始数才可以达到这个需求.
@@ -326,7 +326,7 @@ _2ndMatrix4X4 = new Matrix4x4
 };
 ```
 
-再次强调: 
+再次强调:
 
 `Unity`在C#的Matrix4x4中的
 `Matrix4x4(Vector4, Vector4, Vector4, Vector4)`是**在Space layout中按列填充**
@@ -348,7 +348,7 @@ float4x4(float,float,float.....)是**在Space layout中按行填充**
 **在`Space layout`中按行填充**, 在Unity的`shaderlab`中默认是右乘, 即`mul(Mr, v)`
 **在`Space layout`中按列填充**, 在Unity的`shaderlab`中默认是左乘, 即`mul(v, Mc)`
 
-示例: 
+示例:
 
 ```c++
 half3x3 tangentToWorld = half3x3(input.tangentWS.xyz, bitangent.xyz, input.normalWS.xyz);
@@ -389,7 +389,7 @@ float3 TransformObjectToWorld(float3 positionOS)
   float3(m20,m21,m22)
   )
   ````
-  
+
   构建时, 此时构建的矩阵如下:
   $$
   M
@@ -400,7 +400,7 @@ float3 TransformObjectToWorld(float3 positionOS)
   {m}_{20} & {m}_{21} & {m}_{22}
   \end{pmatrix}
   $$
-  
+
 - 通常的变化矩阵是列主序(每一列控制每个轴的变化)的方式, 使用右乘, 如Unity的变化矩阵
   `mul(GetObjectToWorldMatrix(), float4(positionOS, 1.0)).xyz;`
 
@@ -410,7 +410,7 @@ float3 TransformObjectToWorld(float3 positionOS)
   half3x3 tangentToWorld = half3x3(input.tangentWS.xyz, bitangent.xyz, input.normalWS.xyz);
   ```
 
-  
+
   $$
   half3\times3\;tangetToWorld
   =
@@ -420,7 +420,7 @@ float3 TransformObjectToWorld(float3 positionOS)
   input.normalWS.x & input.normalWS.y & input.normalWS.z\\
   \end{pmatrix}
   $$
-  如切线方向的变化矩阵, 则使用左乘, 
+  如切线方向的变化矩阵, 则使用左乘,
   `mul(dirTS, tangentToWorld);`
 
   因为我们实际需要的矩阵, 是每一列都需要描述某个轴向的三个轴的情况, 比如x轴向定为`tangent`方向, y轴向定为`bitangent`方向, z轴向定为`normal`方向
@@ -1152,13 +1152,13 @@ public class MatrixCheck : MonoBehaviour
         // row no        1  | m10 m11 m12 m13
         // (=vertical)   2  | m20 m21 m22 m23
         //               3  | m30 m31 m32 m33
-        
+
         // 在Space layout中按列填充
         _1stMatrix4X4 = new Matrix4x4(new Vector4(1, 0, 1, 1),
             new Vector4(1, 1, 0, 1),
             new Vector4(0, 0, 1, 1),
             new Vector4(1, 1, 0, 0));
-        
+
         // 这个函数构建出来的和着色器构建读取出来的是一样的
         // 在Space layout中按行填充
         _2ndMatrix4X4 = new Matrix4x4
@@ -1176,7 +1176,7 @@ public class MatrixCheck : MonoBehaviour
             [8] = 0, [9] = 0, [10] = 1, [11] = 1,
             [12] = 1, [13] = 1, [14] = 0, [15] = 0
         };
-        
+
         System.Numerics.Matrix4x4 _4thSystemMatrix4X4  = new System.Numerics.Matrix4x4
         {
             M11 = 1, M12 = 0, M13 = 1, M14 = 1,
@@ -1184,7 +1184,7 @@ public class MatrixCheck : MonoBehaviour
             M31 = 0, M32 = 0, M33 = 1, M34 = 1,
             M41 = 1, M42 = 1, M43 = 0, M44 = 0
         };
-        
+
         System.Numerics.Matrix4x4 _5thSystemMatrix4X4 = new System.Numerics.Matrix4x4
         (
             1, 0, 1, 1,
@@ -1204,7 +1204,7 @@ public class MatrixCheck : MonoBehaviour
             SwitchMatrix.Matrix3 => _3rdMatrix4X4,
             _ => _1stMatrix4X4
         };
-        
+
         GetComponent<Renderer>().material.SetMatrix("_M4x4out", curMatrix4x4);
     }
 }

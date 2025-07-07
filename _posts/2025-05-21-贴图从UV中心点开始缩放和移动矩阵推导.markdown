@@ -317,9 +317,223 @@ $$
 
 与理论结果一致, 证毕.
 
+## 04 加入旋转矩阵
+
+在现有矩阵上加入旋转矩阵, 已知正常的物体变换矩阵为 $$TRS$$ 矩阵, 之前的推导为因为坐标轴的变换, 应该采用$$PTRSP^{-1}$$. 然后因为空间变换矩阵是物体变换矩阵的取逆, 所以最终的UV变换矩阵是
+
+$$
+
+M_{space} = M_{object}^{-1} = (P^{-1}TRSP)^{-1}=P^{-1}S^{-1}R^{-1}T^{-1}P
+
+$$
+
+物体矩阵操作为
+
+$$
+
+{P}
+=
+\left(\begin{matrix}
+1 & 0 & -{p}_{x} \\
+0 & 1 & -{p}_{y} \\
+0 & 0 & 1
+\end{matrix}\right),
+{S}
+=
+\left(\begin{matrix}
+{s}_{x} & 0 & 0 \\
+0 & {s}_{y} & 0 \\
+0 & 0 & 1
+\end{matrix}\right),
+{R}
+=
+\left(\begin{matrix}
+\cos\theta & -\sin\theta & 0 \\
+\sin\theta & \cos\theta & 0 \\
+0 & 0 & 1
+\end{matrix}\right),
+{T}
+=
+\left(\begin{matrix}
+1 & 0 & {t}_{x} \\
+0 & 1 & {t}_{y} \\
+0 & 0 & 1
+\end{matrix}\right),
+{P}^{-1}
+=
+\left(\begin{matrix}
+1 & 0 & {p}_{x} \\
+0 & 1 & {p}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+
+$$
+
+对应的逆矩阵为(其中坐标轴偏移的逆矩阵已经提供)
+
+$$
+
+{S}^{-1}
+=
+\left(\begin{matrix}
+rcp({s}_{x}) & 0 & 0 \\
+0 & rcp({s}_{y}) & 0 \\
+0 & 0 & 1
+\end{matrix}\right),
+{R}^{-1}
+=
+\left(\begin{matrix}
+\cos\theta & \sin\theta & 0 \\
+-\sin\theta & \cos\theta & 0 \\
+0 & 0 & 1
+\end{matrix}\right),
+{T}^{-1}
+=
+\left(\begin{matrix}
+1 & 0 & -{t}_{x} \\
+0 & 1 & -{t}_{y} \\
+0 & 0 & 1
+\end{matrix}\right)
+
+$$
+
+那么有
+
+$$
+
+\begin{aligned}
+M_{space} &= P^{-1}S^{-1}R^{-1}T^{-1}P\\
+&=
+\left(\begin{matrix}
+1 & 0 & p_x\\
+0 & 1 & p_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+rcp(s_x) & 0 & 0\\
+0 & rcp(s_y) & 0\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+\cos\theta & \sin\theta & 0 \\
+-\sin\theta & \cos\theta & 0 \\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -t_x\\
+0 & 1 & -t_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -p_x\\
+0 & 1 & -p_y\\
+0 & 0 & 1
+\end{matrix}\right)\\
+&=
+\left(\begin{matrix}
+rcp(s_x) & 0 & p_x\\
+0 & rcp(s_y) & p_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+\cos\theta & \sin\theta & 0 \\
+-\sin\theta & \cos\theta & 0 \\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -t_x\\
+0 & 1 & -t_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -p_x\\
+0 & 1 & -p_y\\
+0 & 0 & 1
+\end{matrix}\right)\\
+&=
+\left(\begin{matrix}
+\cos\theta*rcp(s_x) & \sin\theta*rcp(s_x) & p_x\\
+-\sin\theta*rcp(s_y) & \cos\theta*rcp(s_y) & p_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -t_x\\
+0 & 1 & -t_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -p_x\\
+0 & 1 & -p_y\\
+0 & 0 & 1
+\end{matrix}\right)\\
+&=
+\left(\begin{matrix}
+\cos\theta*rcp(s_x) & \sin\theta*rcp(s_x) & p_x\\
+-\sin\theta*rcp(s_y) & \cos\theta*rcp(s_y) & p_y\\
+0 & 0 & 1
+\end{matrix}\right)
+\cdot
+\left(\begin{matrix}
+1 & 0 & -t_x-p_x\\
+0 & 1 & -t_y-p_y\\
+0 & 0 & 1
+\end{matrix}\right)\\
+&=
+\left(\begin{matrix}
+\cos\theta*rcp(s_x) & \sin\theta*rcp(s_x) & p_x-(\cos\theta*rcp(s_x)*(p_x+t_x)+\sin\theta*rcp(s_x)*(p_y+ty)\\
+-\sin\theta*rcp(s_y) & \cos\theta*rcp(s_y) & p_y-(-\sin\theta*rcp(s_y)*(p_x+t_x)+\cos\theta*rcp(s_y)*(p_y+ty)\\
+0 & 0 & 1
+\end{matrix}\right)
+\end{aligned}
+
+$$
+
+伪代码
+
+```c#
+//最终的UV变换矩阵
+//Rotate, 旋转的弧度
+//ScaleTrans, x,y 缩放, z, w 偏移
+//Pivot, 缩放中心偏移
+float c = cos(Rotate);
+float s = sin(Rotate);
+float rcpX = rcp(ScaleTrans.x);  // 1/s_x
+float rcpY = rcp(ScaleTrans.y);  // 1/s_y
+
+float m00 = c * rcpX;
+float m01 = s * rcpX;
+float m10 = -s * rcpY;
+float m11 =  c * rcpY;
+
+float dx = Pivot.x
+         - (m00 * (Pivot.x + ScaleTrans.z)
+           + m01 * (Pivot.y + ScaleTrans.w));
+
+float dy = Pivot.y
+         - (m10 * (Pivot.x + ScaleTrans.z)
+           + m11 * (Pivot.y + ScaleTrans.w));
+
+TwoDTransformMatrix = float3x3(
+m00,m01,dx,
+m10,m11,dy,
+0.,0.,1.
+);
+```
 
 
-## 04 延申思考
+
+
+
+## 05 延申思考
 
 Q: 为什么默认的`uv`采用缩放中心始终在(0,0)点的缩放方式?
 
@@ -338,7 +552,7 @@ mul r0 r_tmp, c0.x
 
 
 
-## 05 测试用例:
+## 06 测试用例:
 
 ```c
 Shader "TestCase/UVScaleTransMatrix" {

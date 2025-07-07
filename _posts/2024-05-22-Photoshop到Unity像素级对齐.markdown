@@ -2,7 +2,7 @@
 layout: post
 title: "Photoshop到Unity像素级对齐"
 categories: [Unity, DCC]
-tags: Unity DCC PhotoShop PS UI
+tags: Unity DCC Photoshop PS UI
 math: true
 
 

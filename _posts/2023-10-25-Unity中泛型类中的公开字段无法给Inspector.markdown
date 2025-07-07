@@ -2,7 +2,7 @@
 layout: post
 title: "Unity中泛型类中的公开字段无法给Inspector"
 categories: [Unity, 代码]
-tags: Unity c# 代码
+tags: Unity C# 代码
 math: true
 ---
 

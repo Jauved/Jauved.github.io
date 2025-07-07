@@ -2,9 +2,8 @@
 layout: post
 title: "Scene场景中Bloom阈值超过1时不生效"
 categories: [URP, 后处理]
-tags: URP 后处理 bloom 不生效 失效 HDR Buffer
+tags: URP 后处理 Bloom 不生效 失效 HDR Buffer
 math: true
-
 
 ---
 

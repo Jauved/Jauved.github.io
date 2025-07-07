@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "gitignore文件不生效的处理方式"
-categories: [git]
-tags: git gitignore
+categories: [Git]
+tags: Git gitignore
 math: true
 ---
 

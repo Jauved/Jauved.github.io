@@ -2,7 +2,7 @@
 layout: post
 title: "Unity对应UI的Photoshop设置"
 categories: [URP, UI]
-tags: URP UI photoshop PS ps Unity
+tags: URP UI Photoshop PS Unity
 math: true
 
 
