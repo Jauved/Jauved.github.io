@@ -27,7 +27,7 @@ description: >- # used by seo meta and the atom feed
 
 # Fill in the protocol & hostname for your site.
 # E.g. 'https://username.github.io', note that it does not end with a '/'.
-url: 'https://jauved.github.io'
+url: "https://jauved.github.io"
 
 github:
   username: Jauved # change to your github username
@@ -102,7 +102,7 @@ theme_mode: # [light | dark]
 cdn:
 
 # the avatar on sidebar, support local or CORS resources
-avatar: 'avatar.jpg'
+avatar: "avatar.jpg"
 
 # boolean type, the global switch for TOC in posts.
 toc: true
@@ -210,7 +210,7 @@ exclude:
   - README.md
   - LICENSE
   - purgecss.js
-  - rollup.config.js
+  - "*.config.js"
   - "package*.json"
 
 jekyll-archives:
