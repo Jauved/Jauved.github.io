@@ -1,0 +1,270 @@
+---
+layout: post
+title: "半透明纯色物体描边"
+categories: [Unity, Shader]
+tags: URP Shader 特效
+math: true
+
+
+---
+
+# 半透明纯色物体描边
+
+## 00 要求
+
+- 仅渲染纯色物体, 不采用贴图
+- 不能渲染出半透明物体内部的结构
+- 不要影响其他的半透明物体的排序
+
+首先用深度处理, 会影响到其他的半透明物体渲染. 其次, 由于是纯色物体, 那么仅考虑上色逻辑即可.
+
+## 01 处理方法
+
+- ### 拆分
+
+  - 无论内部结构多复杂, 仅渲染一次
+
+  - 采用`Stencil`而不是深度, 则对其他的排序不影响
+
+- ### 核心原理
+
+  - 渲染`Stencil`信息
+    ```c
+    Stencil
+    {
+        Ref 255                // 标记值
+        Comp Always          // 总是通过
+        Pass Replace         // 写入 Ref
+        ReadMask  255
+        WriteMask 255
+    }
+    ```
+
+    此时, `Stencil`信息为255
+
+  - 渲染物体本身
+    ```c
+    Stencil
+    {
+        Ref 255
+        Comp Equal
+        Pass DecrSat
+        ReadMask  255
+        WriteMask 255
+    }
+    ```
+
+    此时无论有多少层物体重叠, 都只会渲染一次.
+
+    因为, 当255时, 则渲染, 同时将值改为254, 当多层重叠的情况, 第二次读到这个像素时, 值已经是254了, 则不会渲染
+
+  - 渲染`Outline`
+
+    ```c
+    Stencil
+    {
+        Ref 254
+        Comp NotEqual        // 仅在未被 Base 标记的像素处绘制
+        Pass Keep
+    }
+    ```
+
+    渲染`Outline`采用的是最通常的挤出法线方式, 此时当254的时候, 则不会渲染, 不是254的时候(即挤出的部分), 才会渲染, 完成描边.
+
+  - 注意
+
+    - 不能定为初始为1, 然后减为0, 因为`Stencil`默认值就会填充0, 这样会导致描边部分完全不渲染.
+    - 由于无法确定是哪一层参与了渲染, 所以无法采用贴图, 只适用于纯色半透明物体.
+
+## 02 源码
+
+```c
+Shader "GWM/GWMUnlitTransparentOutline"
+{
+    Properties
+    {
+        _BaseMap ("Main Texture", 2D) = "white" {}
+        _Color   ("Color Tint", Color) = (1,1,1,1)
+        _OutlineColor ("Outline Color", Color) = (0.5,1,1,1)
+        _OutlineWidth ("Outline Width", Range(0,1)) = 0.1
+        [Enum(UnityEngine.Rendering.CullMode)]_Cull("Cull Mode", Int) = 2
+        [Enum(UnityEngine.Rendering.BlendMode)]_SrcBlend("SrcBlend Mode", Int) = 5
+        [Enum(UnityEngine.Rendering.BlendMode)]_DstBlend("DstBlend Mode", Int) = 10
+        [Enum(UnityEngine.Rendering.BlendOp)]_BlendOp("Blend Op", Int) = 0
+        [Enum(UnityEngine.Rendering.BlendMode)]_OutlineSrcBlend("Outline SrcBlend Mode", Int) = 5
+        [Enum(UnityEngine.Rendering.BlendMode)]_OutlineDstBlend("Outline DstBlend Mode", Int) = 10
+        [Enum(UnityEngine.Rendering.BlendOp)]_OutlineBlendOp("Outline Blend Op", Int) = 0
+    }
+    SubShader
+    {
+        Tags
+        {
+            "RenderPipeline" = "UniversalPipeline"
+            "RenderType"     = "Transparent"
+            "Queue"          = "Transparent"
+        }
+        LOD 100
+
+        HLSLINCLUDE
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+        CBUFFER_START(UnityPerMaterial)
+        float4 _Color;
+        float4 _OutlineColor;
+        float _OutlineWidth;
+        CBUFFER_END
+
+        ENDHLSL
+
+        Pass
+        {
+            Name "StencilMask"
+            Tags { "LightMode" = "StencilMask" }
+            Cull [_Cull]
+            ZWrite Off
+            Blend Off
+            ColorMask 0
+
+            Stencil
+            {
+                Ref 255                // 标记值
+                Comp Always          // 总是通过
+                Pass Replace         // 写入 Ref
+                ReadMask  255
+                WriteMask 255
+            }
+
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment Frag
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+            };
+
+            Varyings Vert(Attributes IN)
+            {
+                Varyings OUT;
+                OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
+                return OUT;
+            }
+
+            float4 Frag(Varyings IN) : SV_Target
+            {
+                return 0;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Effect"
+            Tags { "LightMode" = "SRPDefaultUnlit" }
+            Cull Back
+            ZWrite Off
+            Blend [_SrcBlend] [_DstBlend]
+            BlendOp [_BlendOp]
+
+            Stencil
+            {
+                Ref 255
+                Comp Equal
+                Pass DecrSat
+                ReadMask  255
+                WriteMask 255
+            }
+
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment Frag
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float2 uv         : TEXCOORD0;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv         : TEXCOORD0;
+            };
+
+             TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
+
+            Varyings Vert(Attributes IN)
+            {
+                Varyings OUT;
+                OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
+                OUT.uv         = IN.uv;
+                return OUT;
+            }
+
+            float4 Frag(Varyings IN) : SV_Target
+            {
+                float4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
+                return tex * _Color;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Outline"
+            Tags { "LightMode" = "Outline" }
+            Cull Front
+            ZWrite Off
+            Blend [_OutlineSrcBlend] [_OutlineDstBlend]
+            BlendOp [_OutlineBlendOp]
+
+            Stencil
+            {
+                Ref 254
+                Comp NotEqual        // 仅在未被 Base 标记的像素处绘制
+                Pass Keep
+            }
+
+            HLSLPROGRAM
+            #pragma vertex VertOutline
+            #pragma fragment FragOutline
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+            };
+
+            Varyings VertOutline(Attributes IN)
+            {
+                Varyings OUT;
+                float3 normalWS = TransformObjectToWorldNormal(IN.normalOS);
+                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz) + normalWS * _OutlineWidth;
+                OUT.positionCS = TransformWorldToHClip(positionWS);
+                return OUT;
+            }
+
+            float4 FragOutline(Varyings IN) : SV_Target
+            {
+                return _OutlineColor;
+            }
+            ENDHLSL
+        }
+    }
+}
+```
+
+
+
+###### 参考网页
