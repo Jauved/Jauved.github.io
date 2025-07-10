@@ -18,21 +18,12 @@ Jekyll::Hooks.register :site, :post_write do |site|
   snippet_before = text.lines.first(2).join
   Jekyll.logger.info "FixSearchJSON:", "Snippet before: #{snippet_before.inspect}"
 
-  # 统计并记录替换前的制表符和未转义反斜杠
-  tabs_before = text.count("\t")
   # 匹配单个反斜杠，后面不是 转义字符 或 JSON 专用转义
   slash_pattern = /\\(?=[^\\\/\"bfnrtu])/
-  bad_slashes_before = text.scan(slash_pattern).size
-  Jekyll.logger.info "FixSearchJSON:", "Tabs before: #{tabs_before}, Unescaped backslashes before: #{bad_slashes_before}"
 
   # 替换操作：Tab 转空格，未转义的反斜杠加转义
   new_text = text.gsub("\t", "    ")
   new_text = new_text.gsub(slash_pattern) { "\\\\" }
-
-  # 统计并记录替换后情况
-  tabs_after = new_text.count("\t")
-  bad_slashes_after = new_text.scan(slash_pattern).size
-  Jekyll.logger.info "FixSearchJSON:", "Tabs after: #{tabs_after}, Unescaped backslashes after: #{bad_slashes_after}"
 
   # 写入并验证
   File.open(path, 'wb') { |f| f.write(new_text) }
