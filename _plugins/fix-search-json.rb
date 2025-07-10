@@ -1,14 +1,44 @@
 # _plugins/fix-search-json.rb
-# 在 site 写入完毕后，对 search.json 做一次字符串修正
+# 在 site 写入完毕后，对 search.json 做一次字符串修正，并验证读写生效
 Jekyll::Hooks.register :site, :post_write do |site|
-  idx = File.join(site.dest, "assets/js/data/search.json")
-  return unless File.exist?(idx)
+  path = site.in_dest_dir('assets', 'js', 'data', 'search.json')
+  Jekyll.logger.info "FixSearchJSON:", "Checking #{path}"
+  return unless File.exist?(path)
 
-  text = File.read(idx)
-  # 将所有制表符（tab）替换为四个空格，避免 JSON 解析失败
-  fixed = text.gsub("\t", "    ")
-  # 将所有单反斜杠（\）替换为合法的双反斜杠 (\\)，排除已正确转义的序列
-  fixed = fixed.gsub(/\\(?![\\\/\"bfnrtu])/, "\\\\")
+  # 读取文件并确保 utf-8 编码
+  raw = File.binread(path)
+  # 检查并移除 UTF-8 BOM
+  if raw.bytes.first(3) == [0xEF, 0xBB, 0xBF]
+    Jekyll.logger.info "FixSearchJSON:", "Detected BOM, will remove"
+    raw = raw.bytes.drop(3).pack("C*")
+  end
+  text = raw.force_encoding('utf-8')
 
-  File.write(idx, fixed)
+  # 打印前两行示例，用于调试匹配
+  snippet_before = text.lines.first(2).join
+  Jekyll.logger.info "FixSearchJSON:", "Snippet before: #{snippet_before.inspect}"
+
+  # 统计并记录替换前的制表符和未转义反斜杠
+  tabs_before = text.count("\t")
+  # 匹配单个反斜杠，后面不是 转义字符 或 JSON 专用转义
+  slash_pattern = /\\(?=[^\\\/\"bfnrtu])/
+  bad_slashes_before = text.scan(slash_pattern).size
+  Jekyll.logger.info "FixSearchJSON:", "Tabs before: #{tabs_before}, Unescaped backslashes before: #{bad_slashes_before}"
+
+  # 替换操作：Tab 转空格，未转义的反斜杠加转义
+  new_text = text.gsub("\t", "    ")
+  new_text = new_text.gsub(slash_pattern) { "\\\\" }
+
+  # 统计并记录替换后情况
+  tabs_after = new_text.count("\t")
+  bad_slashes_after = new_text.scan(slash_pattern).size
+  Jekyll.logger.info "FixSearchJSON:", "Tabs after: #{tabs_after}, Unescaped backslashes after: #{bad_slashes_after}"
+
+  # 写入并验证
+  File.open(path, 'wb') { |f| f.write(new_text) }
+  verify = File.binread(path).force_encoding('utf-8')
+  snippet_after = verify.lines.first(2).join
+  Jekyll.logger.info "FixSearchJSON:", "Snippet after: #{snippet_after.inspect}"
+
+  Jekyll.logger.info "FixSearchJSON:", "Repaired #{path}"
 end
