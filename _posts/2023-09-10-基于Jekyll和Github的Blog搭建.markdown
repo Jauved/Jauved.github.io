@@ -153,52 +153,73 @@ tags: Jekyll blog
 
 -  尝试[官方流程](https://github.com/cotes2020/jekyll-theme-chirpy/wiki/Upgrade-Guide#upgrading-from-starter)
 
-- 升级的时候`bundle update`阶段可能需要梯子, 通过以下命令格式设置临时的代理, 请将IP和端口号换成自己的梯子
-  ```
-  set HTTP_PROXY=127.0.0.1:10809
-  set HTTPS_PROXY=127.0.0.1:10809
+-  升级的时候`bundle update`阶段可能需要梯子, 通过以下命令格式设置临时的代理, 请将IP和端口号换成自己的梯子
+   ```
+   set HTTP_PROXY=127.0.0.1:10809
+   set HTTPS_PROXY=127.0.0.1:10809
+   ```
+
+-  升级Node
+
+   -  打开"应用和功能", 找到现有的 Node.js, 点击"卸载".
+
+   -  访问 https://github.com/coreybutler/nvm-windows/releases , 下载最新的 `nvm-setup.zip` 并安装.
+
+      -  新开命令行使用nvm命令
+
+   -  相关命令
+      ```
+      # 列出可用的 Node.js 版本
+      nvm list available
+      
+      # 安装最新版 LTS（例如 18.20.1）
+      nvm install 18.20.1
+      
+      # 切换到该版本
+      nvm use 18.20.1
+      
+      # 验证
+      node -v
+      npm -v
+      ```
+
+      
+
+-  忽略以下野路子
+
+   -  如果发现自己的Blog无法通过`Action`编译, 先尝试进行升级, 访问Blog的[Git仓库](https://github.com/cotes2020/chirpy-starter), 以Zip的形式下载, 将文件进行覆盖升级
+
+-  重要: `_config.yml`文件中, 由于有一些个人的配置, 建议使用对比工具进行合并, 或者你也可以选择重新录入一遍自定义的部分
+
+-  加入的htmlProofer会对http开头的链接进行报错而无法通过编译, 此时用命令参数允许即可
+
+  -  报错信息类似
+
+
+  ```cmd
+  http://www.aaa.com/ is not an HTTPS link
   ```
 
   
 
-- 忽略以下野路子
+  -  在自己的工程中的`.github\workflows\pages-deploy.yml`文件中找到程序块, 加入`\-\-no-enforce-https \`, 这个命令是忽略对http网址的检查, 具体见[htmlProof作者对于类似问题的回答](https://github.com/gjtorikian/html-proofer/issues/727).
 
-  -  如果发现自己的Blog无法通过`Action`编译, 先尝试进行升级, 访问Blog的[Git仓库](https://github.com/cotes2020/chirpy-starter), 以Zip的形式下载, 将文件进行覆盖升级
+  ```yaml
+  - name: Test site
+          run: |
+            bundle exec htmlproofer _site \
+              \-\-disable-external \
+              \-\-no-enforce-https \
+              \-\-ignore-urls "/^http:\/\/127.0.0.1/,/^http:\/\/0.0.0.0/,/^http:\/\/localhost/"
+  ```
 
-  -  重要: `_config.yml`文件中, 由于有一些个人的配置, 建议使用对比工具进行合并, 或者你也可以选择重新录入一遍自定义的部分
+-  另外, `<>`会被识别为图片链接, 在不需要将这个识别为图片链接的时候, 用转义符`\`进行处理, 否则会报错
 
-  -  加入的htmlProofer会对http开头的链接进行报错而无法通过编译, 此时用命令参数允许即可
+  -  报错信息类似于
 
-    -  报错信息类似
-
-
-    ```cmd
-    http://www.aaa.com/ is not an HTTPS link
-    ```
-
-    
-
-    -  在自己的工程中的`.github\workflows\pages-deploy.yml`文件中找到程序块, 加入`\-\-no-enforce-https \`, 这个命令是忽略对http网址的检查, 具体见[htmlProof作者对于类似问题的回答](https://github.com/gjtorikian/html-proofer/issues/727).
-
-    ```yaml
-    ...
-          - name: Test site
-            run: |
-              bundle exec htmlproofer _site \
-                \-\-disable-external \
-                \-\-no-enforce-https \
-                \-\-ignore-urls "/^http:\/\/127.0.0.1/,/^http:\/\/0.0.0.0/,/^http:\/\/localhost/"
-    ...
-    ```
-
-  -  另外, `<>`会被识别为图片链接, 在不需要将这个识别为图片链接的时候, 用转义符`\`进行处理, 否则会报错
-
-    -  报错信息类似于
-
-    ```cmd
-    image has no src or srcset attribute
-    ```
-
+  ```cmd
+  image has no src or srcset attribute
+  ```
 
 ## 8. 搜索失效
 
