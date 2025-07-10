@@ -23,7 +23,7 @@ tags: computeshader 视锥体剔除
 [numthreads(64,1,1)]
 void FrustumCulling(uint3 id : SV_DispatchThreadID)
 {
-	if(id.x>=inputcount) return;
+    if(id.x>=inputcount) return;
 	...
 }
 ```
