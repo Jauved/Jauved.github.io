@@ -16,7 +16,7 @@ math: true
 - 不能渲染出半透明物体内部的结构
 - 不要影响其他的半透明物体的排序
 
-首先用深度处理, 会影响到其他的半透明物体渲染. 其次, 由于是纯色物体, 那么仅考虑上色逻辑即可.
+首先排除使用深度处理, 因为会影响到其他的半透明物体渲染. 其次, 由于是纯色物体, 那么仅考虑上色逻辑即可.
 
 ## 01 处理方法
 
@@ -26,74 +26,423 @@ math: true
 
   - 采用`Stencil`而不是深度, 则对其他的排序不影响
 
+  - 使用`RenderObjectFeature`, 在渲染`Transparent`物体前先进行`Stencil`的预写入
+
 - ### 核心原理
 
-  - 渲染`Stencil`信息
+  - 预写入`Outline`部分的`Stencil`信息, 将区域`Stencil`设定为255
     ```c
+    Name "StencilMask"
+    Tags { "LightMode" = "StencilMask" }
+    Cull Front
+    ZWrite Off
+    Blend Off
+    ColorMask 0
+    
+    Stencil
+    {
+        Ref 255             // 标记值
+        Comp Always         // 总是通过
+        Pass Replace        // 写入 Ref
+        ZFail Replace       // 因为描边是Cull Front的, 所以必然通不过深度测试, 这个时候还是需要Replace
+        ReadMask  255
+        WriteMask 255
+    }
+    ```
+    
+    此时, 整个"描边"区域`Stencil`信息为255
+    
+  - 预写入物体本身的`Stencil`信息, 将区域`Stencil`-1变为254
+    ```c
+    Name "StencilMask"
+    Tags { "LightMode" = "StencilMask" }
+    Cull [_Cull]
+    ZWrite Off
+    Blend Off
+    ColorMask 0
+    
     Stencil
     {
         Ref 255                // 标记值
-        Comp Always          // 总是通过
-        Pass Replace         // 写入 Ref
+        Comp Equal             // 相等
+        Pass DecrSat           // 写入 Ref 变为254
         ReadMask  255
         WriteMask 255
     }
     ```
-
-    此时, `Stencil`信息为255
-
-  - 渲染物体本身
+  
+    此时, 整个描边区域`Stencil`信息为255, 物体区域`Stencil`信息为254
+  
+  - 渲染`Outline`部分的颜色
+  
     ```c
+    Name "Outline"
+    Tags { "LightMode" = "SRPDefaultUnlit" }
+    Cull Front
+    ZWrite Off
+    Blend [_OutlineSrcBlend] [_OutlineDstBlend]
+    BlendOp [_OutlineBlendOp]
+    
     Stencil
     {
         Ref 255
+        Comp Equal        // 仅在未被 Base 标记的像素处绘制
+        Pass Keep
+    }
+    ```
+  
+    仅在255区域内渲染
+  
+  - 渲染物体本身的颜色
+  
+    ```c
+    Name "Effect"
+    Tags { "LightMode" = "SRPDefaultUnlit" }
+    Cull Back
+    ZWrite Off
+    Blend [_SrcBlend] [_DstBlend]
+    BlendOp [_BlendOp]
+    
+    Stencil
+    {
+        Ref 254
         Comp Equal
-        Pass DecrSat
+        Pass DecrSat	// 初次渲染时, 变为253, 多次渲染时, 会跳过
         ReadMask  255
         WriteMask 255
     }
     ```
-
+  
     此时无论有多少层物体重叠, 都只会渲染一次.
-
-    因为, 当255时, 则渲染, 同时将值改为254, 当多层重叠的情况, 第二次读到这个像素时, 值已经是254了, 则不会渲染
-
-  - 渲染`Outline`
-
-    ```c
-    Stencil
-    {
-        Ref 254
-        Comp NotEqual        // 仅在未被 Base 标记的像素处绘制
-        Pass Keep
-    }
-    ```
-
-    渲染`Outline`采用的是最通常的挤出法线方式, 此时当254的时候, 则不会渲染, 不是254的时候(即挤出的部分), 才会渲染, 完成描边.
-
+  
+    因为, 当254时, 则渲染, 同时将值改为253, 当多层重叠的情况, 第二次读到这个像素时, 值已经是253了, 则不会重复渲染.
+  
   - 注意
+  
+    - 渲染`Outline`采用的是最通常的挤出法线方式, 此时当255的时候, 才会渲染.
+    - 渲染`Outline`部分的`StencilMask`时, 要写`ZFail : Repalce`, 因为描边是`Cull Front`, 极大概率会被深度剔除.
+    - 不能定为初始为1, 然后减为0, 因为`Stencil`默认值就会填充0, 会出现问题.
+    - 由于无法确定是哪一层模型真正参与了渲染, 所以无法采用贴图, 只适用于纯色半透明物体.
+    - 在物体上挂材质球的时候, `Outline`在前, `TransparentOutline`在后
 
-    - 不能定为初始为1, 然后减为0, 因为`Stencil`默认值就会填充0, 这样会导致描边部分完全不渲染.
-    - 由于无法确定是哪一层参与了渲染, 所以无法采用贴图, 只适用于纯色半透明物体.
+## 02 Stencil相关参数及Tips
 
-## 02 源码
+- #### 示例代码
+
+  ```
+  Stencil
+  {
+      Ref <ref>
+      ReadMask <readMask>
+      WriteMask <writeMask>
+      Comp <comparisonOperation>
+      Pass <passOperation>
+      Fail <failOperation>
+      ZFail <zFailOperation>
+      CompBack <comparisonOperationBack>
+      PassBack <passOperationBack>
+      FailBack <failOperationBack>
+      ZFailBack <zFailOperationBack>
+      CompFront <comparisonOperationFront>
+      PassFront <passOperationFront>
+      FailFront <failOperationFront>
+      ZFailFront <zFailOperationFront>
+  }
+  ```
+
+- 模板方程
+
+  ```c
+  if((ref & readMask) comparisonFunction (stencilBufferValue & readMask))
+  {
+      // 通过
+  }
+  else
+  {
+  	// 跳过    
+  }
+  ```
+
+  
+
+- #### `Ref`
+
+  - 作用: 指定"参考值"(reference value), 用作模板测试时的基准.
+  - 类型: 整数(0-255).
+  - 默认: 0
+
+- #### `ReadMask`
+
+  - 作用: GPU 在执行模板测试时使用此值作为遮罩.
+
+  - 类型: 整数(0-255)
+
+  - 默认: 255(1111 1111)
+
+    - 举例1
+
+      如果`Ref`为171(1010 1011), `ReadMask`为15(0000 1111), 原`StencilBuffer`值为18(0001 0010)
+      `ref & readMask = = 10101011 & 00001111 = 11(00001011)`,
+
+      `stencilBufferValue & readMask = 00010010 & 00001111 = 2(00000010)`
+
+      如果 `comparisonFunction = Equal`, 就比较 11 == 2? → **失败**;
+      如果 `comparisonFunction = Greater`, 就比较 11 > 2? → **通过**.
+
+    - 举例2
+
+      如果`Ref`为171(1010 1011), `ReadMask`为240(1111 0000), 原`StencilBuffer`值为242(1111 0010)
+      `ref & readMask = = 10101011 & 11110000 = 160(10100000)`,
+
+      `stencilBufferValue & readMask = 11110010 & 11110000 = 240(11110000)`
+
+      如果 `comparisonFunction = Equal`, 就比较 160 == 240? → **失败**;
+      如果 `comparisonFunction = Greater`, 就比较 160 > 240? → **失败**;
+      如果 `comparisonFunction = LessEqual`, 就比较 160≤ 240? →**通过**.
+
+- #### `WriteMask`
+
+  - 作用: 在GPU 在写入模板缓冲区时使用此值作为遮罩.
+  - 类型: 整数(0-255)
+  - 默认: 255(1111 1111)
+  - 注意: 
+    - `WriteMask`是否会影响`IncrSat`需要验证
+      比如: 当`WriteMask`为`1110 0000`时, `IncrSat`到底是增加'0000 0001'(直接加1)还是'0010 0000'(在写入掩码的最低位+1), 需要验证
+
+- #### `Comp`
+
+  - 作用: 比较操作, `GPU `为所有像素的模板测试执行的操作
+
+  - 类型: 枚举,  [`Rendering.CompareFunction`](https://docs.unity.cn/cn/2021.3/ScriptReference/Rendering.CompareFunction.html) 
+
+  - 值:
+
+    | **值**     | **`Rendering.CompareFunction` 枚举中的对应整数值** | **功能**                                           |
+    | :--------- | :------------------------------------------------- | :------------------------------------------------- |
+    | `Never`    | 1                                                  | 从不渲染像素。                                     |
+    | `Less`     | 2                                                  | 在参考值小于模板缓冲区中的当前值时渲染像素。       |
+    | `Equal`    | 3                                                  | 在参考值等于模板缓冲区中的当前值时渲染像素。       |
+    | `LEqual`   | 4                                                  | 在参考值小于或等于模板缓冲区中的当前值时渲染像素。 |
+    | `Greater`  | 5                                                  | 在参考值大于模板缓冲区中的当前值时渲染像素。       |
+    | `NotEqual` | 6                                                  | 在参考值与模板缓冲区中的当前值不同时渲染像素。     |
+    | `GEqual`   | 7                                                  | 在参考值大于或等于模板缓冲区中的当前值时渲染像素。 |
+    | `Always`   | 8                                                  | 始终渲染像素。                                     |
+
+- #### `Pass`
+
+  - 作用: 模板操作. 当像素通过模板测试和深度测试时, `GPU` 对模板缓冲区执行的操作.
+
+  - 类型: 枚举, [`Rendering.Rendering.StencilOp`](https://docs.unity.cn/cn/2021.3/ScriptReference/Rendering.StencilOp.html)
+
+  - 默认值: keep
+
+  - 值:
+
+    | **值**     | **`Rendering.StencilOp` 枚举中的对应整数值** | **功能**                                                 |
+    | :--------- | :------------------------------------------- | :------------------------------------------------------- |
+    | `Keep`     | 0                                            | 保持模板缓冲区的当前内容。                               |
+    | `Zero`     | 1                                            | 将 0 写入模板缓冲区。                                    |
+    | `Replace`  | 2                                            | 将参考值写入缓冲区。                                     |
+    | `IncrSat`  | 3                                            | 递增缓冲区中的当前值。如果该值已经是 255，则保持为 255。 |
+    | `DecrSat`  | 4                                            | 递减缓冲区中的当前值。如果该值已经是 0，则保持为 0。     |
+    | `Invert`   | 5                                            | 将缓冲区中当前值的所有位求反。                           |
+    | `IncrWrap` | 6                                            | 递增缓冲区中的当前值。如果该值已经是 255，则变为 0。     |
+    | `DecrWrap` | 7                                            | 递减缓冲区中的当前值。如果该值已经是 0，则变为 255。     |
+
+- #### `Fail`
+
+  - 作用: 模板操作. 当像素未通过模板测试时, `GPU` 对模板缓冲区执行的操作.
+  - 类型: 枚举, 同[`Rendering.Rendering.StencilOp`](https://docs.unity.cn/cn/2021.3/ScriptReference/Rendering.StencilOp.html)
+  - 默认值: keep
+
+- #### `ZFail`
+
+  - 作用: 模板操作. 当像素通过模板测试, 但未通过深度测试时, `GPU` 对模板缓冲区执行的操作.
+  - 类型: 枚举, 同[`Rendering.Rendering.StencilOp`](https://docs.unity.cn/cn/2021.3/ScriptReference/Rendering.StencilOp.html)
+  - 默认值: keep
+
+- #### `CompBack/ComFront`
+
+  - 作用: `Comp`针对背面/正面的比较操作, 如果已经定义了`Comp`, 则无效果
+  - 类型: 枚举, 同[`Rendering.CompareFunction`](https://docs.unity.cn/cn/2021.3/ScriptReference/Rendering.CompareFunction.html) 
+  - 默认值: keep
+
+- #### `PassBack/PassFront`
+
+  - 作用: `Pass`针对背面/正面的模板操作, 如果已经定义了`Pass`, 则无效果
+  - 类型: 枚举, 同[`Rendering.Rendering.StencilOp`](https://docs.unity.cn/cn/2021.3/ScriptReference/Rendering.StencilOp.html)
+  - 默认值: keep
+
+- #### `FailBack/FailFront`
+
+  - 作用: `Fail`针对背面/正面的模板操作, 如果已经定义了`Fail`, 则无效果
+  - 类型: 枚举, 同[`Rendering.Rendering.StencilOp`](https://docs.unity.cn/cn/2021.3/ScriptReference/Rendering.StencilOp.html)
+  - 默认值: keep
+
+- #### `ZFailBack/ZFailFront`
+
+  - 作用: `ZFail`针对背面/正面的模板操作, 如果已经定义了`ZFail`, 则无效果
+  - 类型: 枚举, 同[`Rendering.Rendering.StencilOp`](https://docs.unity.cn/cn/2021.3/ScriptReference/Rendering.StencilOp.html)
+  - 默认值: keep
+
+
+## 03 源码
+
+`Outline`
+
+```c
+Shader "GWM/GWMUnlitOutline"
+{
+    Properties
+    {
+        [HDR]_OutlineColor ("Outline Color", Color) = (0,1,1,1)
+        _OutlineWidth ("Outline Width", Range(0,10)) = 5
+        [Enum(UnityEngine.Rendering.BlendMode)]_OutlineSrcBlend("Outline SrcBlend Mode", Int) = 5
+        [Enum(UnityEngine.Rendering.BlendMode)]_OutlineDstBlend("Outline DstBlend Mode", Int) = 10
+        [Enum(UnityEngine.Rendering.BlendOp)]_OutlineBlendOp("Outline Blend Op", Int) = 0
+    }
+    SubShader
+    {
+        Tags
+        {
+            "RenderPipeline" = "UniversalPipeline"
+            "RenderType"     = "Transparent"
+            "Queue"          = "Transparent"
+        }
+        LOD 100
+
+        HLSLINCLUDE
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+        CBUFFER_START(UnityPerMaterial)
+        float4 _OutlineColor;
+        float _OutlineWidth;
+        CBUFFER_END
+        ENDHLSL
+
+        Pass
+        {
+            Name "StencilMask"
+            Tags { "LightMode" = "StencilMask" }
+            Cull Front
+            ZWrite Off
+            Blend Off
+            ColorMask 0
+
+            Stencil
+            {
+                Ref 255             // 标记值
+                Comp Always         // 总是通过
+                Pass Replace        // 写入 Ref
+                ZFail Replace       // 因为描边是Cull Front的, 所以必然通不过深度测试, 这个时候还是需要Replace
+                ReadMask  255
+                WriteMask 255
+            }
+
+            HLSLPROGRAM
+            #pragma vertex Vert
+            #pragma fragment Frag
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+            };
+
+            Varyings Vert(Attributes IN)
+            {
+                Varyings OUT;
+                float3 normalWS = TransformObjectToWorldNormal(IN.normalOS);
+                float viewZ     = abs(mul(UNITY_MATRIX_MV, IN.positionOS).z);
+                float tanHFov   = 1.0 / UNITY_MATRIX_P._m11;
+                _OutlineWidth  = _OutlineWidth * (2 * viewZ * tanHFov) / _ScreenParams.y;
+                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz) + normalWS * _OutlineWidth;
+                OUT.positionCS = TransformWorldToHClip(positionWS);
+                return OUT;
+            }
+
+            float4 Frag(Varyings IN) : SV_Target
+            {
+                return 0;
+            }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "Outline"
+            Tags { "LightMode" = "SRPDefaultUnlit" }
+            Cull Front
+            ZWrite Off
+            Blend [_OutlineSrcBlend] [_OutlineDstBlend]
+            BlendOp [_OutlineBlendOp]
+
+            Stencil
+            {
+                Ref 255
+                Comp Equal        // 仅在未被 Base 标记的像素处绘制
+                Pass Keep
+            }
+
+            HLSLPROGRAM
+            #pragma vertex VertOutline
+            #pragma fragment FragOutline
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS : NORMAL;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+            };
+
+            Varyings VertOutline(Attributes IN)
+            {
+                Varyings OUT;
+                float3 normalWS = TransformObjectToWorldNormal(IN.normalOS);
+                float viewZ     = abs(mul(UNITY_MATRIX_MV, IN.positionOS).z);
+                float tanHFov   = 1.0 / UNITY_MATRIX_P._m11;
+                _OutlineWidth  = _OutlineWidth * (2 * viewZ * tanHFov) / _ScreenParams.y;
+                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz) + normalWS * _OutlineWidth;
+                OUT.positionCS = TransformWorldToHClip(positionWS);
+                return OUT;
+            }
+
+            float4 FragOutline(Varyings IN) : SV_Target
+            {
+                return _OutlineColor;
+            }
+            ENDHLSL
+        }
+    }
+}
+```
+
+`TransparentOutline`
 
 ```c
 Shader "GWM/GWMUnlitTransparentOutline"
 {
     Properties
     {
-        _BaseMap ("Main Texture", 2D) = "white" {}
-        _Color   ("Color Tint", Color) = (1,1,1,1)
-        _OutlineColor ("Outline Color", Color) = (0.5,1,1,1)
-        _OutlineWidth ("Outline Width", Range(0,1)) = 0.1
+        [HDR]_Color   ("Color Tint", Color) = (0.2,0.8,0.8,0.3)
+        [HideInInspector][HDR]_OutlineColor ("Outline Color", Color) = (0,1,1,1)
+        [HideInInspector]_OutlineWidth ("Outline Width", Range(0,10)) = 5
         [Enum(UnityEngine.Rendering.CullMode)]_Cull("Cull Mode", Int) = 2
         [Enum(UnityEngine.Rendering.BlendMode)]_SrcBlend("SrcBlend Mode", Int) = 5
         [Enum(UnityEngine.Rendering.BlendMode)]_DstBlend("DstBlend Mode", Int) = 10
         [Enum(UnityEngine.Rendering.BlendOp)]_BlendOp("Blend Op", Int) = 0
-        [Enum(UnityEngine.Rendering.BlendMode)]_OutlineSrcBlend("Outline SrcBlend Mode", Int) = 5
-        [Enum(UnityEngine.Rendering.BlendMode)]_OutlineDstBlend("Outline DstBlend Mode", Int) = 10
-        [Enum(UnityEngine.Rendering.BlendOp)]_OutlineBlendOp("Outline Blend Op", Int) = 0
+        [HideInInspector][Enum(UnityEngine.Rendering.BlendMode)]_OutlineSrcBlend("Outline SrcBlend Mode", Int) = 5
+        [HideInInspector][Enum(UnityEngine.Rendering.BlendMode)]_OutlineDstBlend("Outline DstBlend Mode", Int) = 10
+        [HideInInspector][Enum(UnityEngine.Rendering.BlendOp)]_OutlineBlendOp("Outline Blend Op", Int) = 0
     }
     SubShader
     {
@@ -127,8 +476,8 @@ Shader "GWM/GWMUnlitTransparentOutline"
             Stencil
             {
                 Ref 255                // 标记值
-                Comp Always          // 总是通过
-                Pass Replace         // 写入 Ref
+                Comp Equal          // 相等
+                Pass DecrSat         // 写入 Ref 变为254
                 ReadMask  255
                 WriteMask 255
             }
@@ -172,7 +521,7 @@ Shader "GWM/GWMUnlitTransparentOutline"
 
             Stencil
             {
-                Ref 255
+                Ref 254
                 Comp Equal
                 Pass DecrSat
                 ReadMask  255
@@ -187,13 +536,11 @@ Shader "GWM/GWMUnlitTransparentOutline"
             struct Attributes
             {
                 float4 positionOS : POSITION;
-                float2 uv         : TEXCOORD0;
             };
 
             struct Varyings
             {
                 float4 positionCS : SV_POSITION;
-                float2 uv         : TEXCOORD0;
             };
 
              TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
@@ -202,62 +549,12 @@ Shader "GWM/GWMUnlitTransparentOutline"
             {
                 Varyings OUT;
                 OUT.positionCS = TransformObjectToHClip(IN.positionOS.xyz);
-                OUT.uv         = IN.uv;
                 return OUT;
             }
 
             float4 Frag(Varyings IN) : SV_Target
             {
-                float4 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
-                return tex * _Color;
-            }
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "Outline"
-            Tags { "LightMode" = "Outline" }
-            Cull Front
-            ZWrite Off
-            Blend [_OutlineSrcBlend] [_OutlineDstBlend]
-            BlendOp [_OutlineBlendOp]
-
-            Stencil
-            {
-                Ref 254
-                Comp NotEqual        // 仅在未被 Base 标记的像素处绘制
-                Pass Keep
-            }
-
-            HLSLPROGRAM
-            #pragma vertex VertOutline
-            #pragma fragment FragOutline
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-
-            struct Attributes
-            {
-                float4 positionOS : POSITION;
-                float3 normalOS : NORMAL;
-            };
-
-            struct Varyings
-            {
-                float4 positionCS : SV_POSITION;
-            };
-
-            Varyings VertOutline(Attributes IN)
-            {
-                Varyings OUT;
-                float3 normalWS = TransformObjectToWorldNormal(IN.normalOS);
-                float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz) + normalWS * _OutlineWidth;
-                OUT.positionCS = TransformWorldToHClip(positionWS);
-                return OUT;
-            }
-
-            float4 FragOutline(Varyings IN) : SV_Target
-            {
-                return _OutlineColor;
+                return _Color;
             }
             ENDHLSL
         }
@@ -268,3 +565,5 @@ Shader "GWM/GWMUnlitTransparentOutline"
 
 
 ###### 参考网页
+
+- [ShaderLab 命令：模板 - Unity 手册](https://docs.unity.cn/cn/2021.3/Manual/SL-Stencil.html)
