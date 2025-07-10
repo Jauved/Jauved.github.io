@@ -130,41 +130,56 @@ tags: Jekyll blog
 
 
     - Typora本地的图片加载和Jekyll的加载策略不同, 网站显示正常的图片在本地显示不正常.
-
+    
       - 笔者在工程根目录下创建了一个`_docs`目录, 将文章源文件放置在里面
-
+    
       - 在`_docs`目录下放置一个`.assets/image/`文件夹用来放置图片, 设置好Typora.
-
+    
       - 然后通过python的脚本, 完成以下工作
-
+    
         - 文本格式预处理(还没有开始做)
-
+    
         - 将`_docs/.assets/image/`下的文件全部拷贝到`/assets/image/`中
-
+    
         - 将`_docs`下的`.md`文件拷贝到`_post`文件夹下, 并将其中的`.assets/image`/替换为`/assets/image/`.
-
+    
         - 再将`.md`文件重命名为`.markdown`.
-
+    
         - 脚本代码附在文章最后.
 
 
 
 ## 7. 升级
 
--  如果发现自己的Blog无法通过`Action`编译, 先尝试进行升级, 访问Blog的[Git仓库](https://github.com/cotes2020/chirpy-starter), 以Zip的形式下载, 将文件进行覆盖升级
+-  尝试[官方流程](https://github.com/cotes2020/jekyll-theme-chirpy/wiki/Upgrade-Guide#upgrading-from-starter)
 
-- 重要: `_config.yml`文件中, 由于有一些个人的配置, 建议使用对比工具进行合并, 或者你也可以选择重新录入一遍自定义的部分
+- 升级的时候`bundle update`阶段可能需要梯子, 通过以下命令格式设置临时的代理, 请将IP和端口号换成自己的梯子
+  ```
+  set HTTP_PROXY=127.0.0.1:10809
+  set HTTPS_PROXY=127.0.0.1:10809
+  ```
 
-- 加入的htmlProofer会对http开头的链接进行报错而无法通过编译, 此时用命令参数允许即可
+  
 
-  - 报错信息类似
+- 忽略以下野路子
+
+  -  如果发现自己的Blog无法通过`Action`编译, 先尝试进行升级, 访问Blog的[Git仓库](https://github.com/cotes2020/chirpy-starter), 以Zip的形式下载, 将文件进行覆盖升级
+
+  -  重要: `_config.yml`文件中, 由于有一些个人的配置, 建议使用对比工具进行合并, 或者你也可以选择重新录入一遍自定义的部分
+
+  -  加入的htmlProofer会对http开头的链接进行报错而无法通过编译, 此时用命令参数允许即可
+
+    -  报错信息类似
+
+
     ```cmd
     http://www.aaa.com/ is not an HTTPS link
     ```
 
     
 
-  - 在自己的工程中的`.github\workflows\pages-deploy.yml`文件中找到程序块, 加入`\-\-no-enforce-https \`, 这个命令是忽略对http网址的检查, 具体见[htmlProof作者对于类似问题的回答](https://github.com/gjtorikian/html-proofer/issues/727).
+    -  在自己的工程中的`.github\workflows\pages-deploy.yml`文件中找到程序块, 加入`\-\-no-enforce-https \`, 这个命令是忽略对http网址的检查, 具体见[htmlProof作者对于类似问题的回答](https://github.com/gjtorikian/html-proofer/issues/727).
+
     ```yaml
     ...
           - name: Test site
@@ -176,17 +191,87 @@ tags: Jekyll blog
     ...
     ```
 
-- 另外, `<>`会被识别为图片链接, 在不需要将这个识别为图片链接的时候, 用转义符`\`进行处理, 否则会报错
+  -  另外, `<>`会被识别为图片链接, 在不需要将这个识别为图片链接的时候, 用转义符`\`进行处理, 否则会报错
 
-  - 报错信息类似于
+    -  报错信息类似于
+
     ```cmd
     image has no src or srcset attribute
     ```
 
-    
+
+## 8. 搜索失效
+
+- 先本地拉起私服, 如果需要删除之前的文件可以先clean
+
+  ``` 
+  bundle exec jekyll clean
+  bundle exec jekyll s
+  ```
+
+- 然后通过127.0.0.1:4000进行访问
+
+- F12拉出调试框, 选择上方的"网络", 在Filter处填写"search.json" 
+
+  - 此时状态如果不是200, 那么说明是json文件资源不存在
+  - 如果是200, 看下方的控制台是否有读取`search.json`文件失败的log
+
+- 如果是读取失败, 手动用IDE打开‪`_site\assets\js\data\search.json`文件, 看有没有报错的Json行
+
+  - 如果有`\`会解析失败
+  - 如果有Tab会解析失败
+
+- 通过Hook进行`search.json`的再处理可以解决
+
+  - 将单转义符替换为双转义符
+  - 将Tab替换为四个空格
+
+- 进入`_plugins`目录
+
+- 创建`fix-search-json.rb`文件, 内容如下, 此时再次拉起私服即搜索正常.
+
+  ```c
+  # _plugins/fix-search-json.rb
+  # 在 site 写入完毕后，对 search.json 做一次字符串修正，并验证读写生效
+  Jekyll::Hooks.register :site, :post_write do |site|
+    path = site.in_dest_dir('assets', 'js', 'data', 'search.json')
+    Jekyll.logger.info "FixSearchJSON:", "Checking #{path}"
+    return unless File.exist?(path)
+  
+    # 读取文件并确保 utf-8 编码
+    raw = File.binread(path)
+    # 检查并移除 UTF-8 BOM
+    if raw.bytes.first(3) == [0xEF, 0xBB, 0xBF]
+      Jekyll.logger.info "FixSearchJSON:", "Detected BOM, will remove"
+      raw = raw.bytes.drop(3).pack("C*")
+    end
+    text = raw.force_encoding('utf-8')
+  
+    # 打印前两行示例，用于调试匹配
+    snippet_before = text.lines.first(2).join
+    Jekyll.logger.info "FixSearchJSON:", "Snippet before: #{snippet_before.inspect}"
+  
+    # 匹配单个反斜杠，后面不是 转义字符 或 JSON 专用转义
+    slash_pattern = /\\(?=[^\\\/\"bfnrtu])/
+  
+    # 替换操作：Tab 转空格，未转义的反斜杠加转义
+    new_text = text.gsub("\t", "    ")
+    new_text = new_text.gsub(slash_pattern) { "\\\\" }
+  
+    # 写入并验证
+    File.open(path, 'wb') { |f| f.write(new_text) }
+    verify = File.binread(path).force_encoding('utf-8')
+    snippet_after = verify.lines.first(2).join
+    Jekyll.logger.info "FixSearchJSON:", "Snippet after: #{snippet_after.inspect}"
+  
+    Jekyll.logger.info "FixSearchJSON:", "Repaired #{path}"
+  end
+  ```
+
+  
 
 
-## 8. 附录: 
+## 9. 附录: 
 
 ###### 参考网页
 
@@ -201,6 +286,7 @@ tags: Jekyll blog
 - [jekyll下Markdown的填坑技巧 \| Weclome to eipi10](https://eipi10.cn/others/2019/12/07/jekyll-markdown-skills/)
 - [kramdown基本语法 - 知乎 (zhihu.com)](https://zhuanlan.zhihu.com/p/60838339)
 - [kramdown和markdown较大的差异比较 \| Hom (gohom.win)](http://gohom.win/2015/11/06/Kramdown-note/)
+- [jekyll-theme-chirpy \| puppylpg](https://puppylpg.github.io/posts/2023/10/29/jekyll-theme-chirpy/)
 
 
 
