@@ -172,11 +172,11 @@ tags: Jekyll blog
       # 列出可用的 Node.js 版本
       nvm list available
       
-      # 安装最新版 LTS（例如 18.20.1）
-      nvm install 18.20.1
+      # 安装最新版 LTS（例如 22.17.0）
+      nvm install 22.17.0
       
       # 切换到该版本
-      nvm use 18.20.1
+      nvm use 22.17.0
       
       # 验证
       node -v

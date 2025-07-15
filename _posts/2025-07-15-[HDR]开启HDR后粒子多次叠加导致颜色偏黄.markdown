@@ -1,0 +1,56 @@
+---
+layout: post
+title: "[HDR]开启HDR后粒子多次叠加导致颜色偏黄"
+categories: [URP, HDR]
+tags: URP HDR 粒子 偏色 偏黄
+math: true
+
+
+---
+
+# [HDR]开启HDR后粒子多次叠加导致颜色偏黄
+
+## 00 前言
+
+URP管线, 开启HDR, 将无色贴图透明度调低, 比如0.1左右, 然后叠加, 最终颜色会偏黄.
+
+![image-20250715140145288](/assets/image/image-20250715140145288.png)
+
+## 01 原因
+
+在URP中, Unity默认的HDR的Buffer格式为B10G11R11_UFloatPack32, 导致B通道精度低于RG通道, 多次叠加后会损失B通道精度. 最终的结果就是偏黄(RG通道).  
+
+## 02 处理方法
+
+- 方法一: 将Buffer格式换为R16G16B16A16_SFloat可以处理, 但所有的中间Buffer大小会增加一倍.  
+  具体切换代码: 
+
+  ```c#
+  /// <summary>
+  /// 强制开启HDR下的输出图的Alpha通道, 会让输出的Buffer大小加倍
+  /// </summary>
+  public static class PreserveFrameBufferAlphaMenu
+  {
+      [MenuItem("LookDev/PreserveFrameBufferAlpha/On")]
+      private static void PreserveFrameBufferAlphaOn()
+      {
+          PlayerSettings.preserveFramebufferAlpha = true;
+      }
+  
+      [MenuItem("LookDev/PreserveFrameBufferAlpha/Off")]
+      private static void PreserveFrameBufferAlphaOff()
+      {
+          PlayerSettings.preserveFramebufferAlpha = false;
+      }
+  }
+  ```
+
+  
+
+- 方法二: 关闭镜头的HDR, 如果该镜头不需要HDR, 则可以关闭
+
+- 方法三: 美术调整, 增加蓝色的数值, 降低红绿数值, 但这个在粒子系统上行不通, 因为粒子系统的叠加层数是变化的, 会导致层数少的时候偏蓝, 层数多的时候偏黄, 只能保证部分正常
+
+![image-20250715140538259](/assets/image/image-20250715140538259.png)
+
+###### 参考网页
