@@ -1,0 +1,23 @@
+---
+layout: post
+title: "[烘焙]无烘焙效果"
+categories: [URP, 烘焙]
+tags: URP 烘焙 MainTexture
+math: true
+
+
+---
+
+# [烘焙]无烘焙效果
+
+## 00 前言
+
+烘焙光照贴图时没有效果.
+
+## 01 处理方法
+
+一定要标注`[MainTexture]`与`[MainColor]`, 这样, Unity的烘焙系统才能找到主贴图和主颜色.
+
+
+
+###### 参考网页
