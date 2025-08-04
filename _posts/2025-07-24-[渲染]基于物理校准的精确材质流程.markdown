@@ -1,0 +1,117 @@
+---
+layout: post
+title: "[渲染]基于物理校准的精确材质流程"
+categories: [渲染, 材质]
+tags: 渲染 材质 车漆
+math: true
+
+
+---
+
+# [渲染]基于物理校准的精确材质流程
+
+## 00 前言
+
+在 PBR 渲染领域, 大多数情况下通常由美术人员凭目视经验进行材质调整, 这在游戏行业也基本能够满足项目需求.
+ 然而, 在工业及产品渲染（如车辆渲染）中, 渲染效果必须高度还原真实产品, 用户对材质还原度的要求远高于虚拟对象渲染时的水平.
+
+此时, 用户的核心关注点是:
+"如何让材质看起来真实".
+
+虽然很令人沮丧, 但根据生物学研究表面, 人眼感知->大脑解析->语言描述, 经过这一系列的信息传递后, 我们很难对材质最基础的特性之一——颜色达成共识. 光照(极大的影响对物体颜色的判断), 物体的颜色本身(大脑会更容易将蓝色调的物体被当作是白色或灰色)
+
+![image-20250724104546187](/assets/image/image-20250724104546187.png)
+
+"人类在判断白色—灰色与彩色之间边界时, 对蓝色色调比对黄色（或红色、绿色）色调更具包容性——即同样幅度的蓝色偏移更容易被归因于光照而非物体本身. "
+
+[Asymmetries in blue–yellow color perception and in the color of ‘the dress’: Current Biology](https://www.cell.com/current-biology/fulltext/S0960-9822(15)00542-4)
+
+"匹配实验显示, 不同组(年龄, 性别)在蓝色区域和棕色区域的光度与色度匹配上均有显著差异, 且在色度空间中呈三峰分布, 表明大脑可能基于对“冷暖光照先验”的差异性假设来解释该图像, 从而在三种“多稳定”解读之间切换. "
+
+[Striking individual differences in color perception uncovered by ‘the dress’ photograph: Current Biology](https://www.cell.com/current-biology/fulltext/S0960-9822(15)00535-7)
+
+"色相和饱和度的匹配结果显示, 两组观察者在色度空间中高度重叠, 但在明度上差异显著：自称“白金”组的明度匹配值显著高于“蓝黑”组. 进一步, 图像中像素点色度分布几乎落在自然日光色度轴上, 增加了光照与物体反射率解模糊的难度. 当对图像进行色彩旋转或灰度处理时, 几乎所有观察者达成一致, 说明正是光照—反射率共变导致了原始图像中的多解性"
+
+[The many colours of ‘the dress’: Current Biology](https://www.cell.com/current-biology/fulltext/S0960-9822(15)00494-7)
+
+基于此类现实, 我不得不承认并再次强调
+
+"任何根据人眼观测还原的颜色都会因为个体的差异而存在非唯一性"
+
+换言之, 依靠人眼严格还原现实中的颜色是不现实的.
+
+## 01 处理方法
+
+还原一个材质, 需要还原的是高光与漫反射.
+
+其实, 在汽车工程领域, 工程师同样会面临这样的问题, 而他们早就已经拥有了解决这一难题的能力. 
+
+我们可以从一台汽车工程领域很普通的设备(对于图形渲染领域却不那么常见)入手.
+
+"Spectrophotometer"
+
+ "分光光度计".
+
+- ### 高光部分
+
+  通过分光光度计可以捕捉到各个角度的高光光强, 
+
+  在迪斯尼的免费软件[BRDF Explorer](https://github.com/wdas/brdf)中, 我们可以看到流行的GGX阴影模型的形状对参数输入的反应. 然后基于此, 去尝试匹配各个角度的反射光强度.
+
+![img](/assets/image/v2-37577d7f7f07de7b7daccddc61053133_1440w.jpg)
+
+- ### 颜色部分
+
+  颜色是我们头脑中的一个概念. 分光光度计并不捕捉颜色数据. 
+
+  它捕获XML文件. 
+
+  每次材质扫描后, 你会发现这些XML文件被称为 "Digital Masters". 这是一个来自汽车行业的术语, 如果你向汽车公司的人提到 "Digital Masters", 他们会立即知道你在说什么. 在过去没有电脑的时候, 汽车公司会评估大量的色板, 他们会挑选自己最喜欢的色板, 并将其制作成 "母版". 如今, 所有的东西都被扫描并以数字方式存储, 因此有了 "Digital Masters "一词. 
+
+  而在XML文件的数据中, 我们需要关心的是: Spectrum(光谱)栏的数据——Spectral Power Distribution(光谱功率分布), 它描述了光功率与波长的关系.
+
+  ![img](/assets/image/v2-7c3322d91d95a6ca56cba2df74fd8f39_1440w.jpg)
+
+  下面的事情, 就是通过数据, 绘制曲线, 通过某一个标准, 例如"ASTM E308"(全称"Standard Practice for Computing the Colors of Objects by Using the CIE System", 最新的是E308-22, 当然, 事实上大概率无需如此新的版本即可满足需要), 将数据转换为XYZ颜色, 再将XYZ颜色转换为`Lab`颜色(CIELAB).  
+
+  Q: 为什么采用`Lab`颜色?
+
+  A: 首先, 它涵盖了我们所能看到的所有颜色, 即人眼可见的所有颜色, 而不是像sRGB那样只是一个小的子集. 在处理现实世界的材质时, 你显然不希望错过任何颜色. 
+
+  ![img](/assets/image/v2-aa012f7af7a729fdef98d989fcfd3cf3_1440w.jpg)
+
+  其次, 这个色彩空间是 "感知统一 "的, 因此它有一个非常有趣的特征, 叫做Delta E. Delta E是量化色差的概念, 它只是这个体积中两点之间的距离. 
+
+  例如, 如果我取一种颜色, 例如黄色和第二种颜色青色, 我得到的距离是98. 然后, 如果我采取第三种颜色, 即红色, 黄色和红色之间的距离是73. 这有什么意义呢? 重点是, 通过观察这些数字, 我可以明确地说, 青色与黄色的区别比红色大得多. 以科学的名义!
+
+  ![img](/assets/image/v2-688137ae37d1b0325f3126af8b6df072_1440w.jpg)
+
+  ![img](/assets/image/v2-557c81022233f4d65d847e51a666aaf4_1440w.jpg)
+
+一旦你完成了高光匹配, 漫反射匹配, 并获得最小的ΔE, 那么你就已经完成了材质的匹配.
+
+而ΔE的计算标准有很多, 比如1976, 1994, 2000. 而最终选择的是[DIN 6175:2019 - Colour tolerances for automotive coatings - Solid and effect coatings](https://webstore.ansi.org/standards/din/din61752019)
+
+一共八个参数,
+
+- 车漆颜色的RGB
+- 金属颗粒颜色的RGB
+- 金属颗粒数量(金属度, 或者金属颗粒密度)
+- 金属颗粒光滑度(光滑度) 
+
+![img](/assets/image/v2-574fa1674cf257b5ccd1770095c3d04f_1440w.jpg)
+
+
+
+###### 参考网页
+
+[ (翻译)基于物理的校准 GDC2019\| Physically-Based Calibration: Accurate Material Production in 'Forza Horizon 4' - 知乎](https://zhuanlan.zhihu.com/p/627795313)
+
+[GDC Vault - Physically-Based Calibration: Accurate Material Production in 'Forza Horizon 4'](https://www.gdcvault.com/play/1026360/Physically-Based-Calibration-Accurate-Material)
+
+[E308 Standard Practice for Computing the Colors of Objects by Using the CIE System](https://store.astm.org/e0308-22.html)
+
+[ASTM E308-22 Red - Standard Practice for Computing the Colors of Objects by Using the CIE System (Standard + Redline PDF Bundle)](https://webstore.ansi.org/standards/astm/astme30822red)
+
+[DIN 6175:2019 - Colour tolerances for automotive coatings - Solid and effect coatings](https://webstore.ansi.org/standards/din/din61752019)
+

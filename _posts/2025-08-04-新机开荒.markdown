@@ -1,0 +1,35 @@
+---
+layout: post
+title: "新机开荒"
+categories: [其他, 开荒]
+tags: 开荒 初始化 PowerToys
+math: true
+
+
+---
+
+# 新机开荒
+
+## 00 基于Windows11新机开荒
+
+- 安装Falcon Proxy, 用于浏览器代理分发初筛选
+
+  - [falcon-proxy/core at master · lyricat/falcon-proxy](https://github.com/lyricat/falcon-proxy/tree/master/core)
+  - 注意, 源代码并不是直接可用的插件.
+
+- 安装PowerToys
+
+  - [microsoft/PowerToys: Windows system utilities to maximize productivity](https://github.com/microsoft/PowerToys)
+  - 安装PowerToys的[Everything扩展](https://github.com/microsoft/PowerToys)
+    - 要注意的是, EverythingPowerToys (EPT), 只支持到0.91.1, 后续因为PowerToys出了个Command Palette (CmdPal), 所以当PowerToys版本高于0.91.1, 则应该使用[PowerToys Command Palette (CmdPal)](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview), 其[Github仓库](https://github.com/lin-ycv/EverythingCommandPalette).
+
+- 干掉Windows11右键一级菜单
+
+  - 命令行输入, 并回车
+    `reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve`
+
+    来自https://zhuanlan.zhihu.com/p/524603591
+
+## 01 处理方法
+
+###### 参考网页

@@ -1,0 +1,32 @@
+---
+layout: post
+title: "Unity国际版安装登录指南"
+categories: [Unity, 安装]
+tags: Unity 安装 国际版
+math: true
+
+
+---
+
+# Unity国际版安装登录指南
+
+## 00 Fxxking Unity
+
+- 建立一个cmd文件, 内容如下, 其中需要把`http://127.0.0.1:10809`替换为你自己的梯子本地IP和端口号
+  ```
+  @echo off
+  set HTTP_PROXY=http://127.0.0.1:10809
+  set HTTPS_PROXY=http://127.0.0.1:10809
+  start "" "D:\Program Files\Unity Hub\Unity Hub.exe"
+  ```
+
+- 先正常安装Unity Hub和登录账号, 然后关闭退出
+
+- 然后使用cmd文件启动Unity Hub, 然后正常安装Unity和其组件
+
+## 01 处理方法
+
+###### 参考网页
+
+- [解决网络问题 - Unity 手册](https://docs.unity3d.com/cn/2022.3/Manual/upm-config-network.html)
+- [如何逃离Unity中国特供版 \| Logiconsole](https://www.logiconsole.com/fuck-unity-cn/)
