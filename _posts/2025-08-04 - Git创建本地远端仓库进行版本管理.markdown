@@ -1,0 +1,32 @@
+---
+layout: post
+title: "Git创建本地远端仓库进行版本管理"
+categories: [Git, 本地]
+tags: Git 本地 版本管理 OneDrive
+math: true
+
+
+---
+
+# Git创建本地远端仓库进行版本管理
+
+## 00 前言
+
+有些时候, 我们需要一个离线版本管理, 但并不想每次都强行Copy整个仓库. 这个时候就要用到本地裸仓库及网盘/U盘.
+
+## 01 处理方法
+
+- 利用OneDrive, 在OneDirve中创建一个目录, 比如`bare-repository`.
+- 创建bare仓库
+  - 进入`bare-repository`目录, 开启命令行
+  - 输入`git init --bare`, 回车
+- 初始化仓库
+  - 进入自己想要跟踪的目录, 比如`_docs`
+  - 输入`git init`, 回车
+  - 输入`git remote add origin F:\OneDrive\Git\jauved.docs`, 请把`F:\OneDrive\Git\jauved.docs`换成自己的路径, 回车
+  - 输入`git push origin main`
+- 其他的机器clone仓库
+  - 输入`git clone "F:\OneDrive\Git\jauved.docs"`
+- 然后正常的进行同步/推送即可
+
+###### 参考网页

@@ -155,8 +155,8 @@ tags: Jekyll blog
 
 -  升级的时候`bundle update`阶段可能需要梯子, 通过以下命令格式设置临时的代理, 请将IP和端口号换成自己的梯子
    ```
-   set HTTP_PROXY=127.0.0.1:10809
-   set HTTPS_PROXY=127.0.0.1:10809
+   set HTTP_PROXY=http://127.0.0.1:10809
+   set HTTPS_PROXY=http://127.0.0.1:10809
    ```
 
 -  升级Node
