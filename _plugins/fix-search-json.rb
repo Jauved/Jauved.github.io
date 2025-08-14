@@ -26,10 +26,10 @@ Jekyll::Hooks.register :site, :post_write do |site|
   new_text = text.gsub("\t", "    ")
   # new_text = new_text.gsub(slash_pattern) { "\\\\" }
   # new_text = new_text.gsub(slash_pattern) { "" }
-  new_text = new_text.gsub(/("content"\s*:\s*")((?:[^"\\]|\\.)*?)(")/) do
-    key = Regexp.last_match(1)  # "content":
-    val = Regexp.last_match(2)  # 内容
-    endq = Regexp.last_match(3) # 结束引号
+  new_text = new_text.gsub(/("content"\s*:\s*")([^"]*?)(")/) do
+    key = Regexp.last_match(1)
+    val = Regexp.last_match(2)
+    endq = Regexp.last_match(3)
     cleaned_val = val.gsub("\\", "")
     "#{key}#{cleaned_val}#{endq}"
   end
