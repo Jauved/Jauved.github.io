@@ -20,11 +20,13 @@ Jekyll::Hooks.register :site, :post_write do |site|
 
   # 匹配单个反斜杠，后面不是 转义字符 或 JSON 专用转义
   # slash_pattern = /\\(?=[^\\\/\"bfnrtu])/
-  slash_pattern = /\\(?=[^\\\/\"fnrtu])/
+  # slash_pattern = /\\(?=[^\\\/\"fnrtu])/
+  slash_pattern = /\\/
 
   # 替换操作：Tab 转空格，未转义的反斜杠加转义
   new_text = text.gsub("\t", "    ")
-  new_text = new_text.gsub(slash_pattern) { "\\\\" }
+  # new_text = new_text.gsub(slash_pattern) { "\\\\" }
+  new_text = new_text.gsub(slash_pattern) { "" }
 
   # 写入并验证
   File.open(path, 'wb') { |f| f.write(new_text) }
