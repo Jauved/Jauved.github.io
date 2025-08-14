@@ -1,44 +1,30 @@
 # _plugins/fix-search-json.rb
-# 在 site 写入完毕后，对 search.json 做一次字符串修正，并验证读写生效
+# 在 site 写入完毕后，对 search.json 做一次字段级别修正，并验证读写生效
+require 'json'
+
 Jekyll::Hooks.register :site, :post_write do |site|
   path = site.in_dest_dir('assets', 'js', 'data', 'search.json')
-  Jekyll.logger.info "FixSearchJSON:", "Checking #{path}"
   return unless File.exist?(path)
 
-  # 读取文件并确保 utf-8 编码
+  # 读取文件并移除 BOM
   raw = File.binread(path)
-  # 检查并移除 UTF-8 BOM
-  if raw.bytes.first(3) == [0xEF, 0xBB, 0xBF]
-    Jekyll.logger.info "FixSearchJSON:", "Detected BOM, will remove"
-    raw = raw.bytes.drop(3).pack("C*")
-  end
+  raw = raw.bytes.drop(3).pack("C*") if raw.bytes.first(3) == [0xEF, 0xBB, 0xBF]
   text = raw.force_encoding('utf-8')
 
-  # 打印前两行示例，用于调试匹配
-  snippet_before = text.lines.first(2).join
-  Jekyll.logger.info "FixSearchJSON:", "Snippet before: #{snippet_before.inspect}"
+  # 解析 JSON
+  data = JSON.parse(text)
 
-  # 匹配单个反斜杠，后面不是 转义字符 或 JSON 专用转义
-  # slash_pattern = /\\(?=[^\\\/\"bfnrtu])/
-  # slash_pattern = /\\(?=[^\\\/\"fnrtu])/
-
-  # 替换操作：Tab 转空格，未转义的反斜杠加转义
-  new_text = text.gsub("\t", "    ")
-  # new_text = new_text.gsub(slash_pattern) { "\\\\" }
-  # new_text = new_text.gsub(slash_pattern) { "" }
-  new_text = new_text.gsub(/("content"\s*:\s*")((?:\\.|[^\\"])*?)(")/) do
-    key = Regexp.last_match(1)
-    val = Regexp.last_match(2)
-    endq = Regexp.last_match(3)
-    cleaned_val = val.gsub("\\", "")
-    "#{key}#{cleaned_val}#{endq}"
+  # 遍历并清洗 content 字段中的所有反斜杠
+  data.each do |item|
+    next unless item['content'].is_a?(String)
+    # 清除 content 值中的反斜杠，不影响合法 JSON 转义
+    item['content'] = item['content'].delete('\\')
   end
 
-  # 写入并验证
-  File.open(path, 'wb') { |f| f.write(new_text) }
-  verify = File.binread(path).force_encoding('utf-8')
-  snippet_after = verify.lines.first(2).join
-  Jekyll.logger.info "FixSearchJSON:", "Snippet after: #{snippet_after.inspect}"
+  # 将修改后的结构写回文件
+  File.open(path, 'wb') do |f|
+    f.write(JSON.generate(data))
+  end
 
   Jekyll.logger.info "FixSearchJSON:", "Repaired #{path}"
 end
