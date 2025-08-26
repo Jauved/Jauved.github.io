@@ -127,7 +127,7 @@ math: true
 
   最终我分拆出了这些
 
-  ![image-20250819132541235](C:\Users\Jauved\AppData\Roaming\Typora\typora-user-images\image-20250819132541235.png)
+  ![image-20250819132541235](/assets/image/image-20250819132541235.png)
 
 
 

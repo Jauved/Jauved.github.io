@@ -206,7 +206,7 @@ math: true
 
   如果, 你想兼容Dot相关的`SubShader`, 那么可以不注释, 但需要将函数中的这部分代码换成你自定义的代码
 
-  ![image-20250819134247399](C:\Users\Jauved\AppData\Roaming\Typora\typora-user-images\image-20250819134247399.png)
+  ![image-20250819134247399](/assets/image/image-20250819134247399.png)
 
 - 
 
