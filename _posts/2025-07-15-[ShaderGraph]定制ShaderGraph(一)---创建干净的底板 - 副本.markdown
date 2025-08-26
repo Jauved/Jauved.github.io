@@ -105,7 +105,7 @@ math: true
 
   
 
-- 制作自己的`UniversalVehiclePaintSubTarget`类, 替换掉`guid`, 替换掉名称即可
+- 制作自己的`UniversalVehiclePaintSubTarget`类, 替换掉`guid`, 并替换掉名称即可
 
   ```c#
   static readonly GUID kSourceCodeGuid = new GUID("4443eec7cc6a454c86378894f2e8a868"); // UniversalVehiclePaintSubTarget.cs
@@ -122,6 +122,12 @@ math: true
   <img src="/assets/image/image-20250726133320963.png" alt="image-20250726133320963" style="zoom:50%;" />
 
   <img src="/assets/image/image-20250726133722824.png" alt="image-20250726133722824" style="zoom:50%;" />
+
+- 还可以把里面的各个Region分离为单独的类, 以免整个类太大
+
+  最终我分拆出了这些
+
+  ![image-20250819132541235](C:\Users\Jauved\AppData\Roaming\Typora\typora-user-images\image-20250819132541235.png)
 
 
 

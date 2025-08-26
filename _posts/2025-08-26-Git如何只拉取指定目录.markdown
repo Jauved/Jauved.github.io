@@ -1,0 +1,58 @@
+---
+layout: post
+title: "Git如何只拉取指定目录"
+categories: [Git, 拉取]
+tags: Git 拉取 指定目录
+math: true
+
+
+---
+
+# Git如何只拉取指定目录
+
+## 00 前言
+
+有的时候, 我们不需要拉取整个Git仓库(比如仓库过大), 但是又需要跟踪指定的目录中的文件(比如一个几`kb`的验证证书文件)的更新.
+
+## 01 处理方法
+
+```bash
+# 先采用不checkout的方法去clone, 如果服务器不支持partial clone, 则会报不支持--filter, 无视即可
+git clone --filter=blob:none --no-checkout https://github.com/user/repo.git
+# 然后进入仓库
+cd repo
+```
+
+启用sparse-checkout, 并启用cone模式
+
+```bash
+# 对于 Git ≥ 2.25，可以使用 cone 模式
+git sparse-checkout init --cone
+# 为了兼容旧版本，也可：
+# git config core.sparseCheckout true
+```
+
+将指定目录加入sparse-checkout规则
+
+```bash
+# 只检出 gradle/sighnature文件夹
+git sparse-checkout set gradle/signature/
+```
+
+后续要增加可以使用add(set是覆盖)
+
+```bash
+git sparse-checkout add gradle/signature/
+```
+
+之后就可以正常的拉取分支
+
+```bash
+git checkout repo
+```
+
+## 02 注意
+
+直接拷贝windows的路径, 要把反斜杠替换成`/`, 另外文件夹路径的末尾要以`/`结束.
+
+###### 参考网页

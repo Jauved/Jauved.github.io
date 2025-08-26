@@ -119,15 +119,16 @@ math: true
       public struct SurfaceDescription
       {
           public static string name = "SurfaceDescription";
-          // 此时的ColorControl是为了确定默认初始值, 后面的True表示是HDR颜色
+          // 此时的ColorControl是为了确定默认初始值, 后面的True表示是HDR颜色, 其中, 第二个参"BakedGI", 
+          // 就是可以通过SurfaceDescription.BakedGI在hlsl中访问到的值
           public static BlockFieldDescriptor BakedGI = new(name, "BakedGI", "Baked GI",
               "SURFACEDESCRIPTION_BAKEDGI", new ColorControl(new Color(1,1,1,0),true), ShaderStage.Fragment); 
       }
   }
   ```
-
   
-
+  
+  
 - 如果要让自定义的字段能够自动"出现"和"去掉", 那么就需要在`LitBlockMasks`类中添加`BlockFieldDescriptor[]`, 当然, 我们为了最小侵入, 新建一个类`ExternalBlockMasks`, 然后声明一个`BlockFieldDescriptor[]`, 将`ExternalBlockFields.SurfaceDescription.BakedGI`加入. 同时, 要在构建的`SubShader`的时候, 调用这个Block, 此时, 才可以触发重排, 也就是视觉上的"出现"和"去掉".
   ```c#
   static class LitBlockMasks
@@ -162,7 +163,9 @@ math: true
       };
    }
   
-  // 在创建SubShader的时候, 将ExternalBlockMasks.FragmentVehiclePaint作为参数传入
+  // 在创建SubShader的时候, 将ExternalBlockMasks.FragmentVehiclePaint作为参数传入, 注意, 与LitGLESSubShader对应的
+  // LitComputeDotsSubShader中也有类似的代码, 如果你要考虑写Dot适配的, 那么在LitComputeDotsSubShader函数中也要进行对应
+  // 的修改
   public static SubShaderDescriptor LitGLESSubShader(UniversalTarget target, WorkflowMode workflowMode,
               string renderType, string renderQueue, bool complexLit)
   {
@@ -176,11 +179,40 @@ math: true
       	result.passes.Add(ExternalPasses.Forward(target, workflowMode));
   }
   ```
-
+  
 - 至此, 我们完成了面板和输入节点的自定义
   ![image-20250804164306677](/assets/image/image-20250804164306677.png)
 
 ### 应用自定义属性到最终着色器中
+
+- 首先, 一些前置准备工作, 在我们拷贝出来的`UniversalVehiclePaintSubTarget.cs`文件中的`Setup()`函数中
+
+  注释掉`context.AddSubShader(PostProcessSubShader(SubShader.LitComputeDotsSubShader(target, workflowMode,
+  //     target.renderType, target.renderQueue, complexLit)));`这一行, 原因是因为目前我对于Dot不太了解, 并且前期并不会对Dot进行适配
+
+  ```c#
+  // Process SubShaders
+  // Modify by yumiao 由于没有做Dot相关的适配, 所以暂时不加入Dot的相关SubShader
+  // context.AddSubShader(PostProcessSubShader(SubShader.LitComputeDotsSubShader(target, workflowMode,
+  //     target.renderType, target.renderQueue, complexLit)));
+  // End Add
+  context.AddSubShader(PostProcessSubShader(SubShader.LitGLESSubShader(target, workflowMode,
+      target.renderType, target.renderQueue, complexLit)));
+  ```
+
+  注释的部分对应的调用代码是在分离出的`SubShader.cs`中
+
+  函数`public static SubShaderDescriptor LitComputeDotsSubShader(UniversalTarget target, WorkflowMode workflowMode,string renderType, string renderQueue, bool complexLit)`
+
+  如果, 你想兼容Dot相关的`SubShader`, 那么可以不注释, 但需要将函数中的这部分代码换成你自定义的代码
+
+  ![image-20250819134247399](C:\Users\Jauved\AppData\Roaming\Typora\typora-user-images\image-20250819134247399.png)
+
+- 
+
+- 
+
+- 
 
 - 探寻是如何生成代码的
 
