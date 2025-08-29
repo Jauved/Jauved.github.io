@@ -2,7 +2,7 @@
 layout: post
 title: "新机开荒"
 categories: [其他, 开荒]
-tags: 开荒 初始化 PowerToys
+tags: 开荒 初始化 PowerToys VSCode 右键菜单
 math: true
 
 
@@ -20,8 +20,10 @@ math: true
 - 安装PowerToys
 
   - [microsoft/PowerToys: Windows system utilities to maximize productivity](https://github.com/microsoft/PowerToys)
-  - 安装PowerToys的[Everything扩展](https://github.com/microsoft/PowerToys)
+  - 安装[everything](https://www.voidtools.com/zh-cn/downloads/)
+  - 安装[PowerToys](https://github.com/microsoft/PowerToys)的[Everything扩展](https://github.com/lin-ycv/EverythingPowerToys)
     - 要注意的是, EverythingPowerToys (EPT), 只支持到0.91.1, 后续因为PowerToys出了个Command Palette (CmdPal), 所以当PowerToys版本高于0.91.1, 则应该使用[PowerToys Command Palette (CmdPal)](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview), 其[Github仓库](https://github.com/lin-ycv/EverythingCommandPalette).
+    - 建议安装0.91.1版本并配合EPT0.91.1版本, 因为新版的Everything被配置在CmdPal中, 打开方式是`win+alt+space`, 多按一个键.
 
 - 干掉Windows11右键一级菜单
 
@@ -29,7 +31,58 @@ math: true
     `reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve`
 
     来自https://zhuanlan.zhihu.com/p/524603591
+  
+  - 干掉后可能有副作用, 比如VSCode安装之后, 没有右键打开功能, 复制下面的代码, 将路径换成你自己的VSCode路径, 存为.reg文件, 然后执行. 或者你也可以选择使用PowerToys的`高级->注册表预览->启用注册表预览`, 将代码粘贴复制进去, 可以在修改前预览到修改的结果, 确认无误后, 点击`写入注册表`, 同时也可以保存为`.reg`文件后续复用.
+  
+    ```bash
+    Windows Registry Editor Version 5.00
+    
+    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\VSCode]
+    @="Open with Code"
+    "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
+    
+    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\VSCode\command]
+    @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
+    
+    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\VSCode]
+    @="Open with Code"
+    "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
+    
+    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\VSCode\command]
+    @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
+    
+    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\VSCode]
+    @="Open with Code"
+    "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
+    
+    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\VSCode\command]
+    @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
+    
+    [HKEY_CLASSES_ROOT\*\shell\VSCode]
+    @="Open with Code"
+    "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
+    
+    [HKEY_CLASSES_ROOT\*\shell\VSCode\command]
+    @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%1\""
+    ```
+  
+    
+
+- 如果是家庭版没有组策略管理器, 将以下代码存储为`.bat`文件, 然后执行
+
+  ```bash
+  @echo off
+  pushd "%~dp0"
+  dir /b %systemroot%\Windows\servicing\Packages\Microsoft-Windows-GroupPolicy-ClientExtensions-Package~3*.mum >gp.txt
+  dir /b %systemroot%\servicing\Packages\Microsoft-Windows-GroupPolicy-ClientTools-Package~3*.mum >>gp.txt
+  for /f %%i in ('findstr /i . gp.txt 2^>nul') do dism /online /norestart /add-package:"%systemroot%\servicing\Packages\%%i"
+  pause
+  ```
+
+  
 
 ## 01 处理方法
 
 ###### 参考网页
+
+[Windows 10/11家庭版打开组策略编辑器(gpedit.msc) - 知乎](https://zhuanlan.zhihu.com/p/673820397)
