@@ -208,21 +208,17 @@ math: true
 
   ![image-20250819134247399](/assets/image/image-20250819134247399.png)
 
-- 
-
-- 
-
-- 
+## 02 代码生成
 
 - 探寻是如何生成代码的
 
-  - Library/PackageCache/com.unity.shadergraph@12.1.10/Editor/Importers/ShaderGraphImporterEditor.cs
+  - `Library/PackageCache/com.unity.shadergraph@12.1.10/Editor/Importers/ShaderGraphImporterEditor.cs`
     - 文件中
       ![image-20250804175706409](/assets/image/image-20250804175706409.png)
 
 - Library/PackageCache/com.unity.shadergraph@12.1.10/Editor/Generation/Processors/Generator.cs
 
-  - 文件中有个`BuildShader()`函数, 貌似就是总调用了
+  - 文件中有个`BuildShader()`函数, 貌似是总调用
     ```c#
     void BuildShader()
     {
@@ -391,7 +387,7 @@ math: true
 
   - `ShaderStringBuilder`这个类看起来就很像我们要找的目标了
     路径: `Library/PackageCache/com.unity.shadergraph@12.1.10/Editor/Generation/Processors/ShaderStringBuilder.cs`
-  
+
     ```c#
     public ShaderStringBuilder(int indentationLevel = 0, int stringBuilderSize = 8192, bool humanReadable = false)
     {
@@ -403,7 +399,7 @@ math: true
         m_HumanReadable = humanReadable;
     }
     ```
-  
+
   - 回到Generator.cs
     ```c#
     // Render State
@@ -440,9 +436,9 @@ math: true
     }
     Profiler.EndSample();
     ```
-  
+
     要替换的模板路径是: `Library/PackageCache/com.unity.render-pipelines.universal@12.1.10/Editor/ShaderGraph/Templates/ShaderPass.template`
-  
+
     ```c#
     // 这三个函数应该就是生成SubShader
     
@@ -454,16 +450,16 @@ math: true
     
     void GenerateShaderPass(int targetIndex, PassDescriptor pass, ActiveFields activeFields, List<BlockFieldDescriptor> currentBlockDescriptors, PropertyCollector subShaderProperties)
     ```
-  
+
     - GenerateSubShaderTags()函数用来生成SubShader的Tags
       路径: `Library/PackageCache/com.unity.shadergraph@12.1.10/Editor/Generation/Processors/GenerationUtils.cs`
-  
+
       ```c#
       internal static void GenerateSubShaderTags(Target target, SubShaderDescriptor descriptor, ShaderStringBuilder builder)
       ```
-  
+
   - 关于`PackedVarings`的来历
-  
+
     - 首先, 在`Library/PackageCache/com.unity.shadergraph@12.1.10/Editor/Generation/Processors/GenerationUtils.cs`中
       ```c#
       internal static void GeneratePackedStruct(StructDescriptor shaderStruct, ActiveFields activeFields, out StructDescriptor packStruct)
@@ -541,7 +537,7 @@ math: true
           packStruct.fields = packedSubscripts.Concat(postUnpackedSubscripts).ToArray();
       }
       ```
-  
+
     - 然后, 在`Library/PackageCache/com.unity.render-pipelines.universal@12.1.10/Editor/ShaderGraph/UniversalStructs.cs`中又有, 其中`name`为`Varings`, 所以, 合在一起就是`PackedVarings`
       ```c#
       static class UniversalStructs
@@ -577,9 +573,9 @@ math: true
           };
       }
       ```
-  
+
   - Pass的模板在`Library/PackageCache/com.unity.shadergraph@12.1.10/Editor/Generation/Templates/PassMesh.template`
-  
+
   - 生成代码时, 大概是`input.shaderOutputName`
     ```c#
     static void GenerateSurfaceDescriptionRemap(
@@ -607,7 +603,7 @@ math: true
             }
         }
     ```
-  
+
   - 对应的是声明面板时的第二个参, 即"BakedGI"
     ```c#
     /// <summary>
@@ -631,7 +627,7 @@ math: true
         }
     }
     ```
-  
+
     
 
 ###### 参考网页
