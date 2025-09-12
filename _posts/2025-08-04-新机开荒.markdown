@@ -31,10 +31,10 @@ math: true
     `reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve`
 
     来自https://zhuanlan.zhihu.com/p/524603591
-  
+
   - 干掉后可能有副作用, 比如VSCode安装之后, 没有右键打开功能, 复制下面的代码, 将路径换成你自己的VSCode路径, 存为.reg文件, 然后执行. 或者你也可以选择使用PowerToys的`高级->注册表预览->启用注册表预览`, 将代码粘贴复制进去, 可以在修改前预览到修改的结果, 确认无误后, 点击`写入注册表`, 同时也可以保存为`.reg`文件后续复用.
-  
-    ```bash
+
+    ```shell
     Windows Registry Editor Version 5.00
     
     [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\VSCode]
@@ -65,7 +65,39 @@ math: true
     [HKEY_CLASSES_ROOT\*\shell\VSCode\command]
     @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%1\""
     ```
-  
+
+  - Everything的右键打开文件夹也会丢失, 对应的reg代码如下, 以";"开头的是注释掉的代码, 因为你如果在安装的时候选择了右键菜单, 那么这部分是会加入注册表的:
+
+    ```shell
+    Windows Registry Editor Version 5.00
+    
+    [HKEY_CLASSES_ROOT\Directory\Background\shell\搜索 Everything...]
+    "Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
+    
+    [HKEY_CLASSES_ROOT\Directory\Background\shell\搜索 Everything...\command]
+    @="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%V\""
+    
+    [HKEY_CLASSES_ROOT\Folder\shell\搜索 Everything...]
+    "Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
+    
+    [HKEY_CLASSES_ROOT\Folder\shell\搜索 Everything...\command]
+    @="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%1\""
+    
+    ;如果你在安装的时候已经选择了右键菜单, 那么以下的是不需要加入注册表的
+    ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\background\shell\搜索 Everything...]
+    ;"Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
+    
+    ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\background\shell\搜索 Everything...\command]
+    ;@="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%V\""
+    
+    ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\搜索 Everything...]
+    ;"Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
+    
+    ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\搜索 Everything...\command]
+    ;@="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%1\""
+    
+    ```
+
     
 
 - 如果是家庭版没有组策略管理器, 将以下代码存储为`.bat`文件, 然后执行

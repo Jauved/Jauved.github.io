@@ -124,6 +124,7 @@ math: true
 ### 渲染
 
 - [The definitive guide to lighting in the HDRP \| Unity](https://unity.com/resources/lighting-hdrp-guide)
+- [High-End Lighting & Environments with HDRP in Unity 6 \| Unity](https://unity.com/resources/lighting-environments-hdrp-unity-6)
 
 ---
 
