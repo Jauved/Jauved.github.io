@@ -2,7 +2,7 @@
 layout: post
 title: "新机开荒"
 categories: [其他, 开荒]
-tags: 开荒 初始化 PowerToys VSCode 右键菜单
+tags: 开荒 初始化 PowerToys VSCode 右键菜单 Everything 内置硬盘 硬盘 识别
 math: true
 
 
@@ -111,10 +111,32 @@ math: true
   pause
   ```
 
-  
 
-## 01 处理方法
+- 安装[Sysinternals 实用工具 - Sysinternals \| Microsoft Learn](https://learn.microsoft.com/zh-cn/sysinternals/downloads/)
+  - 用于进程分析等基础的检测
+  - 也可以单独安装[Process Explorer - Sysinternals \| Microsoft Learn](https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer)
 
-###### 参考网页
+## 01 疑难杂症
 
-[Windows 10/11家庭版打开组策略编辑器(gpedit.msc) - 知乎](https://zhuanlan.zhihu.com/p/673820397)
+### 内置热拔插硬盘被误认为是移动硬盘
+
+[SATA机械硬盘\固态硬盘识别成可移动设备的解决办法 - 简书 
+](https://www.jianshu.com/p/763ebf89bb90)Step1: 开启注册表编辑器regedit 
+
+Step2: 进入HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\storahci\Parameters\Device 
+
+右键"新建"->"多字符串值", 命名为TreatAsInternalPort, 输入0 1 2 3 4 5 6
+
+![TreatAsInternalPort](/assets/image/TreatAsInternalPort.png)
+
+Step3: 保存, 重启计算机 
+
+注: 也可以在'计算机管理->存储->磁盘管理'中查看别识别为移动硬盘的Number号, 这样可以不用输入那么多的数字
+
+![Bus Number](/assets/image/Bus Number.png)
+
+## 参考网页
+
+- [Windows 10/11家庭版打开组策略编辑器(gpedit.msc) - 知乎](https://zhuanlan.zhihu.com/p/673820397)
+- [SATA机械硬盘\固态硬盘识别成可移动设备的解决办法 - 简书 
+  ](https://www.jianshu.com/p/763ebf89bb90)

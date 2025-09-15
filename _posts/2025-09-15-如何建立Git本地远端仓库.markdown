@@ -1,0 +1,45 @@
+---
+layout: post
+title: "如何建立Git本地远端仓库"
+categories: [Git, 仓库]
+tags: Git 本地 远端 仓库 bare
+math: true
+
+
+---
+
+# 如何建立Git本地远端仓库
+
+## 00 前置知识
+
+有些时候, 我们可能需要本地开启一个远端仓库用于记录和拉取.
+
+## 01 实施
+
+### Step 1 创建bare仓库作为本地的"远端"仓库 
+
+- 手动创建
+
+  - 建立文件夹
+  - 在文件夹中启用`git bash`
+  - 输入`git init --bare`
+
+- 或者命令行创建
+
+  ```bash
+  git init --bare "F:\OneDrive\Git\jauved.docs"
+  ```
+
+### Step 2 将本地仓库的远端与bare仓库进行关联
+
+进入本地仓库, 启动`git bash`, 输入
+
+````bash
+git remote add origin "F:\OneDrive\Git\jauved.docs"
+````
+
+### Step 3 从bare仓库中clone 
+
+输入`git clone F:\OneDrive\Git\jauved.docs`
+
+###### 参考网页

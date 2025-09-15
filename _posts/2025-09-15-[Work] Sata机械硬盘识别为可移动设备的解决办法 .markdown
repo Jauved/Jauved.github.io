@@ -1,0 +1,31 @@
+---
+layout: post
+title: "[Work] Sata机械硬盘识别为可移动设备的解决办法"
+categories: [Work, 疑难杂症]
+tags: Work 疑难杂症 硬盘 识别
+math: true
+
+
+---
+
+# [Work] Sata机械硬盘识别为可移动设备的解决办法
+
+### 内置热拔插硬盘被误认为是移动硬盘
+
+Step 1: 开启注册表编辑器`regedit`
+
+Step 2: 进入`HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\storahci\Parameters\Device`
+
+右键"新建"->"多字符串值", 命名为`TreatAsInternalPort`, 输入0 1 2 3 4 5 6
+
+![TreatAsInternalPort](/assets/image/TreatAsInternalPort.png)
+
+Step 3: 保存, 重启计算机 
+
+注: 也可以在'计算机管理->存储->磁盘管理'中查看别识别为移动硬盘的Number号, 这样可以不用输入那么多的数字
+
+![Bus Number](/assets/image/Bus Number.png)
+
+###### 参考网页
+
+[SATA机械硬盘\固态硬盘识别成可移动设备的解决办法 - 简书 ](https://www.jianshu.com/p/763ebf89bb90)

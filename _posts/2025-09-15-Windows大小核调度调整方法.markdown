@@ -1,0 +1,116 @@
+---
+layout: post
+title: "Windows大小核调度调整方法"
+categories: [Windows, 设置]
+tags: Windows 大小核 调度 Bug 幽灵行动 荒野
+math: true
+
+
+---
+
+# Windows大小核调度调整方法
+
+## 00 前置知识
+
+首先是工作上遇到的问题, 在`英特尔® 至强® Gold 6430 处理器`下着色器编译非常的慢, 导致引擎效率低下.
+
+然后是娱乐上遇到的问题, 幽灵行动荒野在`Intel® Core™ Ultra 9 Processor 275HX`([官方资料](https://www.intel.cn/content/www/cn/zh/products/sku/242293/intel-core-ultra-9-processor-275hx-36m-cache-up-to-5-40-ghz/specifications.html)) + `Windows11`上无法启动.
+
+## 01 实施
+
+### 方法一 修改BIOS:
+
+暴力关闭小核, 进入BIOS, 对于ROG笔记本来说, 完全关机->按住F2->开机, 可以进入BIOS, F7进入高级设置, 找到`Efficient-core`, 从auto改成0. 保存退出. 进入系统之后, 就只使用大核, 这样, 就可以进入幽灵行动荒野. 
+
+代价: 系统启动会非常慢, 以往开机1min内, 现在要变成2-5min. 
+
+### 方法二 修改电源设置:
+
+通过电源设置, 缓解大小核调度问题
+
+进入cmd或者PowerShell, 运行以下命令
+
+```shell
+powercfg -attributes SUB_PROCESSOR 7f2f5cfa-f10c-4823-b5e1-e93ae85f46b5 -ATTRIB_HIDE
+powercfg -attributes SUB_PROCESSOR 93b8b6dc-0698-4d1c-9ee4-0644e900c85d -ATTRIB_HIDE
+powercfg -attributes SUB_PROCESSOR bae08b81-2d5e-4688-ad6a-13243356654b -ATTRIB_HIDE
+```
+
+可以开启额外的三个处理器电源管理选项
+
+![image-20250915113832908](/assets/image/image-20250915113832908.png)
+
+如果没有开启(比如Windows11家庭版), 则需要进入注册表编辑器
+
+进入`计算机\HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00`
+
+然后对应找到以下三项, 将这三项对应的子项`Attributes`的值修改为2.
+
+```shell
+7f2f5cfa-f10c-4823-b5e1-e93ae85f46b5
+93b8b6dc-0698-4d1c-9ee4-0644e900c85d
+bae08b81-2d5e-4688-ad6a-13243356654b
+```
+
+![image-20250915114320252](/assets/image/image-20250915114320252.png)
+
+这三个处理器电源管理选项的默认值如下, 方便改回默认值
+
+**WIN10默认**: 
+
+生效的异类策略: 使用异类策略4.
+
+异类线程调度策略: 自动.
+
+异类短运行线程调度策略: 自动.
+
+**WIN11默认**: 
+
+生效的异类策略: 使用异类策略0.
+
+异类线程调度策略: 自动.
+
+异类短运行线程调度策略: 自动.
+
+
+
+#### 01.1 生效的异类策略
+
+关于生效的异类策略解释如下, 但除了0和4, 其实其他的选项没有找到官方文档.
+
+| 策略编号 | 描述                                     | 具体行为                                                     |
+| -------- | ---------------------------------------- | ------------------------------------------------------------ |
+| 0        | 处理器性能放置最小核心数量               | 休眠优先级依次为: 超线程, 小核, 大核. 这意味着在需要休眠线程时, 系统会优先考虑让超线程或小核进入休眠状态, 以保留大核用于高性能任务. |
+| 1        | 处理器性能放置最小核心数量(针对特定场景) | 小核的休眠策略为4%, 大核+超线程的休眠策略为0%. 这可能导致小核在某些低负载情况下更容易进入休眠, 而大核则保持活跃. 然而, 这一策略的具体行为可能因系统和软件版本而异, 且相对复杂, 不常用. |
+| 2        | 大核休眠策略                             | 在某些条件下, 可能更倾向于让大核进入休眠状态, 以节省功耗或优化性能. 但这并不是一个通用的策略, 其应用场景和效果可能因系统配置而异. |
+| 3        | 小核休眠策略                             | 在某些条件下, 可能更倾向于让小核进入休眠状态. 然而, 这一策略的具体行为和应用场景并不明确, 且可能因系统和软件版本而异. |
+| 4        | 基于利用率进行随机休眠                   | 根据处理器的利用率来随机决定哪个核心进入休眠状态. 这是Windows 10的默认策略, 旨在平衡性能和功耗. 然而, 在Windows 11及更新版本中, 用户可能更倾向于使用其他策略来优化性能. |
+
+#### 01.2 异类线程调度策略
+
+- 定义: 为长时间运行的线程指定处理器调度中的首选项或约束. 
+- 作用: 控制长时间运行的线程在处理器核心上的分配方式. 
+- 选项: 
+  - 自动: 系统根据负载和线程需求自动选择核心. 
+  - 高性能处理器: 优先分配到大核(性能核, P核)上运行. 
+  - 首选高性能处理器: 大核空闲时优先分配到大核, 大核忙碌时分配到小核(效能核, E核). 
+  - 高效处理器: 优先分配到小核上运行. 
+  - 所有处理器: 线程可以在任何可用的核心上运行, 包括大核和小核. 
+
+#### 01.3 异类短运行线程调度策略
+
+- 定义: 为短时间运行的线程指定处理器调度中的首选项或约束, 主要在程序刚启动时生效. 
+- 作用: 影响短时间运行的线程(如程序启动时的初始化线程)在处理器核心上的分配方式. 
+- 选项: 与“异类线程调度策略”相似, 包括自动, 高性能处理器, 首选高性能处理器, 高效处理器, 所有处理器等. 
+
+注意: 仅修改电源设置并不能解决幽灵行动荒野无法进入的问题, 修改电源设置主要是当大小核相差不大的时候(比如`英特尔® 至强® Gold 6430 处理器` , 大核2.2GHz, 小核1.8GHz, [官方资料](https://www.intel.cn/content/www/cn/zh/products/sku/231737/intel-xeon-gold-6430-processor-60m-cache-2-10-ghz/specifications.html)), 防止小核不启动.
+
+## 参考网页
+
+- [WIN10 WIN11 12代 13代 大小核 电源选项 - runliuv - 博客园](https://www.cnblogs.com/runliuv/p/17401786.html)
+- [【windows11】AMD满血策略调整, inter大小核调度调整_异类线程调度策略-CSDN博客](https://blog.csdn.net/u011617151/article/details/140129598)
+- [生效的异类策略, 0到4, 有什么区别？ - runliuv - 博客园](https://www.cnblogs.com/runliuv/p/18761849)
+- [关于windows 11电源选项下处理器电源管理: 生效的异类策略选项的相关文档信息 - Microsoft Q&A](https://learn.microsoft.com/zh-cn/answers/questions/4127752/windows-11)
+  - [异构电源计划的静态配置选项概述 \| Microsoft Learn](https://learn.microsoft.com/zh-cn/windows-hardware/customize/power-settings/static-configuration-options-for-heterogeneous-power-scheduling)
+  - [Optimizing Software for x86 Hybrid Architecture](https://www.intel.com/content/www/us/en/content-details/818776/optimizing-software-for-x86-hybrid-architecture.html)见7.2.1.1和7.2.1.2
+  - [生效的异类策略, 0到4, 有什么区别？ - runliuv - 博客园](https://www.cnblogs.com/runliuv/p/18761849)
