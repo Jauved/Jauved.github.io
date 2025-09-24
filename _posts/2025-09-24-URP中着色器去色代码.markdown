@@ -1,0 +1,108 @@
+---
+layout: post
+title: "URP中着色器去色代码"
+categories: [URP, 后处理]
+tags: URP 后处理 去色 明度 拟合 线性
+math: true
+
+
+---
+
+# URP中着色器去色代码
+
+## 00 前置知识
+
+通常的做法是使用
+
+$$
+
+Y=0.2126R+0.7152G+0.0722B
+
+$$
+
+代码在`Packages/com.unity.render-pipelines.core/Runtime/Utilities/ColorUtils.cs`中
+
+```c#
+/// <summary>
+/// Returns the luminance of the specified color. The input is considered to be in linear
+/// space with sRGB primaries and a D65 white point.
+/// </summary>
+/// <param name="color">The color to compute the luminance for.</param>
+/// <returns>A luminance value.</returns>
+public static float Luminance(in Color color) => color.r * 0.2126729f + color.g * 0.7151522f + color.b * 0.072175f;
+```
+
+等价于hlsl代码:
+
+```c#
+/// 等价于
+float luminance = dot(color.rgb, float3(0.2126729f, 0.7151522f, 0.072175f));
+```
+
+## 01 实施
+
+要注意的是, 这里的输入是线性颜色, 如果输入的是`sRGB`的颜色(通常材质球面板上的直接输入就是`sRGB`颜色)则需要先转一次线性, 计算明度后再把明度转回来, 代码在`Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl`文件中
+
+```c#
+real3 SRGBToLinear(real3 c)
+{
+#if defined(UNITY_COLORSPACE_GAMMA) && REAL_IS_HALF
+    c = min(c, 100.0); // Make sure not to exceed HALF_MAX after the pow() below
+#endif
+    real3 linearRGBLo  = c / 12.92;
+    real3 linearRGBHi  = PositivePow((c + 0.055) / 1.055, real3(2.4, 2.4, 2.4));
+    real3 linearRGB    = (c <= 0.04045) ? linearRGBLo : linearRGBHi;
+    return linearRGB;
+}
+
+real4 SRGBToLinear(real4 c)
+{
+    return real4(SRGBToLinear(c.rgb), c.a);
+}
+
+real LinearToSRGB(real c)
+{
+    real sRGBLo = c * 12.92;
+    real sRGBHi = (PositivePow(c, 1.0/2.4) * 1.055) - 0.055;
+    real sRGB   = (c <= 0.0031308) ? sRGBLo : sRGBHi;
+    return sRGB;
+}
+```
+
+当然, 如果你不想转线性, 可以直接用拟合函数(推荐)
+
+```c#
+float luminance = dot(color.rgb, float3(0.299f, 0.587f, 0.114f));
+```
+
+如果你要转, 则精确算法如下
+
+```c#
+float3 lin = SRGBToLinear(color.rgb);
+float luma = dot(lin, float3(0.2126729, 0.7151522, 0.072175));
+float gray = LinearToSRGB(luma);
+```
+
+
+
+## 02 数据对比验证
+
+sRGB+NTSC代表`拟合函数`
+
+Lin+Rec709代表`精确算法`
+
+| R    | G    | B    | Fast (sRGB+NTSC) | Accurate (Lin+Rec709) | Difference |
+| ---- | ---- | ---- | ---------------- | --------------------- | ---------- |
+| 0.2  | 0.3  | 0.5  | 0.2929           | 0.3033                | +0.0104    |
+| 0.8  | 0.6  | 0.2  | 0.6142           | 0.6331                | +0.0189    |
+| 0.5  | 0.2  | 0.7  | 0.3467           | 0.3518                | +0.0051    |
+| 1.0  | 1.0  | 1.0  | 1.0000           | 1.0000                | ~0         |
+| 0.0  | 0.0  | 0.0  | 0.0000           | 0.0000                | 0          |
+
+这里是纯色, 即rgb值一样的颜色, 两种算法的误差图, 可以看到差别在1e^-8这个量级
+
+<img src="/assets/image/Grayscale-Accurate-vs-Fast.png" alt="Grayscale-Accurate-vs-Fast" style="zoom: 33%;" />
+
+<img src="/assets/image/Difference-between.png" alt="Difference-between" style="zoom:33%;" />
+
+###### 参考网页
