@@ -2,7 +2,7 @@
 layout: post
 title: "定制ShaderGraph(四)---Geometric Specular Anti-aliasing的URP实现"
 categories: [URP, ShaderGraph]
-tags: URP ShaderGraph 定制
+tags: URP ShaderGraph 定制 AA 抗锯齿
 math: true
 
 
@@ -79,7 +79,7 @@ float ProjectedSpaceGeometricNormalFiltering(float perceptualSmoothness, float3 
 
 ~~首先, 我们需要需要在SurfaceData中添加一些参数, 用来承载数据传输~~.
 
-在`Library/PackageCache/com.unity.render-pipelines.high-definition@12.1.15/Runtime/Material/Lit/Lit.cs.hlsl`中可以找到HDRP的SurfaceData
+~~在`Library/PackageCache/com.unity.render-pipelines.high-definition@12.1.15/Runtime/Material/Lit/Lit.cs.hlsl`中可以找到HDRP的SurfaceData~~
 
 ```c#
 struct SurfaceData
@@ -108,7 +108,7 @@ struct SurfaceData
 };
 ```
 
-对比URP的`Library/PackageCache/com.unity.render-pipelines.universal@12.1.10/ShaderLibrary/SurfaceData.hlsl`
+~~对比URP的`Library/PackageCache/com.unity.render-pipelines.universal@12.1.10/ShaderLibrary/SurfaceData.hlsl`~~
 
 ```c#
 struct SurfaceData
@@ -287,7 +287,7 @@ UNITY_BRANCH
 
 详情参见[流控制 - Win32 apps \| Microsoft Learn](https://learn.microsoft.com/zh-cn/windows/win32/direct3dhlsl/dx-graphics-hlsl-flow-control)
 
-- 以自定义节点的方式接入ShaderGraph, 并加入随视线距离变化而还原正常的Smoothness的功能, 这样, 在极近距离则可以弯曲的体现硬表面建模的细节. 代价是当GeometricSpecularAA生效时环境贴图会达不到最高的精度, 但HDRP同样会有该缺陷.
+- 以自定义节点的方式接入ShaderGraph, 并加入随视线距离变化而还原正常的Smoothness的功能, 这样, 在极近距离则可以完全的体现硬表面建模的细节. 代价是当GeometricSpecularAA生效时环境贴图会达不到最高的精度, 但HDRP同样会有该缺陷.
 
   ![image-20250912184146256](/assets/image/image-20250912184146256.png)
 

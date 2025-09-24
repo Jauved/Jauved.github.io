@@ -38,6 +38,10 @@ math: true
 
 - [Recipes for popular visual effects using the Universal Render Pipeline](https://unity.com/resources/the-universal-render-pipeline-cookbook-unity-2022-lts-edition)
 
+- [High-End Lighting & Environments with HDRP in Unity 6 \| Unity](https://unity.com/resources/lighting-environments-hdrp-unity-6)
+
+  Unity6 HDRP
+
 ---
 
 ### 工作流
