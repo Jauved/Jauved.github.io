@@ -12,93 +12,96 @@ math: true
 
 ## 00 基于Windows11新机开荒
 
-- 安装Falcon Proxy, 用于浏览器代理分发初筛选
+### 安装Falcon Proxy, 用于浏览器代理分发初筛选
 
-  - [falcon-proxy/core at master · lyricat/falcon-proxy](https://github.com/lyricat/falcon-proxy/tree/master/core)
-  - 注意, 源代码并不是直接可用的插件.
+- [falcon-proxy/core at master · lyricat/falcon-proxy](https://github.com/lyricat/falcon-proxy/tree/master/core)
+- 注意, 源代码并不是直接可用的插件.
 
-- 安装PowerToys
+### 安装PowerToys
 
-  - [microsoft/PowerToys: Windows system utilities to maximize productivity](https://github.com/microsoft/PowerToys)
-  - 安装[everything](https://www.voidtools.com/zh-cn/downloads/)
-  - 安装[PowerToys](https://github.com/microsoft/PowerToys)的[Everything扩展](https://github.com/lin-ycv/EverythingPowerToys)
-    - 要注意的是, EverythingPowerToys (EPT), 只支持到0.91.1, 后续因为PowerToys出了个Command Palette (CmdPal), 所以当PowerToys版本高于0.91.1, 则应该使用[PowerToys Command Palette (CmdPal)](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview), 其[Github仓库](https://github.com/lin-ycv/EverythingCommandPalette).
-    - 建议安装0.91.1版本并配合EPT0.91.1版本, 因为新版的Everything被配置在CmdPal中, 打开方式是`win+alt+space`, 多按一个键.
+- [microsoft/PowerToys: Windows system utilities to maximize productivity](https://github.com/microsoft/PowerToys)
+- 安装[everything](https://www.voidtools.com/zh-cn/downloads/)
+- 安装[PowerToys](https://github.com/microsoft/PowerToys)的[Everything扩展](https://github.com/lin-ycv/EverythingPowerToys)
+  - 要注意的是, EverythingPowerToys (EPT), 只支持到0.91.1, 后续因为PowerToys出了个Command Palette (CmdPal), 所以当PowerToys版本高于0.91.1, 则应该使用[PowerToys Command Palette (CmdPal)](https://learn.microsoft.com/en-us/windows/powertoys/command-palette/overview), 其[Github仓库](https://github.com/lin-ycv/EverythingCommandPalette).
+    - 只要你没有去用everything1.5a或以上的版本, 就下[VictorLin.EverythingCP_0.2.0.0_x64__yazqh14evg2ve.Msix](https://github.com/lin-ycv/EverythingCommandPalette/releases/download/v0.2.0.0/VictorLin.EverythingCP_0.2.0.0_x64__yazqh14evg2ve.Msix)
+      - 如果安装不了, 就安装[Microsoft Store的版本](https://apps.microsoft.com/detail/9N2DRHJ970D9?mode=direct)
+        - 如果安装不了, 就连手机热点
+  - 建议安装0.91.1版本并配合EPT0.91.1版本, 因为新版的Everything被配置在CmdPal中, 打开方式是`win+alt+space`, 多按一个键.
 
-- 干掉Windows11右键一级菜单
+### 干掉Windows11右键一级菜单
 
-  - 命令行输入, 并回车
-    `reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve`
+- 命令行输入, 并回车
+  `reg add "HKCU\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32" /f /ve`
 
-    来自https://zhuanlan.zhihu.com/p/524603591
+  来自https://zhuanlan.zhihu.com/p/524603591
 
-  - 干掉后可能有副作用, 比如VSCode安装之后, 没有右键打开功能, 复制下面的代码, 将路径换成你自己的VSCode路径, 存为.reg文件, 然后执行. 或者你也可以选择使用PowerToys的`高级->注册表预览->启用注册表预览`, 将代码粘贴复制进去, 可以在修改前预览到修改的结果, 确认无误后, 点击`写入注册表`, 同时也可以保存为`.reg`文件后续复用.
+- 干掉后可能有副作用, 比如VSCode安装之后, 没有右键打开功能, 复制下面的代码, 将路径换成你自己的VSCode路径, 存为.reg文件, 然后执行. 或者你也可以选择使用PowerToys的`高级->注册表预览->启用注册表预览`, 将代码粘贴复制进去, 可以在修改前预览到修改的结果, 确认无误后, 点击`写入注册表`, 同时也可以保存为`.reg`文件后续复用.
 
-    ```shell
-    Windows Registry Editor Version 5.00
-    
-    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\VSCode]
-    @="Open with Code"
-    "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
-    
-    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\VSCode\command]
-    @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
-    
-    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\VSCode]
-    @="Open with Code"
-    "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
-    
-    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\VSCode\command]
-    @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
-    
-    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\VSCode]
-    @="Open with Code"
-    "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
-    
-    [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\VSCode\command]
-    @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
-    
-    [HKEY_CLASSES_ROOT\*\shell\VSCode]
-    @="Open with Code"
-    "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
-    
-    [HKEY_CLASSES_ROOT\*\shell\VSCode\command]
-    @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%1\""
-    ```
+  ```shell
+  Windows Registry Editor Version 5.00
+  
+  [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\VSCode]
+  @="Open with Code"
+  "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
+  
+  [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\Background\shell\VSCode\command]
+  @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
+  
+  [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\VSCode]
+  @="Open with Code"
+  "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
+  
+  [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\shell\VSCode\command]
+  @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
+  
+  [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\VSCode]
+  @="Open with Code"
+  "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
+  
+  [HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Drive\shell\VSCode\command]
+  @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%V\""
+  
+  [HKEY_CLASSES_ROOT\*\shell\VSCode]
+  @="Open with Code"
+  "Icon"="D:\\Program Files\\Microsoft VS Code\\Code.exe"
+  
+  [HKEY_CLASSES_ROOT\*\shell\VSCode\command]
+  @="\"D:\\Program Files\\Microsoft VS Code\\Code.exe\" \"%1\""
+  ```
 
-  - Everything的右键打开文件夹也会丢失, 对应的reg代码如下, 以";"开头的是注释掉的代码, 因为你如果在安装的时候选择了右键菜单, 那么这部分是会加入注册表的:
+- Everything的右键打开文件夹也会丢失, 对应的reg代码如下, 以";"开头的是注释掉的代码, 因为你如果在安装的时候选择了右键菜单, 那么这部分是会加入注册表的:
 
-    ```shell
-    Windows Registry Editor Version 5.00
-    
-    [HKEY_CLASSES_ROOT\Directory\Background\shell\搜索 Everything...]
-    "Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
-    
-    [HKEY_CLASSES_ROOT\Directory\Background\shell\搜索 Everything...\command]
-    @="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%V\""
-    
-    [HKEY_CLASSES_ROOT\Folder\shell\搜索 Everything...]
-    "Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
-    
-    [HKEY_CLASSES_ROOT\Folder\shell\搜索 Everything...\command]
-    @="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%1\""
-    
-    ;如果你在安装的时候已经选择了右键菜单, 那么以下的是不需要加入注册表的
-    ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\background\shell\搜索 Everything...]
-    ;"Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
-    
-    ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\background\shell\搜索 Everything...\command]
-    ;@="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%V\""
-    
-    ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\搜索 Everything...]
-    ;"Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
-    
-    ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\搜索 Everything...\command]
-    ;@="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%1\""
-    
-    ```
+  ```shell
+  Windows Registry Editor Version 5.00
+  
+  [HKEY_CLASSES_ROOT\Directory\Background\shell\搜索 Everything...]
+  "Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
+  
+  [HKEY_CLASSES_ROOT\Directory\Background\shell\搜索 Everything...\command]
+  @="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%V\""
+  
+  [HKEY_CLASSES_ROOT\Folder\shell\搜索 Everything...]
+  "Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
+  
+  [HKEY_CLASSES_ROOT\Folder\shell\搜索 Everything...\command]
+  @="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%1\""
+  
+  ;如果你在安装的时候已经选择了右键菜单, 那么以下的是不需要加入注册表的
+  ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\background\shell\搜索 Everything...]
+  ;"Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
+  
+  ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Directory\background\shell\搜索 Everything...\command]
+  ;@="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%V\""
+  
+  ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\搜索 Everything...]
+  ;"Icon"="D:\\Program Files\\Everything\\Everything.exe,0"
+  
+  ;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Folder\shell\搜索 Everything...\command]
+  ;@="\"D:\\Program Files\\Everything\\Everything.exe\" -path \"%1\""
+  
+  ```
 
-    
+  
 
 - 如果是家庭版没有组策略管理器, 将以下代码存储为`.bat`文件, 然后执行
 
@@ -115,6 +118,60 @@ math: true
 - 安装[Sysinternals 实用工具 - Sysinternals \| Microsoft Learn](https://learn.microsoft.com/zh-cn/sysinternals/downloads/)
   - 用于进程分析等基础的检测
   - 也可以单独安装[Process Explorer - Sysinternals \| Microsoft Learn](https://learn.microsoft.com/en-us/sysinternals/downloads/process-explorer)
+
+### 网络共享盘无法访问
+
+- 组策略(运行->gpedit.msc)
+  - 本地计算机策略->计算机配置->管理模板->网络->Lanman工作站->启动不安全的来宾登记
+  - 本地计算机策略->计算机配置->Windows设置->安全设置->本地策略->安全选项->禁用"Microsoft网络客户端: 对通信进行数字签名(始终)"
+
+### 装系统蓝屏
+
+- 进Bios->关闭VMD
+
+### MicrosoftStore总是访问不了/应用安装不了
+
+- 换个非Microsoft Store的源
+- 实在不能换的, 连手机热点
+
+### Windows无法更新
+
+- 连手机热点
+
+### 当前壁纸和锁屏图片
+
+- 当前壁纸
+  - 新建快捷方式, 把下面的[USER_NAME]换成你自己的用户名
+  - 路径: `C:\Users\[USER_NAME]\AppData\Roaming\Microsoft\Windows\Themes`
+  - 里面的文件记得添加扩展名为`.jpg`
+- 当前锁屏
+  - 新建快捷方式, 把下面的[S-1-5-21-aaaaaaaaaa-bbbbbbbbb-cccccccccc-1001], 换成你自己的用户账户SID
+    - 要查看你的用户账户SID
+      - 启动regedit, 找到下面的项
+      - \HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\
+      - 里面最长的那个通常来说就是你当前的用户账户SID, 如果有多个用户的话, 查看对应SID的ProfileImagePath, 里面的路径包含了用户名
+  - 路径: `%ProgramData%\Microsoft\Windows\SystemData\[S-1-5-21-aaaaaaaaaa-bbbbbbbbb-cccccccccc-1001]\ReadOnly`
+
+### 桌面备份
+
+- 千万注意, Windows11你拷贝桌面, 全都是保存的快捷方式而不是真正的文件, 记得检查, 备份真正的文件
+
+### Unity的模板存储位置
+
+- `C:\Users\[USER_NAME]\AppData\Roaming\UnityHub\Templates`
+
+### Git所有权(ownership)的问题
+
+- 从Git2.35.2开始, Git会就文件所有权进行验证, 如果你的用户名变了, 那么需要执行以下命令, 把E:\Projects换成你的仓库的根目录
+
+  ```
+  takeown /F "E:\Projects" /R /D Y
+  icacls  "E:\Projects" /setowner "%USERNAME%" /T
+  ```
+
+### Rider/Pycharm/AndroidStudio点击打开文件无响应
+
+- 安装完之后重启一下
 
 ## 01 疑难杂症
 
@@ -138,5 +195,5 @@ Step3: 保存, 重启计算机
 ## 参考网页
 
 - [Windows 10/11家庭版打开组策略编辑器(gpedit.msc) - 知乎](https://zhuanlan.zhihu.com/p/673820397)
-- [SATA机械硬盘\固态硬盘识别成可移动设备的解决办法 - 简书 
-  ](https://www.jianshu.com/p/763ebf89bb90)
+- [SATA机械硬盘\固态硬盘识别成可移动设备的解决办法 - 简书 ](https://www.jianshu.com/p/763ebf89bb90)
+- [为什么INTEL卷管理设备VMD会障碍你安装windows？ - 知乎](https://zhuanlan.zhihu.com/p/841132167)
