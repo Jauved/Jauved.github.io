@@ -30,7 +30,12 @@ math: true
 
   在安装AdobeCreativeCloud的时候
 
-  以管理员模式运行梯子, 开启`Tun`模式, 并选择`自动配置系统代理`, 正常安装AdobeCreativeCloud, 以及其他的应用. 安装完毕后恢复通常的状态.
+  以管理员模式运行梯子, 
+  
+  - 开启`Tun`模式, 并选择`自动配置系统代理`
+  - 或者关闭`Tun`模式, 并选择`Pac`模式
+  
+  正常安装AdobeCreativeCloud, 以及其他的应用. 安装完毕后恢复通常的状态.
 
 
 

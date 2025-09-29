@@ -16,17 +16,132 @@ math: true
 
 ## 01 处理方法
 
-- 利用OneDrive, 在OneDirve中创建一个目录, 比如`bare-repository`.
-- 创建bare仓库
+- ~~利用OneDrive, 在OneDirve中创建一个目录, 比如`bare-repository`~~.
+
+- 本地创建bare仓库
   - 进入`bare-repository`目录, 开启命令行
   - 输入`git init --bare`, 回车
+
 - 初始化仓库
   - 进入自己想要跟踪的目录, 比如`_docs`
   - 输入`git init`, 回车
-  - 输入`git remote add origin F:\OneDrive\Git\jauved.docs`, 请把`F:\OneDrive\Git\jauved.docs`换成自己的路径, 回车
+  - 输入`git remote add origin F:/bare-repository`, 请把`F:/bare-repository`换成自己的路径, 回车
   - 输入`git push origin main`
-- 其他的机器clone仓库
-  - 输入`git clone "F:\OneDrive\Git\jauved.docs"`
-- 然后正常的进行同步/推送即可
+
+- 单独将裸仓库指定为某个仓库的远端
+
+  ```bash
+  git remote add origin E:/bare-repository.git
+  ```
+
+  
+
+- 将裸仓库进行远程备份
+  - 输入~~`git clone "F:\OneDrive\Git\jauved.docs"`~~
+
+  - 建议不直接使用OneDrive目录作为远端目录, Git使用状态下会对文件进行占用, 而OneDrive同步时会因为占用而导致写入或修改困难
+
+  - 可以先在本地磁盘上建立裸仓库, 然后用bundle的形式, 将裸仓库在OneDrive上进行备份.备份批处理文件参考如下. 需要将其中的目录(`E:\GitBareRepos`, 裸仓库根目录, 注意, 不是裸仓库目录, 而是所有裸仓库的上级目录. `F:\OneDrive\Git\GitBareReposBackups`, 目标目录)替换为自己的目录
+
+    ```shell
+    @echo off
+    setlocal enabledelayedexpansion
+    
+    REM ------------------------------------------------------------
+    REM backup.bat - Git bundle backup for multiple bare repositories
+    REM Author: ChatGPT
+    REM Usage:
+    REM   Double-click or run in terminal, input repo name or press Enter for all.
+    REM ------------------------------------------------------------
+    
+    REM === Configuration ===
+    set "BASEDIR=E:\GitBareRepos"
+    set "BACKUPDIR=F:\OneDrive\Git\GitBareReposBackups"
+    
+    REM Ensure the backup directory exists
+    if not exist "%BACKUPDIR%" (
+        mkdir "%BACKUPDIR%"
+    )
+    
+    REM === Get current date (yyyy-MM-dd) ===
+    for /f %%I in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd"') do set "TODAY=%%I"
+    
+    REM === Prompt for repository name ===
+    set /p "REPO=Enter repository name to backup (press Enter for all): "
+    
+    REM === Prompt whether to overwrite existing bundles (default: Y) ===
+    set /p "OVERWRITE=Overwrite existing bundle without date? [Y/N] (default Y): "
+    if /I "%OVERWRITE%"=="" set "OVERWRITE=Y"
+    
+    echo.
+    
+    if /I "%OVERWRITE%"=="Y" (
+        set "SUFFIX="
+    ) else (
+        set "SUFFIX=-%TODAY%"
+    )
+    
+    if "%REPO%"=="" (
+        REM Backup all repositories
+        echo Backing up all repositories under %BASEDIR%...
+        for /d %%D in ("%BASEDIR%\*") do (
+            set "NAME=%%~nxD"
+            echo Creating bundle for !NAME!...
+            git -C "%%D" bundle create "%BACKUPDIR%\!NAME!!SUFFIX!.bundle" --all
+        )
+    ) else (
+        REM Backup single repository
+        if exist "%BASEDIR%\%REPO%" (
+            echo Creating bundle for %REPO%...
+            git -C "%BASEDIR%\%REPO%" bundle create "%BACKUPDIR%\%REPO%%SUFFIX%.bundle" --all
+        ) else (
+            echo ERROR: Repository "%REPO%" not found under "%BASEDIR%".
+            pause
+            exit /b 1
+        )
+    )
+    
+    echo.
+    echo Backup operation completed.
+    pause
+    
+    ```
+
+    
+
+- 然后正常的进行推送/同步即可
+
+## 02 通过Bundle还原裸仓库并拉取
+
+### 02.1a 直接还原
+
+还原裸仓库
+
+```bash
+git clone --bare F:/OneDrive/Git/GitBareReposBackups/YourRepo.bundle E:/GitBareRepos/YourRepo.git
+```
+
+### 02.1b 先初始化后还原
+
+你也可以先初始化一个裸仓库
+
+```bash
+git init --bare E:/GitBareRepos/YourRepo.git
+```
+
+将bundle拉入
+
+```bash
+cd E:/GitBareRepos/YourRepo.git
+git pull F:/OneDrive/Git/GitBareReposBackups/YourRepo.bundle --all
+```
+
+### 02.2 拉取工作区
+
+```bash
+git clone E:/GitBareRepos/YourRepo.git D:/Projects/YourRepo
+```
+
+
 
 ###### 参考网页

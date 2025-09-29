@@ -31,6 +31,30 @@ tags: Jekyll blog
 
 - 此时Jekyll布置完毕.
 
+- 然后进入工程目录, 执行`bundle install`
+
+  - 如果下载困难, 则使用代理
+
+    ```
+    set HTTP_PROXY=http://127.0.0.1:10809
+    set HTTPS_PROXY=http://127.0.0.1:10809
+    bundle install
+    ```
+
+    
+
+- 之后可以拉起本地服务器
+
+  - 运行命令行`bundle exec jekyll s`可以开启本地测试端, 开启后, 访问地址为`http://127.0.0.1:4000/`
+
+  - 建议制作为一个.bat文件, 文件放置在工程根目录下, 内容如下
+
+    ```
+    @echo off
+    bundle exec jekyll s
+    pause
+    ```
+
   
 
 ## 2. 选择Theme
@@ -81,6 +105,7 @@ tags: Jekyll blog
   ```console
   @echo off
   bundle exec jekyll s
+  pause
   ```
 
 ## 5. [上传第一个文件](https://chirpy.cotes.page/posts/write-a-new-post/)

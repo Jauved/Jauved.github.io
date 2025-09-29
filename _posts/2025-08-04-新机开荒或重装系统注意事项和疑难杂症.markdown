@@ -1,14 +1,14 @@
 ---
 layout: post
-title: "新机开荒"
-categories: [其他, 开荒]
-tags: 开荒 初始化 PowerToys VSCode 右键菜单 Everything 内置硬盘 硬盘 识别
+title: "新机开荒或重装系统注意事项和疑难杂症"
+categories: [其他, 系统]
+tags: 开荒 初始化 PowerToys VSCode 右键菜单 Everything 内置硬盘 硬盘 识别 疑难杂症 Git OneDrive 同步
 math: true
 
 
 ---
 
-# 新机开荒
+# 新机开荒或重装系统注意事项和疑难杂症
 
 ## 00 基于Windows11新机开荒
 
@@ -192,8 +192,24 @@ Step3: 保存, 重启计算机
 
 ![Bus Number](/assets/image/Bus Number.png)
 
+### Git仓库重装系统后显示归属权不对导致无法进行管理
+
+Git2.35新加入的保护机制, Git 一旦认为该目录的所属用户(旧的 SID)与当前登录用户不一致, 出于安全考虑会阻止操作. 运行以下命令, 并将`E:\Projects`替换为你的Git仓库的目录即可.
+
+```
+takeown /F "E:\Projects" /R /D Y
+icacls  "E:\Projects" /setowner "%USERNAME%" /T
+```
+
+### OneDrive一直显示在`正在处理更改`无法同步成功
+
+因为重装系统之后, 你将旧的文件夹指定为OneDrive文件夹(该操作完全正常), 但新的用户没有旧OneDrive文件夹的读写权限导致的. 右键OneDrive文件夹, 选择安全, 编辑, 给你现在的用户加入`修改`和`写入`的权限, 应用即可.
+
+<img src="C:\Users\Jauved\AppData\Roaming\Typora\typora-user-images\image-20250929103143357.png" alt="image-20250929103143357" style="zoom: 50%;" />
+
 ## 参考网页
 
 - [Windows 10/11家庭版打开组策略编辑器(gpedit.msc) - 知乎](https://zhuanlan.zhihu.com/p/673820397)
 - [SATA机械硬盘\固态硬盘识别成可移动设备的解决办法 - 简书 ](https://www.jianshu.com/p/763ebf89bb90)
 - [为什么INTEL卷管理设备VMD会障碍你安装windows？ - 知乎](https://zhuanlan.zhihu.com/p/841132167)
+- [onedrive一直显示“正在处理更改” · Issue #27 · baidut/windowsSystemHelper](https://github.com/baidut/windowsSystemHelper/issues/27)
