@@ -205,7 +205,7 @@ icacls  "E:\Projects" /setowner "%USERNAME%" /T
 
 因为重装系统之后, 你将旧的文件夹指定为OneDrive文件夹(该操作完全正常), 但新的用户没有旧OneDrive文件夹的读写权限导致的. 右键OneDrive文件夹, 选择安全, 编辑, 给你现在的用户加入`修改`和`写入`的权限, 应用即可.
 
-<img src="C:\Users\Jauved\AppData\Roaming\Typora\typora-user-images\image-20250929103143357.png" alt="image-20250929103143357" style="zoom: 50%;" />
+<img src=".assets\image\image-20250929103143357.png" alt="image-20250929103143357" style="zoom: 50%;" />
 
 ## 参考网页
 
