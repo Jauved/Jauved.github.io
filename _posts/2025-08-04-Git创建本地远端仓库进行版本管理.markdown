@@ -26,8 +26,9 @@ math: true
   - 进入自己想要跟踪的目录, 比如`_docs`
   - 输入`git init`, 回车
   - 输入`git remote add origin F:/bare-repository`, 请把`F:/bare-repository`换成自己的路径, 回车
+    - 注意, 直接在Windows中拷贝路径时, 要将其中的分隔符替换为`/`
   - 输入`git push origin main`
-
+  
 - 单独将裸仓库指定为某个仓库的远端
 
   ```bash

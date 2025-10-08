@@ -355,7 +355,7 @@ HDRP中关键的几个文件是
 
   - 原因猜测
 
-    在编辑器的Android平台环境下, 
+    在编辑器的Android平台环境下, shadercompile会不支持uint的函数形式, 同时位移操作也会因为不支持uint而出错.
 
   - 解决方案
 
