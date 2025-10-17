@@ -1,14 +1,14 @@
 ---
 layout: post
-title: "将URP默认的Keyword作为可选项"
-categories: [URP, 后处理]
-tags: URP 后处理 DepthOfField
+title: "定制ShaderGraph(三)---将URP默认的Keyword作为可选项"
+categories: [URP, ShaderGraph]
+tags: URP ShaderGraph 定制 keyword
 math: true
 
 
 ---
 
-# 将URP默认的Keyword作为可选项
+# 定制ShaderGraph(三)---将URP默认的Keyword作为可选项
 
 ## 00 前置知识
 

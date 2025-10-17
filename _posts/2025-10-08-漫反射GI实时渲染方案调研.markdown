@@ -1,0 +1,35 @@
+---
+layout: post
+title: "漫反射GI实时渲染方案调研"
+categories: [URP, GI]
+tags: URP 渲染 GI
+math: true
+
+
+---
+
+# 漫反射GI实时渲染方案调研
+
+## 00 前置知识
+
+### RTXGI
+
+[NVIDIA在2019年做了相关的GDC分享](https://gdcvault.com/play/1026182/).
+
+[NVIDIA在虚幻4中以插件形式的Demo](https://github.com/NVIDIAGameWorks/RTXGI-DDGI)
+
+[SanYue-TechArt在URP中做的实现Demo](https://github.com/SanYue-TechArt/RTXGI-DDGI-URP)
+
+### SSGI
+
+[jiaozi158/UnitySSGIURP: Screen Space Global Illumination for Unity URP (Universal Render Pipeline).](https://github.com/jiaozi158/UnitySSGIURP)
+
+## 01 实施
+
+###### 参考网页
+
+- [GDC Vault - Ray-Traced Irradiance Fields (Presented by NVIDIA)](https://gdcvault.com/play/1026182/)
+- [NVIDIAGameWorks/RTXGI-DDGI: RTX Global Illumination (RTXGI)](https://github.com/NVIDIAGameWorks/RTXGI-DDGI)
+- [SanYue-TechArt/RTXGI-DDGI-URP: RTXGI-DDGI Implementation with Unity (2022.3.17f1c1-URP14.0.9)](https://github.com/SanYue-TechArt/RTXGI-DDGI-URP)
+- [[Open Source\] Screen Space Global Illumination for URP - Community Showcases - Unity Discussions](https://discussions.unity.com/t/open-source-screen-space-global-illumination-for-urp/952599)
+  - [jiaozi158](https://github.com/jiaozi158)

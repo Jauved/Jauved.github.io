@@ -1,0 +1,63 @@
+---
+layout: post
+title: "论文和技术文档整合"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 论文和技术文档整合
+
+## Ke - Sen Huang 的整合
+
+[Resource for Computer Graphics - Ke-Sen Huang's Home Page](https://kesen.realtimerendering.com/)
+
+---
+
+## Siggraph
+
+[Advances in Real-Time Rendering in Games](https://advances.realtimerendering.com/)
+
+## GDC
+
+[GDC Vault](https://gdcvault.com/browse/)
+
+---
+
+## Square Enix
+
+[LIBRARY \| テクノロジー推進部 ADVANCED TECHNOLOGY DIVISION \| SQUARE ENIX](https://www.jp.square-enix.com/tech/publications.html#)
+
+## Filament
+
+[Physically Based Rendering in Filament](https://google.github.io/filament/Filament.md.html)
+
+- [Introduction - Filament](https://google.github.io/filament/dup/intro.html)
+
+## Frostbite
+
+[Moving Frostbite to PBR - Frostbite](https://www.ea.com/frostbite/news/moving-frostbite-to-pb)
+
+## HLSL
+
+[High-level shader language (HLSL) - Win32 apps \| Microsoft Learn](https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl)
+
+## Unreal
+
+[Physically Based Shading on Mobile](https://www.unrealengine.com/en-US/blog/physically-based-shading-on-mobile)
+
+---
+
+## Arxiv.org
+
+[Computer Science](https://arxiv.org/list/cs/recent)
+
+---
+
+## 常用函数速查
+
+[Inigo Quilez :: computer graphics, mathematics, shaders, fractals, demoscene and more](https://iquilezles.org/articles/)
+
+###### 参考网页

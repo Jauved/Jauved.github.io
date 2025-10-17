@@ -1,0 +1,79 @@
+---
+layout: post
+title: "设置颜色到材质球时的注意事项"
+categories: [URP, Shader]
+tags: URP Shader 材质球 设置 Gamma 颜色空间
+math: true
+
+
+---
+
+# 设置颜色到材质球时的注意事项
+
+## 00 前置知识
+
+在非材质球面板上的颜色, 都是Gamma颜色, 在传入材质或Shader全局变量的时候, 需要根据当前项目的空间进行转化. 
+
+在`Library/PackageCache/com.unity.render-pipelines.universal@12.1.10/Runtime/UniversalRenderPipeline.cs`文件中
+
+```c#
+static void SetupPerFrameShaderConstants()
+{
+    using var profScope = new ProfilingScope(null, Profiling.Pipeline.setupPerFrameShaderConstants);
+
+    // When glossy reflections are OFF in the shader we set a constant color to use as indirect specular
+    SphericalHarmonicsL2 ambientSH = RenderSettings.ambientProbe;
+    Color linearGlossyEnvColor = new Color(ambientSH[0, 0], ambientSH[1, 0], ambientSH[2, 0]) * RenderSettings.reflectionIntensity;
+    Color glossyEnvColor = CoreUtils.ConvertLinearToActiveColorSpace(linearGlossyEnvColor);
+    Shader.SetGlobalVector(ShaderPropertyId.glossyEnvironmentColor, glossyEnvColor);
+
+    // Used as fallback cubemap for reflections
+    Shader.SetGlobalVector(ShaderPropertyId.glossyEnvironmentCubeMapHDR, ReflectionProbe.defaultTextureHDRDecodeValues);
+    Shader.SetGlobalTexture(ShaderPropertyId.glossyEnvironmentCubeMap, ReflectionProbe.defaultTexture);
+
+    // Ambient
+    Shader.SetGlobalVector(ShaderPropertyId.ambientSkyColor, CoreUtils.ConvertSRGBToActiveColorSpace(RenderSettings.ambientSkyColor));
+    Shader.SetGlobalVector(ShaderPropertyId.ambientEquatorColor, CoreUtils.ConvertSRGBToActiveColorSpace(RenderSettings.ambientEquatorColor));
+    Shader.SetGlobalVector(ShaderPropertyId.ambientGroundColor, CoreUtils.ConvertSRGBToActiveColorSpace(RenderSettings.ambientGroundColor));
+
+    // Used when subtractive mode is selected
+    Shader.SetGlobalVector(ShaderPropertyId.subtractiveShadowColor, CoreUtils.ConvertSRGBToActiveColorSpace(RenderSettings.subtractiveShadowColor));
+
+    // Required for 2D Unlit Shadergraph master node as it doesn't currently support hidden properties.
+    Shader.SetGlobalColor(ShaderPropertyId.rendererColor, Color.white);
+}
+```
+
+注意这几段关于环境颜色的设置
+
+```c#
+	// Ambient
+    Shader.SetGlobalVector(ShaderPropertyId.ambientSkyColor, CoreUtils.ConvertSRGBToActiveColorSpace(RenderSettings.ambientSkyColor));
+    Shader.SetGlobalVector(ShaderPropertyId.ambientEquatorColor, CoreUtils.ConvertSRGBToActiveColorSpace(RenderSettings.ambientEquatorColor));
+    Shader.SetGlobalVector(ShaderPropertyId.ambientGroundColor, CoreUtils.ConvertSRGBToActiveColorSpace(RenderSettings.ambientGroundColor));
+```
+
+这里都是使用了`CoreUtils.ConvertSRGBToActiveColorSpace()`函数对颜色进行转换的.
+
+具体方法在`Library/PackageCache/com.unity.render-pipelines.core@12.1.10/Runtime/Utilities/CoreUtils.cs`文件中
+
+```c#
+// Color space utilities
+/// <summary>
+/// Converts the provided sRGB color to the current active color space.
+/// </summary>
+/// <param name="color">Input color.</param>
+/// <returns>Linear color if the active color space is ColorSpace.Linear, the original input otherwise.</returns>
+public static Color ConvertSRGBToActiveColorSpace(Color color)
+{
+    return (QualitySettings.activeColorSpace == ColorSpace.Linear) ? color.linear : color;
+}
+```
+
+
+
+## 01 实施
+
+对于任何的HDR颜色, 都要通过Vector进行传入, 且传入前都要调用`Api`进行`CoreUtils.ConvertSRGBToActiveColorSpace()`进行颜色空间适配.
+
+###### 参考网页
