@@ -1,0 +1,98 @@
+---
+layout: post
+title: "移除显卡的热拔插提示"
+categories: [Windows, 设置]
+tags: Windows 设置 显卡 弹出 usb 卸载
+math: true
+
+
+---
+
+# 移除显卡的热拔插提示
+
+## 00 前置知识
+
+~~Windows11一直在搞事情, "安全删除并弹出媒体"里面居然包含了显卡, 就不能做成可选的设置吗? 通常用户根本就没有这个需求. 为了防止误触, 决定把这个选项做掉.~~
+
+修改注册表没有实际作用, 因为这些注册表会被PnP(Windows 的即插即用（PnP）子系统), 根据硬件总线驱动（PCI bus driver）和设备的 INF 信息，重新写入并校正 `Enum\PCI\…` 下面的键值. 换句话说, 除非进行驱动层面的修改, 否则任何的人工修改没有意义. 目前没有找到真正有效的办法.
+
+## 01 实施
+
+### 确认硬件的设备实例路径
+
+- 设备管理器
+- 显示适配器
+- 找到你的硬件
+- 详细信息
+- 属性->设备实例路径
+- 将值记录下来(类似`PCI\VEN_10DE&DEV_2F58&SUBSYS_3E881043&REV_A1\C3463503852DB04800`)
+
+### 在注册表中找到设备对应的注册表项
+
+- `regedit`
+- `HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Enum\PCI`
+- 找到`VEN_10DE&DEV_2F58&SUBSYS_3E881043&REV_A1\C3463503852DB04800`
+- 然后`Capabilities`项的值, 比如是十六进制的16(`0x00000016 = ~00010110`)
+  - ~代表前面24位二进制掩码都为0
+- 移除0x04, 则变成(`0x00000012 = ~00010010`)
+
+## 03 解析
+
+### [SPDRP_CAPABILITIES](https://learn.microsoft.com/en-us/windows/win32/api/setupapi/nf-setupapi-setupdigetdeviceregistrypropertya)
+
+该函数返回一个DWORD类型变量中以下CM_DEVCAP_Xxx标志位的按位或运算结果。这些标志位所表示的设备功能与[`DEVICE_CAPABILITIES`](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_device_capabilities)结构体成员所表示的设备功能相对应。CM_DEVCAP_Xxx常量在Cfgmgr32.h文件中定义。
+
+| CM_DEVCAP_Xxx flag          | Corresponding DEVICE_CAPABILITIES structure member |
+| :-------------------------- | :------------------------------------------------- |
+| CM_DEVCAP_LOCKSUPPORTED     | **LockSupported**                                  |
+| CM_DEVCAP_EJECTSUPPORTED    | **EjectSupported**                                 |
+| CM_DEVCAP_REMOVABLE         | **Removable**                                      |
+| CM_DEVCAP_DOCKDEVICE        | **DockDevice**                                     |
+| CM_DEVCAP_UNIQUEID          | **UniqueID**                                       |
+| CM_DEVCAP_SILENTINSTALL     | **SilentInstall**                                  |
+| CM_DEVCAP_RAWDEVICEOK       | **RawDeviceOK**                                    |
+| CM_DEVCAP_SURPRISEREMOVALOK | **SurpriseRemovalOK**                              |
+| CM_DEVCAP_HARDWAREDISABLED  | **HardwareDisabled**                               |
+| CM_DEVCAP_NONDYNAMIC        | **NonDynamic**                                     |
+
+与 [`DEVICE_CAPABILITIES`](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_device_capabilities) 结构体的字段是对应关系。
+
+在[cfgmgr32.h](https://doxygen.reactos.org/d5/de4/cfgmgr32_8h.html)文件中有定义
+
+```c
+#define 	CM_DEVCAP_LOCKSUPPORTED   0x00000001
+ 
+#define 	CM_DEVCAP_EJECTSUPPORTED   0x00000002
+ 
+#define 	CM_DEVCAP_REMOVABLE   0x00000004
+ 
+#define 	CM_DEVCAP_DOCKDEVICE   0x00000008
+ 
+#define 	CM_DEVCAP_UNIQUEID   0x00000010
+ 
+#define 	CM_DEVCAP_SILENTINSTALL   0x00000020
+ 
+#define 	CM_DEVCAP_RAWDEVICEOK   0x00000040
+ 
+#define 	CM_DEVCAP_SURPRISEREMOVALOK   0x00000080
+ 
+#define 	CM_DEVCAP_HARDWAREDISABLED   0x00000100
+ 
+#define 	CM_DEVCAP_NONDYNAMIC   0x00000200
+```
+
+
+
+所以你看到的 `Capabilities = 0x00000016`，表示设备具有这些能力(`0x0000002`,`0x0000004`,`0x0000010`)。
+
+### 关于十六进制掩码
+
+0x仅仅是标识之后的数据是16进制的, 然后十六进制的8位4bit数据, 就是32bit. 然后每4bit可以用一个十六进制来表示. 这样就不用存储32个二进制而是存储为8个十六进制.
+
+个人理解本质上是二进制掩码的另一种存储方式, 就是存储的实际上是十进制的1,2,4,8, 二进制的(0001, 0010, 0100, 1000), 对应16进制的(0x00000001, 0x00000002, 0x00000004, 0x00000008)
+
+0x00000016, 前面6位都为0, 我们掠过, 最后两位写成二进制, 为(0001 0110), 去掉0x00000004, 则等于二进制的(0001 0010), 则就是0x00000012.
+
+###### 参考网页
+
+[DEVICE_CAPABILITIES (wdm.h) - Windows drivers \| Microsoft Learn](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_device_capabilities)

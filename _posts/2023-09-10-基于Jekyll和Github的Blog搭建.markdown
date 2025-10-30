@@ -144,11 +144,9 @@ tags: Jekyll blog
 
 - 访问`https://jauved.github.io/`, 其中`jauved`替换为你自己的名字, 就可以访问到你布置的Blog了.
 
-## 6. 其他坑
+## 6. Typora兼容
 
-- Typora兼容
-
-    - 笔者使用Typora作为写作的软件, 而Jekyll使用的md语言是属于kramdown方言, 两者的语法会有差异
+- 笔者使用Typora作为写作的软件, 而Jekyll使用的md语言是属于kramdown方言, 两者的语法会有差异
 
 
     - 参考[jekyll下Markdown的填坑技巧 \| Weclome to eipi10](https://eipi10.cn/others/2019/12/07/jekyll-markdown-skills/), 进行处理.(笔者还没有开始处理, 开始处理后会尝试写相关的Blog)
@@ -162,7 +160,7 @@ tags: Jekyll blog
     
       - 然后通过python的脚本, 完成以下工作
     
-        - 文本格式预处理(还没有开始做)
+        - 文本格式预处理
     
         - 将`_docs/.assets/image/`下的文件全部拷贝到`/assets/image/`中
     
@@ -269,7 +267,8 @@ tags: Jekyll blog
 
 - 通过Hook进行`search.json`的再处理可以解决
 
-  - 将单转义符替换为双转义符
+  - ~~将单转义符替换为双转义符~~
+  - 直接去掉"content"字段中的所有反斜杠
   - 将Tab替换为四个空格
 
 - 进入`_plugins`目录
@@ -278,46 +277,105 @@ tags: Jekyll blog
 
   ```c
   # _plugins/fix-search-json.rb
-  # 在 site 写入完毕后，对 search.json 做一次字符串修正，并验证读写生效
+  # 在 site 写入完毕后，对 search.json 做一次字段级别修正，并验证读写生效
+  require 'json'
+  
   Jekyll::Hooks.register :site, :post_write do |site|
     path = site.in_dest_dir('assets', 'js', 'data', 'search.json')
-    Jekyll.logger.info "FixSearchJSON:", "Checking #{path}"
     return unless File.exist?(path)
   
-    # 读取文件并确保 utf-8 编码
+    # 读取文件并移除 BOM
     raw = File.binread(path)
-    # 检查并移除 UTF-8 BOM
-    if raw.bytes.first(3) == [0xEF, 0xBB, 0xBF]
-      Jekyll.logger.info "FixSearchJSON:", "Detected BOM, will remove"
-      raw = raw.bytes.drop(3).pack("C*")
-    end
+    raw = raw.bytes.drop(3).pack("C*") if raw.bytes.first(3) == [0xEF, 0xBB, 0xBF]
     text = raw.force_encoding('utf-8')
   
-    # 打印前两行示例，用于调试匹配
-    snippet_before = text.lines.first(2).join
-    Jekyll.logger.info "FixSearchJSON:", "Snippet before: #{snippet_before.inspect}"
+    # 解析 JSON
+    data = JSON.parse(text)
   
-    # 匹配单个反斜杠，后面不是 转义字符 或 JSON 专用转义
-    slash_pattern = /\\(?=[^\\\/\"bfnrtu])/
+    # 遍历并清洗 content 字段中的所有反斜杠
+    data.each do |item|
+      next unless item['content'].is_a?(String)
+      # 清除 content 值中的反斜杠，不影响合法 JSON 转义
+      item['content'] = item['content'].delete('\\')
+    end
   
-    # 替换操作：Tab 转空格，未转义的反斜杠加转义
-    new_text = text.gsub("\t", "    ")
-    new_text = new_text.gsub(slash_pattern) { "\\\\" }
-  
-    # 写入并验证
-    File.open(path, 'wb') { |f| f.write(new_text) }
-    verify = File.binread(path).force_encoding('utf-8')
-    snippet_after = verify.lines.first(2).join
-    Jekyll.logger.info "FixSearchJSON:", "Snippet after: #{snippet_after.inspect}"
+    # 将修改后的结构写回文件
+    File.open(path, 'wb') do |f|
+      f.write(JSON.generate(data))
+    end
   
     Jekyll.logger.info "FixSearchJSON:", "Repaired #{path}"
   end
+  ```
+  
+
+## 9.搜索结果限制为10
+
+[Search Results Limited to 10 · Issue #458 · cotes2020/jekyll-theme-chirpy](https://github.com/cotes2020/jekyll-theme-chirpy/issues/458)
+
+- 下载[jekyll-theme-chirpy](https://github.com/cotes2020/jekyll-theme-chirpy)主题Git的`_include`文件夹下的[search-loader.html文件](https://github.com/cotes2020/jekyll-theme-chirpy/blob/master/_includes/search-loader.html#L22).
+
+- 在你的工程根目录下新建`_include`文件夹, 将下载到的search-loader.html文件放在其中
+
+- 打开并编辑, 在以下实例中的位置添加`limit: <num>`类似的配置, `<num>`替换为期望的搜索结果数量
+  ```html
+  <!--
+    Jekyll Simple Search loader
+    See: <https://github.com/christian-fei/Simple-Jekyll-Search>
+  -->
+  
+  {% capture result_elem %}
+    <article class="px-1 px-sm-2 px-lg-4 px-xl-0">
+      <header>
+        <h2><a href="{url}">{title}</a></h2>
+        <div class="post-meta d-flex flex-column flex-sm-row text-muted mt-1 mb-1">
+          {categories}
+          {tags}
+        </div>
+      </header>
+      <p>{content}</p>
+    </article>
+  {% endcapture %}
+  
+  {% capture not_found %}<p class="mt-5">{{ site.data.locales[include.lang].search.no_results }}</p>{% endcapture %}
+  
+  <script>
+    {% comment %} Note: dependent library will be loaded in `js-selector.html` {% endcomment %}
+    document.addEventListener('DOMContentLoaded', () => {
+      SimpleJekyllSearch({
+        searchInput: document.getElementById('search-input'),
+        resultsContainer: document.getElementById('search-results'),
+        json: '{{ '/assets/js/data/search.json' | relative_url }}',
+        searchResultTemplate: '{{ result_elem | strip_newlines }}',
+        noResultsText: '{{ not_found }}',
+        limit: 50, // 添加这一行
+        templateMiddleware: function(prop, value, template) {
+          if (prop === 'categories') {
+            if (value === '') {
+              return `${value}`;
+            } else {
+              return `<div class="me-sm-4"><i class="far fa-folder fa-fw"></i>${value}</div>`;
+            }
+          }
+  
+          if (prop === 'tags') {
+            if (value === '') {
+              return `${value}`;
+            } else {
+              return `<div><i class="fa fa-tag fa-fw"></i>${value}</div>`;
+            }
+          }
+        }
+      });
+    });
+  </script>
+  
   ```
 
   
 
 
-## 9. 附录: 
+## 10. 附录: 
 
 ###### 参考网页
 
