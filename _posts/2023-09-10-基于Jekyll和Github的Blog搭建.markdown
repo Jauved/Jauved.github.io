@@ -309,7 +309,7 @@ tags: Jekyll blog
   ```
   
 
-## 9.搜索结果限制为10
+## 9. 搜索数量被限制为10
 
 [Search Results Limited to 10 · Issue #458 · cotes2020/jekyll-theme-chirpy](https://github.com/cotes2020/jekyll-theme-chirpy/issues/458)
 
@@ -317,7 +317,7 @@ tags: Jekyll blog
 
 - 在你的工程根目录下新建`_include`文件夹, 将下载到的search-loader.html文件放在其中
 
-- 打开并编辑, 在以下实例中的位置添加`limit: <num>`类似的配置, `<num>`替换为期望的搜索结果数量
+- 打开并编辑, 在以下示例中添加`limit: 50`类似的配置, `50`替换为期望的搜索结果数量
   ```html
   <!--
     Jekyll Simple Search loader
@@ -348,7 +348,7 @@ tags: Jekyll blog
         json: '{{ '/assets/js/data/search.json' | relative_url }}',
         searchResultTemplate: '{{ result_elem | strip_newlines }}',
         noResultsText: '{{ not_found }}',
-        limit: 50, // 添加这一行
+        limit: 50,
         templateMiddleware: function(prop, value, template) {
           if (prop === 'categories') {
             if (value === '') {
