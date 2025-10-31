@@ -2,7 +2,7 @@
 layout: post
 title: "ADB命令"
 categories: [性能测试]
-tags: 性能测试 ADB
+tags: 性能测试 adb
 math: true
 
 ---

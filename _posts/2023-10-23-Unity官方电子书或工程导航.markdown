@@ -22,13 +22,13 @@ math: true
 
 ### 管线
 
-- [Updated for 2021 LTS: The definitive guide to lighting in the High Definition Render Pipeline \| Unity Blog](https://blog.unity.com/engine-platform/updated-for-2021-lts-the-definitive-guide-to-lighting-in-the-high-definition-render)
+- ~~[Updated for 2021 LTS: The definitive guide to lighting in the High Definition Render Pipeline \| Unity Blog](https://blog.unity.com/engine-platform/updated-for-2021-lts-the-definitive-guide-to-lighting-in-the-high-definition-render)~~
 
-  关于HDRP渲染的电子书, 相关案例通过UnityHub在新建工程时选择```3D Sample Scene (HDRP)```即可建立相关工程.
+  ~~关于HDRP渲染的电子书, 相关案例通过UnityHub在新建工程时选择```3D Sample Scene (HDRP)```即可建立相关工程.~~
 
-- [Move on over to the Universal Render Pipeline with our advanced guide \| Unity Blog](https://blog.unity.com/engine-platform/move-on-over-to-the-universal-render-pipeline-with-our-advanced-guide)
+- ~~[Move on over to the Universal Render Pipeline with our advanced guide \| Unity Blog](https://blog.unity.com/engine-platform/move-on-over-to-the-universal-render-pipeline-with-our-advanced-guide)~~
 
-  关于URP的电子书.
+  ~~关于URP的电子书.~~
 
 - [Introduction to the Universal Render Pipeline for advanced Unity creators \| Unity](https://unity.com/resources/introduction-universal-render-pipeline-for-advanced-unity-creators)
 
@@ -57,6 +57,10 @@ math: true
 - [5 ways to speed up your workflows in the Editor \| Unity Blog](https://blog.unity.com/engine-platform/5-ways-to-speed-up-workflows-in-unity-editor)
 
   关于Unity编辑器操作的工作流建议, 其中[快捷键的设置](https://docs.unity3d.com/2020.1/Documentation/Manual/ShortcutsManager.html)部分是没有了解过的, **Edit > Shortcuts**可以打开快捷键窗口.
+
+- [Working with physically based shading: A practical approach](https://unity.com/blog/engine-platform/practical-approach-to-physically-based-shading)
+
+  Unity最原始的初版PBR流程文档
 
 ---
 

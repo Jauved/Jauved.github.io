@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "安装AdobeCreativeCloud无法验证账号"
-categories: [Adobe, photoshop]
-tags: Adobe photoshop 安装问题
+categories: [Adobe, Photoshop]
+tags: Adobe Photoshop 安装问题
 math: true
 
 
