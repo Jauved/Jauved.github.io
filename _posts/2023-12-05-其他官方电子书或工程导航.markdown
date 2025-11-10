@@ -25,7 +25,21 @@ math: true
 
 [贴花-Anatta336/driven-decals: A mesh-based PBR decal system for Unity's universal render pipeline. (github.com)](https://github.com/Anatta336/driven-decals)
 
-## 04 工具
+## 04 虚幻引擎
+
+#### 车辆渲染
+
+[Create photoreal car windows in Unreal Engine](https://www.unrealengine.com/de/tech-blog/create-photoreal-car-windows-in-unreal-engine)
+
+[How to set up automotive studio lighting in Unreal Engine](https://www.unrealengine.com/en-US/tech-blog/how-to-set-up-automotive-studio-lighting-in-unreal-engine)
+
+[From streets to screens: pioneering virtual production for vehicle scenes - Unreal Engine](https://www.unrealengine.com/en-US/spotlights/from-streets-to-screens-pioneering-virtual-production-for-vehicle-scenes)
+
+[Improved shading models in Unreal Engine 4.25 and beyond](https://www.unrealengine.com/en-US/tech-blog/improved-shading-models-in-unreal-engine-4-25-and-beyond)
+
+[Making a Real-Time Design Tool: McLaren Automates CAD Import with Datasmith](https://www.unrealengine.com/en-US/tech-blog/making-a-real-time-design-tool-mclaren-automates-cad-import-with-unreal-studio)
+
+## 05 工具
 
 [数学库-FreyaHolmer/Mathfs: Expanded Math Functionality for Unity (github.com)](https://github.com/freyaholmer/Mathfs)
 

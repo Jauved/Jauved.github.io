@@ -1,0 +1,136 @@
+---
+layout: post
+title: "解决方法参数过多导致的编程问题"
+categories: [代码, 基础知识]
+tags: 代码 基础知识 参数过多 函数 方法 API
+math: true
+
+
+---
+
+# 解决方法参数过多导致的编程问题
+
+## 00 问题
+
+在编码中, 遇到了这种场景. 一个总的方法, 有三个参数, 这个方法内部又使用了另外三个方法, 这些方法使用的参数是总的方法中的参数, 类似下方的伪代码. 
+
+```c++
+void FuncMain(para a, para b, para c)
+{
+    FuncA(a);
+    FuncB(b);
+    FuncC(c);
+}
+```
+
+此时, 因为功能的扩展, 变成了下面这样的格式
+
+```c++
+void FuncMain(para a, para b, para c, para d, para e, para f)
+{
+    FuncA(a, d);
+    FuncB(b, e);
+    FuncC(c, f);
+}
+```
+
+此时, 你需要去改变所有方法的参数. 如果这些方法是跨文件的, 那么改动起来会非常麻烦.
+
+## 01 解决方案
+
+通常来说, 最常用的解决方案就是将这些参数写入一个结构体或者类中. 使用`引入'参数对象'（Parameter Object）`来整合膨胀的参数.
+
+```c#
+class SubShaderOptions
+{
+    public string RenderType { get; set; }
+    public string RenderQueue { get; set; }
+    public bool ComplexLit { get; set; }
+    public PassSubTargetParams PassParams { get; set; }
+    public HashSet<ToggleDefinition> KeywordToggles { get; set; }
+    public GIMode GiMode { get; set; }
+    // 以后要加新控制项，只往这里扩展就行
+}
+
+// 调用处就只剩两个参数：
+public static SubShaderDescriptor ExtendedLitGLESSubShader(
+    UniversalTarget target,
+    WorkflowMode workflowMode,
+    SubShaderOptions opts)
+{
+    // 直接用 opts.RenderType、opts.GiMode …… 
+}
+```
+
+
+
+在这个基础上, 还可以引入`Builder(生成器模式)`来让参数的构成更直观. 伪代码如下
+
+```c#
+// 1. 定义 Builder 接口
+interface ISubShaderBuilder
+{
+    ISubShaderBuilder WithRenderType(string type);
+    ISubShaderBuilder WithRenderQueue(string queue);
+    ISubShaderBuilder UseComplexLit(bool complexLit);
+    ISubShaderBuilder WithPassParams(PassSubTargetParams p);
+    ISubShaderBuilder WithKeywords(HashSet<ToggleDefinition> keywords);
+    ISubShaderBuilder WithGIMode(GIMode gi);
+    SubShaderDescriptor Build();
+}
+
+// 2. 提供默认实现
+class GLESSubShaderBuilder : ISubShaderBuilder
+{
+    private SubShaderOptions _opts = new SubShaderOptions();
+
+    public ISubShaderBuilder WithRenderType(string type) { _opts.RenderType = type; return this; }
+    public ISubShaderBuilder WithRenderQueue(string queue) { _opts.RenderQueue = queue; return this; }
+    public ISubShaderBuilder UseComplexLit(bool complexLit) { _opts.ComplexLit = complexLit; return this; }
+    public ISubShaderBuilder WithPassParams(PassSubTargetParams p) { _opts.PassParams = p; return this; }
+    public ISubShaderBuilder WithKeywords(HashSet<ToggleDefinition> ks) { _opts.KeywordToggles = ks; return this; }
+    public ISubShaderBuilder WithGIMode(GIMode gi) { _opts.GiMode = gi; return this; }
+
+    public SubShaderDescriptor Build()
+    {
+        // 按照 opts 完整生成 descriptor
+        var result = CreateBase(_opts.RenderType, _opts.RenderQueue);
+        // … 按照 opts 里的字段往 passes 里添加 …
+        return result;
+    }
+}
+
+// 3. 使用者代码：
+var descriptor = new GLESSubShaderBuilder()
+    .WithRenderType("Opaque")
+    .WithRenderQueue("Geometry")
+    .UseComplexLit(true)
+    .WithPassParams(myPassParams)
+    .WithKeywords(myKeywords)
+    .WithGIMode(myGiMode)
+    .Build();
+```
+
+通过这套方法之前的情况就变成了
+
+```c#
+var opt = new optBuilder()
+	.WithA(a)
+	.WithB(b)
+	....
+	.WithF(f)
+	.Build();
+
+void FuncMain(para opt)
+{
+    FuncA(opt);
+    FuncB(opt);
+    FuncC(opt);
+}
+```
+
+
+
+
+
+###### 参考网页

@@ -1,0 +1,145 @@
+---
+layout: post
+title: "提取网页为MarkDown完整流程"
+categories: [工具, 网页]
+tags: 工具 网页 md markdown 批处理
+math: true
+
+
+---
+
+# 提取网页为MarkDown完整流程
+
+Percollate Markdown Extraction Workflow
+
+以下是在新机器上从零开始配置并使用 Percollate 批量提取网页为 Markdown 的完整流程，包含环境准备、安装配置、以及循环自动化脚本示例。
+
+------
+
+## 一、环境准备
+
+1. **安装 Node.js**
+
+   - 到 [https://nodejs.org](https://nodejs.org/) 下载并安装 LTS 版本（如 v20.x）。
+
+   - 验证安装：
+
+     ```powershell
+     node -v
+     npm -v
+     ```
+
+2. **配置 Puppeteer 使用本地 Edge**
+    Percollate 内部依赖 Puppeteer，为避免下载内置 Chromium 耗时或失败，将其指向已安装的 Edge。
+
+   ```powershell
+   # 查找 Edge 可执行路径
+   $Edge = @( 
+     "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe", 
+     "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe", 
+     "$env:LOCALAPPDATA\Microsoft\Edge\Application\msedge.exe"
+   ) | Where-Object { Test-Path $_ }
+   $Edge
+   
+   # 设置环境变量，跳过 Chromium 下载
+   setx PUPPETEER_SKIP_DOWNLOAD "1"
+   setx PUPPETEER_EXECUTABLE_PATH "$Edge"
+   ```
+
+3. **安装 Percollate**
+
+   ```powershell
+   npm cache clean --force
+   npm install -g percollate
+   percollate --version
+   ```
+
+4. **确认 curl.exe 可用**
+
+   - Windows 10/11 自带 `curl.exe`，如报错可通过 Microsoft Store 安装“Windows 命令行工具包”。
+
+5. **允许 PowerShell 运行脚本**
+
+   ```powershell
+   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force
+   ```
+
+------
+
+## 二、脚本部署
+
+在任意目录（如 `C:\Tools\BlogExport`）新建 `CatchHtmlToMD.ps1`，使用 UTF-8 编码，内容如下：
+
+```powershell
+# 循环提取 Markdown（含代理 + 自动命名）
+$ErrorActionPreference = 'Stop'
+
+# 一次性启用代理（按需修改）
+$env:HTTP_PROXY  = "http://127.0.0.1:10809"
+$env:HTTPS_PROXY = "http://127.0.0.1:10809"
+
+# 输出目录（硬编码，可修改）
+$OutDir = "F:\BlogExport"
+if (-not (Test-Path $OutDir)) {
+    New-Item -ItemType Directory -Path $OutDir | Out-Null
+}
+
+function Sanitize([string]$n) {
+    $n   = $n.Trim()
+    $inv = [IO.Path]::GetInvalidFileNameChars()
+    foreach ($c in $inv) { $n = $n.Replace($c, '_') }
+    $n   = [regex]::Replace($n, '\s+', ' ')
+    if ($n.Length -gt 100) { $n = $n.Substring(0,100).Trim() }
+    return if ($n) { $n } else { 'page' }
+}
+
+while ($true) {
+    $url = Read-Host "`n请输入要提取的网页 URL（留空回车退出）"
+    if ([string]::IsNullOrWhiteSpace($url)) { break }
+
+    try {
+        # 1) 获取页面并解析标题
+        Write-Host "[1] 解析标题..."
+        $resp = Invoke-WebRequest -Uri $url -UseBasicParsing -Headers @{ 'User-Agent'='Mozilla/5.0' }
+        $html = $resp.Content
+        $m    = [regex]::Match($html, '<title[^>]*>(.*?)</title>', 'IgnoreCase')
+        $title = if ($m.Success) { $m.Groups[1].Value } else { ($url -split '/')[-1] }
+        $base  = Sanitize $title
+
+        # 2) 提取 Markdown
+        $mdPath = Join-Path $OutDir ("$base.md")
+        Write-Host "[2] 提取 Markdown 至： $mdPath"
+        & percollate md $url -o $mdPath
+
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $mdPath) -or (Get-Item $mdPath).Length -eq 0) {
+            Write-Warning "提取失败或输出为空，请检查 URL/代理。"
+        } else {
+            Write-Host "✅ 完成： $mdPath"
+        }
+    } catch {
+        Write-Warning "出错：$($_.Exception.Message)"
+    }
+}
+
+Write-Host "`n已退出。关闭窗口或 Ctrl+C 终止。"
+```
+
+------
+
+## 三、脚本运行
+
+1. 打开 PowerShell，切换到脚本目录：
+
+   ```powershell
+   cd C:\Tools\BlogExport
+   ```
+
+2. 执行脚本：
+
+   ```powershell
+   .\CatchHtmlToMD.ps1
+   ```
+
+3. 按提示输入要提取的网页 URL → 输出目录下生成 `标题.md`。
+
+4. 输入留空回车或关闭窗口退出。

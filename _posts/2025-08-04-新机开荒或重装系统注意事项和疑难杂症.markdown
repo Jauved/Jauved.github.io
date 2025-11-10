@@ -215,6 +215,13 @@ icacls  "E:\Projects" /setowner "%USERNAME%" /T
 
 - 安装完之后重启一下
 
+### 输入法键盘设置残留
+
+- 打开注册表编辑器
+  - 运行->`regedit`
+- 找到`HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\`
+- 在其子项中找到残留的键盘设置->删除
+
 ## 参考网页
 
 - [Windows 10/11家庭版打开组策略编辑器(gpedit.msc) - 知乎](https://zhuanlan.zhihu.com/p/673820397)

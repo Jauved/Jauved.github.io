@@ -37,7 +37,7 @@ math: true
 
 - 应用正常运行
 
-- 输入以下`ADB`命令
+- 输入以下`ADB`命令, 其中`<Package name>`要换成你自己的包名
 
   ```
   adb forward tcp:55000 localabstract:Unity-<Package name>
@@ -47,7 +47,7 @@ math: true
 
   - 首先, 文档中的`insert bundle identifier here`, 你根本就不知道这里应该填什么
     - 如果用Unity直接Build, 那么这里的名字应该是类似`Unity-com.unity3d.mygame`这样的名称
-    - 如果你用`Gradle`进行打包, 那么在`build.gradle`中搜索`applicationId`, 或者`package com.`, 就能找到真正的输出名称, 将这个名称写成`Unity-<true package name>`的形式即可.
+    - 如果你用`Gradle`进行打包, 那么在`build.gradle`中搜索`applicationId`, 或者`package.com`, 就能找到真正的输出名称, 将这个名称写成`Unity-<true package name>`的形式即可.
   - 然后, 端口事实上55000往上是可以成功的, 没有验证是否是从54999-55511
 
 - 接下来, 在编辑器中, 选择`console`的`Editor`下拉, 在`Direct Connection`栏下点击`<Enter IP>`, 输入`127.0.0.1:55000`, 即可连接
@@ -55,7 +55,7 @@ math: true
   坑点分析
 
   - 首先, 新版的Unity, 比如2021, 根本就没有类似`ADB@127.0.0.1:54999`这样的下拉选项
-  - 其次, 这里的端口号, 需要和你在`ADB`命令中声明的一致
+  - 其次, 这里连接时输入的端口号, 需要和你在`ADB`命令中声明的一致
 
 ###### 参考网页
 
