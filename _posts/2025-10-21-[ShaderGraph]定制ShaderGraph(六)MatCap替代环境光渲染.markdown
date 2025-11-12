@@ -221,3 +221,6 @@ half3 GlobalIlluminationExtension(BRDFData brdfData, BRDFData brdfDataClearCoat,
 ## 参考网页
 
 - [nidorx/matcaps: Huge library of matcap PNG textures organized by color](https://github.com/nidorx/matcaps)
+- [深入理解Matcap：离线渲染算法与实现-CSDN博客](https://blog.csdn.net/csuyuanxing/article/details/135039939)
+- [(Sketchfab) Materials (MatCap)](https://support.fab.com/s/article/Materials-MatCap?language=en_US)
+- [MatCap原理介绍及应用 - 知乎](https://zhuanlan.zhihu.com/p/420473327)

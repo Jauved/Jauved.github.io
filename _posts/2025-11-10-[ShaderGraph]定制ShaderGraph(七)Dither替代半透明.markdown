@@ -135,10 +135,16 @@ void Dither_Threshold_Bayer8x8_Screen_float(float inValue, float4 screenPosition
 }
 ```
 
-此时, 将inValue设为1, 然后输入ScreenPosition-Default连入, 输出节点连到`Alpha Clip Threshold`上, 并将材质球的`Alpha Clipping`打开,  调整Alpha值即可卡到效果. 节点构成如下:
+此时, 将inValue设为1, 然后输入ScreenPosition-Default连入, 输出节点连到`Alpha Clip Threshold`上, 并将材质球的`Alpha Clipping`打开,  调整Alpha值即可看到效果. 节点构成如下:
 
 ![image-20251110164718746](/assets/image/image-20251110164718746.png)
 
+## 02 其他优化
 
+如果需要修改RenderScale还要保持Dither效果一致, 用以下方法.
+
+<img src="/assets/image/image-20251110165325118.png" alt="image-20251110165325118" style="zoom:50%;" />
 
 ### 参考网页
+
+- [Scale dithering with render target resolution - Unity Engine - Unity Discussions](https://discussions.unity.com/t/scale-dithering-with-render-target-resolution/901533/6)
