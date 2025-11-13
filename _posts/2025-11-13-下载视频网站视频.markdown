@@ -1,0 +1,53 @@
+---
+layout: post
+title: "下载视频网站视频"
+categories: [其他, 下载]
+tags: 下载 youtube yt yt-dlp ffmpeg
+math: true
+
+
+---
+
+# 下载视频网站视频
+
+## 00 前置知识
+
+### 安装`ffmpeg`(可选)
+
+用于音视频分离的媒体流的合成, 实际上在安装`yt-dlp`的时候, 会自动帮你安装`yt-dlp.FFmpeg`, 如果你没有单独使用`ffmpeg`的需求, 那么可以跳过这一步.
+
+```shell
+winget install ffmpeg
+```
+
+### 安装`yt-dlp`
+
+用于下载视频
+
+```shell
+winget install yt-dlp
+```
+
+- 下载过程中会自动下载依赖
+
+  ```shell
+    - Packages
+        DenoLand.Deno
+        yt-dlp.FFmpeg
+  ```
+
+  
+
+## 01 实施
+
+最终下载命令如下:
+
+```shell
+yt-dlp --proxy "http://127.0.0.1:10809" -S vcodec:h264,res:1080,fps,acodec:aac -f "bv*+ba/b" --merge-output-format mp4 "https://www.youtube.com/watch?v=WUvTyaaNkzM"
+```
+
+
+
+###### 参考网页
+
+- [yt-dlp/yt-dlp: A feature-rich command-line audio/video downloader](https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#installation)
