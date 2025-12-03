@@ -1,0 +1,63 @@
+---
+layout: post
+title: "高通平台GPU占用信息"
+categories: [性能测试]
+tags: 高通 ADB 性能 GPU 占用 信息 性能测试
+math: true
+
+
+---
+
+# 高通平台GPU占用信息
+
+## ADB端操作
+
+```shell
+adb root
+# adb remount /
+adb remount
+adb shell
+```
+
+## Shell端操作
+
+```
+busybox telnet 193.18.1.200
+# 用户名root, 回车
+```
+
+### Sysprofiler操作
+
+```
+mkdir data
+# 加/代表从根目录开始
+cd /data
+mkdir tmp
+cd tmp
+sysprofiler_app --gpu --live --total-time 60
+# 测试完毕后, 在tmp目录下
+rm -r R
+# 或者
+rm -rf /data/Results_sysprofiler
+```
+
+```
+# Ctrl+D 退出
+```
+
+```
+# cpu gpu 一起测试
+sysprofiler_app --cpu --gpu --live --total-time 120
+```
+
+
+
+### 其他命令
+
+```
+adb shell "(sleep 1; echo root; sleep 1; echo cd data; sleep 1; echo sysprofiler_app --gpu --cpu --live --total-time 240 && sleep 250)|busybox telnet 193.18.3.100"
+```
+
+查看文件: `ls`
+
+###### 参考网页
