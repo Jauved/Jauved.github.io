@@ -1,0 +1,29 @@
+---
+layout: post
+title: "图片压缩工具与库"
+categories: [其他, 图片]
+tags: 其他 图片 压缩 astc dxt etc
+math: true
+
+
+---
+
+# 图片压缩工具与库
+
+## 00 DXT
+
+[NVIDIA Texture Tools 3 \| NVIDIA Developer](https://developer.nvidia.com/gpu-accelerated-texture-compression#)
+
+## 01 ASTC
+
+[ARM-software/astc-encoder: The Arm ASTC Encoder, a compressor for the Adaptive Scalable Texture Compression data format.](https://github.com/ARM-software/astc-encoder)
+
+## 02 ETC
+
+[Ericsson/ETCPACK: Provides code for compression of textures for ETC1, ETC2 and EAC textures](https://github.com/Ericsson/ETCPACK)
+
+## 01 实施
+
+###### 参考网页
+
+[云风的 BLOG: 法线贴图的压缩格式比较](https://blog.codingnow.com/2019/07/compressed_normal_map.html)

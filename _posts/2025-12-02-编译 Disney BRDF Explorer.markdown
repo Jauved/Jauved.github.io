@@ -100,7 +100,7 @@ HEAD is now at 9712272 zlib 1.2.11
 
 ```
 
-你可以用以下命令(任选其一)来确定当前是不是处于tag1.2.11, 输出为`1.2.11`或`HEAD detached at v1.2.1`1即为正常
+你可以用以下命令(任选其一)来确定当前是不是处于tag1.2.11, 输出为`1.2.11`或`HEAD detached at v1.2.11`即为正常
 
 ```bash
 git describe --tags
@@ -391,6 +391,8 @@ win32-msvc*{
 
 ![image-20251202180457209](/assets/image/image-20251202180457209.png)
 
+之后执行`构建`->`构建项目"main"`, 即可构建成功.
+
 ## 10 运行
 
 你可以在`E:\Projects\build-main-Desktop_Qt_5_14_1_MSVC2017_32bit-Release\src\brdf\release`目录中找到构建出来的文件. 
@@ -447,3 +449,8 @@ windeployqt.exe brdf.exe
 - [Index of /archive/qt/5.14/5.14.1](https://download.qt.io/archive/qt/5.14/5.14.1/)
 - [koukotsu.org](https://koukotsu.org/blog/2012/01/zlib-inflate_fast.html)
 - [从零开始搞起 Disney BRDF源码编译（含踩坑经历）_brdf explorer编译-CSDN博客](https://blog.csdn.net/dachangganjun_x/article/details/126252112)
+- [Disney BRDF Explorer 使用心得 - 简书](https://www.jianshu.com/p/dfbce1d3c872)
+- [s2012_pbs_disney_brdf_notes_v3.pdf](https://media.disneyanimation.com/uploads/production/publication_asset/48/asset/s2012_pbs_disney_brdf_notes_v3.pdf)
+- [【译】Physically Based Shading at Disney - 知乎](https://zhuanlan.zhihu.com/p/345214905)
+- [Software & Data Downloads — BRDF \| Mitsubishi Electric Research Laboratories](https://www.merl.com/research/downloads/BRDF)
+- [BRDF Database - Bidirectional Reflectance Distribution Function](https://zenodo.org/records/8101681)

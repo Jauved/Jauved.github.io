@@ -104,7 +104,7 @@ internal void DrawShaderGraphProperties(Material material, IEnumerable<MaterialP
 ```c#
 internal static class ShaderGraphPropertyDrawers
 {
-...
+	...
     public static void DrawShaderGraphGUI(MaterialEditor materialEditor, IEnumerable<MaterialProperty> properties)
     {
         Material m = materialEditor.target as Material;
@@ -125,7 +125,7 @@ internal static class ShaderGraphPropertyDrawers
         else
             PropertiesDefaultGUI(materialEditor, properties);
     }
-...
+	...
     public static void DrawShaderGraphGUI(MaterialEditor materialEditor, IEnumerable<MaterialProperty> properties, IEnumerable<MinimalCategoryData> categoryDatas)
     {
         foreach (MinimalCategoryData mcd in categoryDatas)
@@ -133,11 +133,10 @@ internal static class ShaderGraphPropertyDrawers
             DrawCategory(materialEditor, properties, mcd);
         }
     }
-...
+	...
      static void DrawCategory(MaterialEditor materialEditor, IEnumerable<MaterialProperty> properties, MinimalCategoryData minimalCategoryData)
     {
-```
-    if (minimalCategoryData.expanded)
+        if (minimalCategoryData.expanded)
         {
             foreach (var propData in minimalCategoryData.propertyDatas)
             {
@@ -159,14 +158,13 @@ internal static class ShaderGraphPropertyDrawers
                 }
             }
         }
-    
+
         EditorGUILayout.EndFoldoutHeaderGroup();
     }
-...
-    static void DrawCompoundProperty(MaterialEditor materialEditor, IEnumerable<MaterialProperty> properties, GraphInputData compoundPropertyData)
-    {
-    ```
-       if (foldoutState)
+	...
+	static void DrawCompoundProperty(MaterialEditor materialEditor, IEnumerable<MaterialProperty> properties, GraphInputData compoundPropertyData)
+	{
+           if (foldoutState)
         {
             EditorGUI.indentLevel++;
             foreach (var subProperty in compoundPropertyData.subProperties)
@@ -184,23 +182,26 @@ internal static class ShaderGraphPropertyDrawers
             EditorGUI.indentLevel--;
         } 
     ...
+	}
+    ...
 }
 ```
-
 至此, 功能实现.
 
 ### 2 减少侵入性(妥协性改良)
 
-目前的修改, 算是相对逻辑正确的方法. 分两部分实现:
+前面的修改, 算是相对逻辑正确的方法. 分两部分实现:
 
 - 在ShaderInputPropertyDrawer中, 让ShaderGraph的面板上添加HideInInspector来让Shader的参数有`[HideInInspector]`前缀.
 - 在ShaderGraphPropertyDrawers.cs中, 让最终绘制的面板识别这个[HideInInspector]前缀而不去绘制.
 
-好处是, 即便是不使用ShaderGraph的面板, Unity默认的Shader面板绘制, 也能正确的隐藏参数, 坏处是, 修改了ShaderGraph的源码, 属于侵入式修改. 而且目前能力不足, 找不到方便的正常非侵入式做法.
+好处是, 即便是不使用ShaderGraph的面板, Unity默认的Shader面板绘制, 也能正确的隐藏参数;
 
-目前的方案就改为: 
+坏处是, 修改了ShaderGraph的源码, 属于侵入式修改. 而且目前能力不足, 找不到方便的正常非侵入式做法.
 
-不强求添加`[HideInInspector]`前缀, 仅仅是通过参数或者Category的名称中的特殊字段来决定是否绘制. 
+为了避免侵入式修改, 方案修改为: 
+
+<font color = orange>不强求添加`[HideInInspector]`前缀, 仅仅是通过参数或者Category的名称中的特殊字段来决定是否绘制. </font>
 
 好处是, 不用进行侵入式修改.
 
@@ -213,6 +214,9 @@ internal static class ShaderGraphPropertyDrawers
 仿照`Library/PackageCache/com.unity.render-pipelines.universal@12.1.10/Editor/ShaderGUI/ShaderGraphLitGUI.cs`复制一份, 比如叫`ShaderGraphExtensionLitGUI.cs`
 
 在之前我们的自定义的`ShaderGraphExtensionLitGUI.cs`文件中找到`Setup`函数, 替换掉其中的`ShaderGraphLitGUI`为`ShaderGraphExtensionLitGUI`
+
+```
+
 
 ```c#
 public override void Setup(ref TargetSetupContext context)
@@ -237,7 +241,7 @@ public override void Setup(ref TargetSetupContext context)
 }
 ```
 
-#### 1a 替换UI绘制方法
+#### 2b 替换UI绘制方法
 
 在复制出来的`ShaderGraphExtensionLitGUI.cs`文件中, 找到`DrawSurfaceInputs`方法, 然后把其中的`DrawShaderGraphProperties`函数, 替换为自己写的`DrawShaderGraphPropertiesExtended`函数.
 
@@ -257,7 +261,7 @@ internal void DrawShaderGraphPropertiesExtended()
 }
 ```
 
-#### 1b 修改真正要修改的部分
+#### 2c 修改真正要修改的部分
 
 `ShaderGraphPropertyDrawersExtension`类对应的是`E:\Projects\CarModelTestCase\Packages\com.unity.shadergraph@12.1.10\Editor\Drawing\MaterialEditor\ShaderGraphPropertyDrawers.cs`类.
 
@@ -445,9 +449,9 @@ namespace ShaderGraphExtension
 }
 ```
 
-### 2 优化
+### 3 优化
 
-#### ~~2a 优化反射~~
+#### ~~3a 优化反射~~
 
 ~~这部分是AI协助完成的. 解释如下:~~
 
@@ -507,7 +511,7 @@ namespace ShaderGraphExtension
 
 这套反射优化会导致调用出错, 后续可以用其他方式优化. 考虑到编辑器功能, 放弃优化即可.
 
-#### 2b 优化字符串比较
+#### 3b 优化字符串比较
 
 将类似`string.Contains(string value)`换成`string.IndexOf("strings", StringComparison.Ordinal)`的写法, AI优化, 解释如下: 
 

@@ -121,6 +121,7 @@ math: true
           public static string name = "SurfaceDescription";
           // 此时的ColorControl是为了确定默认初始值, 后面的True表示是HDR颜色, 其中, 第二个参"BakedGI", 
           // 就是可以通过SurfaceDescription.BakedGI在hlsl中访问到的值
+          // 千万千万注意, 这个值要保证全项目唯一, 因为实际文件构建的时候就是靠这个值来确定Block的.
           public static BlockFieldDescriptor BakedGI = new(name, "BakedGI", "Baked GI",
               "SURFACEDESCRIPTION_BAKEDGI", new ColorControl(new Color(1,1,1,0),true), ShaderStage.Fragment); 
       }
@@ -685,6 +686,28 @@ GenerationUtils.GenerateSurfaceDescriptionFunction(
   ```
 
   
+
+## 03 注意
+
+再次强调, 当你定义`BlockFieldDescriptor`时后, 第二个参, 即`referenceName`, 在下面的代码示例中即`"BakedGI"`, **一定要全项目唯一**, 否则会导致Block构建异常, 且无法正确传递值到Shader中.
+
+```c#
+public static BlockFieldDescriptor BakedGI = new(name, "BakedGI", "Baked GI",
+            "SURFACEDESCRIPTION_BAKEDGI", new ColorControl(new Color(1,1,1,0),true), ShaderStage.Fragment);
+```
+
+原因可能需要查一下`FieldDescriptor`的`name`字段的调用链
+
+```c#
+public FieldDescriptor(string tag, string name, string define)
+{
+    this.tag = tag;
+    this.name = name;
+    this.define = define;
+}
+```
+
+
 
 ###### 参考网页
 
