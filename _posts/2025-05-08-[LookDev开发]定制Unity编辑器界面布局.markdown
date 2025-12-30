@@ -56,7 +56,7 @@ namespace LookDev.EditorUtilities
 - `Unity.exe Path/Data/Resources/default.mode （EditorApplication.applicationContentsPath + “/Resources/default.mode”`
 - `Package`中, 一般我会习惯放置在`Editor/Mode`文件夹里
 
-```json
+```yaml
 // https://qiita.com/Shiranui_Isuzu/items/b2ca640a75457311f62e
 // ModeService.ChangeModeById("lookdevmode");调用的时候用到的字符串
 lookdevmode = {

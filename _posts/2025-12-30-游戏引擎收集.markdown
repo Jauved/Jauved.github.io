@@ -1,0 +1,72 @@
+---
+layout: post
+title: "游戏引擎收集"
+categories: [游戏, 引擎]
+tags: 引擎 雷神之锤 quake
+math: true
+
+
+---
+
+# 游戏引擎收集
+
+## 00 前置知识
+
+收集一些开源渲染/游戏引擎, 以及基于这些引擎的游戏.
+
+## 01 游戏引擎
+
+[Q2VKPT](https://brechpunkt.de/q2vkpt/)
+
+> Q2VKPT是首款完全采用光线追踪技术、并能实时高效模拟全动态光照的可玩游戏，其技术手段与电影行业采用的现代技术相同（参见迪士尼光线追踪实践指南）。近期搭载光线追踪功能的GPU问世，为游戏图形技术的未来开辟了全新可能性，但有效运用光线追踪技术并非易事。虽然部分游戏已开始探索阴影与反射渲染的改进，但Q2VKPT是首个实现高效统一解决方案的项目，涵盖所有光线传输类型：直射光、散射光和反射光（参见媒体资料）。这种统一性在电影行业已显著提升了灵活性与生产力。游戏领域若能实现同等发展，未来数年游戏画面的视觉保真度与真实感必将获得同等提升。
+> 本项目旨在为计算机图形学研究与游戏产业提供概念验证，并让爱好者一窥游戏画面的未来潜力。除采用硬件加速的光线追踪技术外，Q2VKPT的核心效率提升源于自适应图像滤波技术——该技术能智能追踪场景光照变化，最大限度复用前期计算成果。
+
+
+
+- [cschied/q2vkpt: Real-time path tracer VKPT integrated into q2pro Quake 2 client.](https://github.com/cschied/q2vkpt/)
+
+  - [NVIDIA/Q2RTX: NVIDIA’s implementation of RTX ray-tracing in Quake II](https://github.com/NVIDIA/Q2RTX)
+
+    - [GOG.com 上的 Quake II RTX](https://www.gog.com/zh/game/quake_ii_rtx)
+
+      > 《雷神之锤II RTX》基于卡尔斯鲁厄理工学院Christoph Schied及其团队的工作成果——他们为《雷神之锤II》添加了光线追踪技术，创建了Q2VKPT版本（该版本又基于Q2PRO代码库开发）。NVIDIA引入了全新的路径追踪视觉效果，优化了纹理处理，并进行了数十项改进与调整，最终呈现出媲美当代游戏的体验，同时将您的RTX硬件性能发挥到极致。
+
+[Stride Game Engine - Free, Open Source C# 2D and 3D Game Engine - Stride Game Engine](https://www.stride3d.net/)
+
+>Stride 更像“面向工程师的开源 3D 引擎底座”, 强在 C#/.NET 工程化与可改性, 弱在生态与部分高层 QoL/功能齐全度.
+>
+>代码与 .NET 生态: 多个讨论串强调 Stride 是“真 C#/.NET 项目”, 可直接吃满 .NET 生态与 IDE 调试体验, 对 Unity 背景的 C# 开发者更友好. [Reddit+2Hacker News+2](https://www.reddit.com/r/csharp/comments/16mazmj/a_unity_user_made_a_game_in_stride_opensource_c/?utm_source=chatgpt.com)
+>
+>学习曲线与社区: 有 Unity 社区讨论认为 Stride 很扎实, 但学习曲线通常比 Godot 更陡, 且社区体量与内容生态较小. [Reddit+1](https://www.reddit.com/r/Unity3D/comments/16isqpt/why_is_no_one_migrating_to_stride_i_believe_its/?utm_source=chatgpt.com)
+>
+>QoL 是 “Quality of Life” 的缩写. 在游戏引擎或工具讨论里, 它指“让日常开发更省事、更顺手的一类便利功能”, 不直接决定最终画面或性能, 但会显著影响开发效率与体验.
+>
+>常见例子:
+>
+>- 编辑器操作更顺手: 拖拽, 快捷键, 批量改资源.
+>- 调试更方便: 一键查看变量与状态, 更好的日志与报错定位.
+>- 工作流更省步骤: 自动导入与重新导入资源, 自动刷新, 热重载(改代码或资源后无需重启就能看到效果).
+>- 常用功能开箱即用: UI 组件, 动画工具, 场景管理等做得更完善.
+
+[Bevy Engine](https://bevy.org/)
+
+>Bevy 是用 Rust 编写的开源游戏引擎, 但更接近“框架”: 你会用代码把各个模块拼装起来, 而不是依赖一个成熟的一体化编辑器工作流. [GitHub+1](https://github.com/bevyengine/bevy?utm_source=chatgpt.com)
+>
+>许可非常宽松: 双许可 MIT 或 Apache-2.0, 允许商用, 允许修改并分发修改后的版本, 通常不要求你公开修改.
+>
+>语言: Rust. 
+>
+>这意味着什么:
+>
+>- 优点: 性能与可控性强, 代码结构更利于长期维护; 你想改引擎内部时, 没有脚本层隔离带来的限制.
+>- 代价: 上手成本更高, 构建速度与工程组织需要你更有“工程化”经验.
+>
+>ECS(Entity Component System) 是 Bevy 的核心组织方式. 
+>
+>- 简单解释: 你把“对象”拆成“实体(Entity)”和“数据组件(Component)”, 逻辑用“系统(System)”批量处理组件数据.
+>
+>Bevy 自带 UI 系统, 采用类似“flex box”的布局模型
+>
+>Bevy 目前没有官方成熟的可视化编辑器, 官方编辑器属于长期目标
+
+###### 参考网页

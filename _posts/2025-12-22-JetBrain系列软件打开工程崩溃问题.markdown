@@ -1,0 +1,25 @@
+---
+layout: post
+title: "JetBrain系列软件打开工程崩溃问题"
+categories: [IDE]
+tags: JetBrain rider 崩溃 AndroidStudio
+math: true
+
+
+---
+
+# JetBrain系列软件打开工程崩溃问题
+
+## 00 前置知识
+
+`JetBrain`系列软件, 打开工程界面崩溃. 
+
+原因是`JetBrain`的文件选择界面与`Windows`文件选择界面不兼容导致的.
+
+## 01 修正
+
+文件(`File`)->设置(`Settings`)->高级设置(`Advanced Settings`)
+
+找到`在Windows/macOS上使用原生文件选择器对话框`(`Use Native file chooser`), 勾选或者不勾选(根据崩溃时的勾选状况, 选择另一种).
+
+###### 参考网页
