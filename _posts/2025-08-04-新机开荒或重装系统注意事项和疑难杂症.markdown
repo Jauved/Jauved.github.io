@@ -222,9 +222,34 @@ icacls  "E:\Projects" /setowner "%USERNAME%" /T
 - 找到`HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\`
 - 在其子项中找到残留的键盘设置->删除
 
+## 02 实用工具
+
+### Windows壁纸存储工具
+
+- 原版Github
+
+  [Qzincs/SpotlightGallery: A clean Windows desktop wallpaper application](https://github.com/Qzincs/SpotlightGallery)
+
+- 可编辑存储壁纸名称的版本
+
+  [feat: support custom filename templates for saved wallpapers · Qzincs/SpotlightGallery@2585d1c](https://github.com/Qzincs/SpotlightGallery/actions/runs/20209047863)
+
+### 壁纸目录
+
+- 当前壁纸目录
+
+  C:\Users\[用户名]\AppData\Roaming\Microsoft\Windows\Themes
+
+- 当前锁屏壁纸目录
+
+  C:\ProgramData\Microsoft\Windows\SystemData\[用户ID]\ReadOnly
+
+  - 用户ID, 在cmd里输入`whoami /user`就可以看到
+
 ## 参考网页
 
 - [Windows 10/11家庭版打开组策略编辑器(gpedit.msc) - 知乎](https://zhuanlan.zhihu.com/p/673820397)
 - [SATA机械硬盘\固态硬盘识别成可移动设备的解决办法 - 简书 ](https://www.jianshu.com/p/763ebf89bb90)
 - [为什么INTEL卷管理设备VMD会障碍你安装windows？ - 知乎](https://zhuanlan.zhihu.com/p/841132167)
 - [onedrive一直显示“正在处理更改” · Issue #27 · baidut/windowsSystemHelper](https://github.com/baidut/windowsSystemHelper/issues/27)
+- [Qzincs/SpotlightGallery: A clean Windows desktop wallpaper application](https://github.com/Qzincs/SpotlightGallery)

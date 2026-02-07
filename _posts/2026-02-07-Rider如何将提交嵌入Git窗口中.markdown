@@ -1,0 +1,32 @@
+---
+layout: post
+title: "Rider如何将提交嵌入Git窗口中"
+categories: [IDE, Rider]
+tags: IDE Rider Git 提交 面板 窗口
+math: true
+
+
+---
+
+# Rider如何将提交嵌入Git窗口中
+
+## 00 前置知识
+
+旧版Rider将提交嵌入到了Git窗口中, 如下图
+
+![image-20260207173255866](/assets/image/image-20260207173255866.png)
+
+但新版却成为了独立窗口.
+
+## 01 实施
+
+如果你想恢复旧版的提交在Git窗口内部:
+
+- 帮助
+- 编辑自定义属性
+- 写入`vcs.force.modal.commit=true`
+- 重启IDE
+
+![image-20260207173551321](/assets/image/image-20260207173551321.png)
+
+###### 参考网页

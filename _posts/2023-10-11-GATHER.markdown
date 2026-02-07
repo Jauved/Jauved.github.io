@@ -91,7 +91,7 @@ half4 FragPrefilter(Varyings input) : SV_Target
         }
 ```
 
-看起来, 使用类似```GATHER_RED_TEXTURE2D_X()```的宏, 可以不用进行再使用uv移动而采样到4次uv偏转后的值?
+看起来, 使用类似```GATHER_RED_TEXTURE2D_X()```的宏, 可以不用进行uv移动而采样到4次uv偏转后的值?
 
 其中```GATHER_RED_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, uv)```宏进行跳转后, 来到了```Library/PackageCache/com.unity.render-pipelines.core@14.0.8/ShaderLibrary/API/D3D11.hlsl```文件中的以下代码位置
 

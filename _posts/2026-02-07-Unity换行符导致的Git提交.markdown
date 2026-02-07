@@ -1,0 +1,21 @@
+---
+layout: post
+title: "Unity换行符导致的Git提交"
+categories: [Unity]
+tags: Unity Git 提交 换行符 meta
+math: true
+
+
+---
+
+# Unity换行符导致的Git提交
+
+## 00 前置知识
+
+由于Mac, Windows, Linux不同系统, 以及Git的不同设置, 导致仅换行符变更的提交. 多见于`.meta`文件.
+
+## 01 实施
+
+###### 参考网页
+
+- [Git 优雅处理行结束符不是所有类型的文件都应该跟随操作系统转换行结束符的。 例如 bash 脚本文件始终应当使用 LF - 掘金](https://juejin.cn/post/6942320745494085669)

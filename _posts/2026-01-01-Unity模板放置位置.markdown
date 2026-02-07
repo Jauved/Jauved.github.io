@@ -1,0 +1,21 @@
+---
+layout: post
+title: "Unity模板放置位置"
+categories: [Unity]
+tags: Unity 模板 位置
+math: true
+
+
+---
+
+# Unity模板放置位置
+
+## 00 位置
+
+`C:\Users\[USERNAME]\AppData\Roaming\UnityHub\Templates`
+
+## 01 意义
+
+防止每次新安装编辑器, 都要去网上下载对应的模板. 可以备份之后, 安装编辑器后拷贝进去.
+
+###### 参考网页
