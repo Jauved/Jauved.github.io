@@ -291,7 +291,7 @@ math: true
 `Outline`
 
 ```c
-Shader "GWM/GWMUnlitOutline"
+Shader "UnlitOutline"
 {
     Properties
     {
@@ -429,7 +429,7 @@ Shader "GWM/GWMUnlitOutline"
 `TransparentOutline`
 
 ```c
-Shader "GWM/GWMUnlitTransparentOutline"
+Shader "UnlitTransparentOutline"
 {
     Properties
     {
