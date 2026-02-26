@@ -1,0 +1,27 @@
+---
+layout: post
+title: "物理沙盒网页"
+categories: [工具, 物理]
+tags: 工具 物理 网页 学习 科学
+math: true
+
+
+---
+
+# 物理沙盒网页
+
+## 00 介绍
+
+[Sandboxels - 像素点的实验](https://neal.fun/sandboxels/)
+
+一款模拟物体交互的网页. 下图是`加热`溶解`沙子`之后, 冷却变成`玻璃`的情况. 
+
+类似还有`石头`加热, 转变为`岩浆`.
+
+![image-20260212100015677](/assets/image/image-20260212100015677.png)
+
+## 01 实施
+
+###### 参考网页
+
+- [Sandboxels - 像素点的实验](https://neal.fun/sandboxels/)

@@ -1,0 +1,292 @@
+---
+layout: post
+title: "深度精度的可视化"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 深度精度的可视化
+
+原文地址: [Visualizing Depth Precision \| NVIDIA Technical Blog](https://developer.nvidia.com/blog/visualizing-depth-precision/)
+
+Oct 21, 2021
+
+By [Nathan Reed](https://developer.nvidia.com/blog/author/nathanielreed/)
+
+本文最初发布于开发者专区。
+
+深度精度是每个图形程序员迟早都要面对的难题。关于这个主题已有大量文章和论文探讨，不同游戏、引擎和设备中也存在着各种各样的深度缓冲区格式和配置方案。
+
+由于其与透视投影的交互特性，GPU硬件深度映射机制颇为晦涩，仅研究方程式未必能立即明晰原理。要理解其工作机制，绘制示意图将大有裨益。
+
+本文分为三部分：首先阐述非线性深度映射的必要性；其次通过图表直观展示非线性深度映射在不同场景中的工作原理；最后复现Paul Upchurch论文《提升透视渲染精度》的核心成果。第二部分通过示意图直观展示非线性深度映射在不同场景中的运作机制。第三部分则聚焦于Paul Upchurch与Mathieu Desbrun（2012年）论文《提升透视渲染精度([Tightening the Precision of Perspective Rendering](http://www.geometry.caltech.edu/pubs/UD12.pdf))》的核心结论——探讨浮点舍入误差对深度精度的影响，并进行实验验证。
+
+## Why 1/z
+
+GPU硬件深度缓冲区通常不会存储物体在摄像机前方距离的线性表示——这与你初次接触时可能天真地预期的情况相反。相反，深度缓冲区存储的是与世界空间深度倒数成正比的值。我将简要说明这种约定背后的原理。
+
+本文中，我用d表示深度缓冲区存储的值（取值范围[0, 1]），用z表示世界空间深度，即沿视轴方向的距离，单位为世界坐标系中的世界单位（如米）。通常它们之间的关系可表示为以下形式：
+
+$$
+
+d=a\frac{1}{z}+b
+
+$$
+
+>译者注:
+>
+>这里实际上是一个Remap算法的化简形式. 
+>
+>Remap的函数可以写成
+>
+>`d = Remap(u, uNear, uFar, dNear, dFar) = dNear + (u - uNear) * (dFar - dNear) / (uFar - uNear)`
+>
+>- `a = (dFar - dNear) / (uFar - uNear)`
+>- `b = dNear - a*uNear`
+>
+>实际上我们更熟悉的是:
+>
+>`depth = Remap(1/z, 1/nearPlane, 1/farPlane, 0, 1)`
+>
+>即把点的世界空间深度(即延视轴的距离, 单位为世界单位)z的倒数, 从远近裁剪面映射到0-1范围
+
+在此公式中，a 和 b 是与近平面和远平面设置相关的常数。换言之，d 始终是对 $$\frac{1}{z}$$的某种线性重映射。
+
+表面上看，你可以设想将 d 取为任意你喜欢的 z 的函数。那么为何选择这个特定形式(译者: 指为什么是d与$$\frac{1}{z}$$的函数)？主要有两个原因。
+
+首先，$$\frac{1}{z}$$自然契合透视投影的框架。这是最通用的变换类，能确保直线不变，这使得硬件光栅化处理更为便捷——因为三角形的直边在屏幕空间中仍保持笔直。通过利用硬件已执行的透视除法运算，即可生成$$\frac{1}{z}$$的线性重映射：
+
+$$
+
+\begin{bmatrix}
+\vdots \\
+z_c \\
+w_c
+\end{bmatrix}
+=
+\begin{bmatrix}
+\ddots &        & \vdots \\
+       & b & a \\
+\cdots & 1 & 0
+\end{bmatrix}
+\begin{bmatrix}
+\vdots \\
+z \\
+1
+\end{bmatrix},
+\qquad
+d \equiv \frac{z_c}{w_c}
+= \frac{a + b z}{z}
+= a\frac{1}{z} + b
+
+$$
+
+这种方法真正的优势在于，投影矩阵可以与其他矩阵相乘，从而将多个变换阶段整合为一体。
+
+>译者注: $$\equiv$$这个符号的意思是"定义"
+
+第二个原因是，正如[Emil Persson](http://www.humus.name/index.php?ID=255)所指出的，$$\frac{1}{z}$$在屏幕空间中呈线性关系。因此在光栅化过程中，很容易对三角形区域内的d值进行插值处理，诸如分层Z缓冲、早期Z裁剪和深度缓冲压缩等技术也变得更为简便。
+
+## Graphing depth maps
+
+方程太难了；来些图片吧！
+
+![img](/assets/image/depth-perception-graph1-625x324.jpg)
+
+阅读这些图表的顺序是从左到右，然后向下至底部。首先观察左轴上绘制的d值。由于d可以是$$\frac{1}{z}$$的任意线性重映射，因此0和1可在该轴上任意定位。刻度线标示着深度缓冲区的不同数值。为便于说明，我模拟了一个4位归一化(normalized)整数深度缓冲区，因此刻度线呈16等分均匀分布。
+
+沿刻度线水平延伸至其与$$\frac{1}{z}$$曲线的交点，再垂直向下延伸至底部坐标轴。该交点即对应世界空间深度范围内的具体数值。
+
+图1展示了D3D及类似API采用的"标准"基础深度映射。可立即观察到：$$\frac{1}{z}$$曲线导致近平面附近值严重聚集，而远平面附近值则分布稀疏。
+
+由此不难理解近平面为何对深度精度影响如此显著。当近平面被拉近时，深度范围将急剧攀升至$$\frac{1}{z}$$曲线的渐近线，导致数值分布更加失衡：
+
+![img](/assets/image/depth-precision-graph2-625x550.jpg)
+
+同样地，在此背景下不难理解为何将远平面无限推远并不会产生显著影响。这仅仅意味着将d范围向下微调至
+
+$$\frac{1}{z}=0$$:
+
+![img](/assets/image/depth-precision-graph3-625x324.jpg)
+
+浮点深度呢？下图添加了刻度标记，对应一种模拟的浮点格式，该格式包含三个指数位和三个尾数位：
+
+![img](/assets/image/depth-precision-graph4-625x324.jpg)
+
+现在[0, 1]区间内存在40个独立数值——远多于之前的16个，但其中大部分都无谓地聚集在近平面附近，而该区域本就不需要更高精度。
+
+如今广为人知的一个技巧是反转深度范围：将近平面映射为$$d=1$$，远平面映射为$$d=0$$：
+
+![img](/assets/image/depth-precision-graph5-625x324.jpg)
+
+好多了！现在浮点数的准对数分布在一定程度上抵消了$$\frac{1}{z}$$的非线性，使近平面处的精度接近整数深度缓冲区，同时大幅提升了其他区域的精度。随着距离增加，精度仅会缓慢下降。
+
+反向Z轴技巧可能已被独立重现多次，但其历史至少可追溯至1999年SIGGRAPH会议论文《面向低成本图形硬件的优化深度缓冲区( [Optimal depth buffer for low-cost graphics hardware](https://dl.acm.org/citation.cfm?id=311579))》（作者：`Eugene Lapidous`与`Guofang Jiao`，遗憾的是该论文无开放获取链接）。该技术近年通过[Matt Pettineo](https://mynameismjp.wordpress.com/2010/03/22/attack-of-the-depth-buffer/)与[Brano Kemen](http://outerra.blogspot.com/2012/11/maximizing-depth-buffer-range-and.html)的博文，以及Emil Persson在2012年SIGGRAPH大会《创建广阔游戏世界([Creating Vast Game Worlds](http://www.humus.name/Articles/Persson_CreatingVastGameWorlds.pdf))》演讲中再度流行。
+
+此前所有示意图均采用[0, 1]作为投影后深度范围，这是D3D的惯例。那么OpenGL呢？
+
+![img](/assets/image/depth-precision-graph6-625x324.jpg)
+
+OpenGL默认采用[-1, 1]的后投影深度范围。对于整数格式而言这无关紧要，但浮点数格式中，所有精度都被无谓地浪费在中间区间。（该值后续会被映射到[0, 1]区间存储于深度缓冲区，但这无济于事——因为最初映射到[-1, 1]时，距离较远的半区精度早已丧失殆尽。）基于对称性原理，**反向Z轴技巧在此处同样无效**。
+
+> 译者注: 由于区间是[-1, 1], 即便反向, 精度仍旧无法像[0, 1]区间一样中和精度分布. 
+
+所幸在桌面版OpenGL中，可通过广泛支持的[`ARB_clip_control`](https://www.opengl.org/registry/specs/ARB/clip_control.txt)扩展（现已作为[`glClipControl`](http://docs.gl/gl4/glClipControl)成为OpenGL 4.5内核功能）解决此问题。遗憾的是，在GL ES中则束手无策。
+
+>译者注: 
+>
+>```
+>void glClipControl(	GLenum origin,
+>GLenum depth);
+>```
+>
+>## Parameters
+>
+>- *`origin`*
+>
+>  Specifies the clip control origin. Must be one of `GL_LOWER_LEFT` or `GL_UPPER_LEFT`.
+>
+>- *`depth`*
+>
+>  Specifies the clip control depth mode. Must be one of `GL_NEGATIVE_ONE_TO_ONE` or `GL_ZERO_TO_ONE`.
+>
+>这里可以指定深度模式是[-1, 1]还是[0, 1]
+
+## Effects of roundoff error
+
+深度映射以及浮点深度缓冲区与整数深度缓冲区的选择，是精度问题的重要组成部分，但并非全部。即使你拥有足够的深度精度来呈现要渲染的场景，顶点变换过程中的算术误差仍可能轻易主导最终精度。
+
+如前所述，[`Upchurch` 与 `Desbrun`](http://www.geometry.caltech.edu/pubs/UD12.pdf)对此展开研究，提出两项核心建议以最小化舍入误差：
+
+- 将远平面距离定义为无限。
+- 将投影矩阵(projection matrix)与其他矩阵分离，在顶点着色器中单独执行投影操作，而非将其组合到视图矩阵(view matrix)中。
+
+>译者注: 目前大部分的引擎确实是将两个矩阵分开传入的. 即MVP矩阵中, V与P矩阵是分别计算和传入的. 另外这两个建议不是结论, 作者会在下面进行论证.
+
+`Upchurch`和`Desbrun`通过解析技术得出这些建议：他们将舍入误差视为每次算术运算引入的微小随机扰动，并追踪这些误差在变换过程中的线性累积。我决定通过直接模拟验证这些结果。
+
+以下是我的[源代码](https://gist.github.com/Reedbeta/ae437a9acb5dc137eabf)——基于`Python 3.4`与`numpy`实现。其工作原理是生成按深度排序的随机点序列，这些点在近远平面间以线性或对数间距分布。随后将点序列依次通过视图矩阵、投影矩阵及透视除法运算（全程采用32位浮点精度），并可选地将最终结果量化为24位整数。
+
+最后，该程序遍历整个序列，统计相邻点（原本具有不同深度值）因映射到相同深度值而变得无法区分，或实际发生顺序互换的情况。换言之，它测量了不同场景下深度比较错误的发生率——这对应着诸如Z冲突等问题。
+
+以下是近距离=0.1、远距离=10K且深度值呈线性间隔分布（10K个深度值）的测试结果。（我同时尝试了对数深度间隔及其他近远距离比值，虽然具体数值存在差异，但结果呈现的总体趋势一致。）
+
+表格中"`indist`"表示无法区分（两个相邻深度映射到相同的最终深度缓冲区值），"`swap`"表示两个相邻深度发生顺序互换。
+
+> 译者注: 这两种情况都是渲染错误, 合在一起就是发生渲染错误的百分比
+
+|                                       | **Precomposed view** **Projection matrix** |                     |      | **Separate view and** **projection matrices** |                    |
+| ------------------------------------- | ------------------------------------------ | ------------------- | ---- | --------------------------------------------- | ------------------ |
+|                                       | **float32**                                | **int24**           |      | **float32**                                   | **int24**          |
+| **Unaltered Z values (control test)** | 0% indist 0% swap                          | 0% indist 0% swap   |      | 0% indist 0% swap                             | 0% indist 0% swap  |
+| **Standard projection**               | 45% indist 18% swap                        | 45% indist 18% swap |      | 77% indist 0% swap                            | 77% indist 0% swap |
+| **Infinite far plane**                | 45% indist 18% swap                        | 45% indist 18% swap |      | 76% indist 0% swap                            | 76% indist 0% swap |
+| **Reversed Z**                        | 0% indist 0% swap                          | 76% indist 0% swap  |      | 0% indist 0% swap                             | 76% indist 0% swap |
+| **Infinite + reversed-Z**             | 0% indist 0% swap                          | 76% indist 0% swap  |      | 0% indist 0% swap                             | 76% indist 0% swap |
+| **GL-style standard**                 | 56% indist 12% swap                        | 56% indist 12% swap |      | 77% indist 0% swap                            | 77% indist 0% swap |
+| **GL-style infinite**                 | 59% indist 10% swap                        | 59% indist 10% swap |      | 77% indist 0% swap                            | 77% indist 0% swap |
+
+> 译者注: 
+>
+> **Unaltered Z values (control test)**: 指原始数据, 即没有通过矩阵变换和透视除法处理的初始值
+>
+> **Standard projection**: 指正常的没有`Reversed Z`数据, 同时没有将远平面设定为无限远, NDC, 深度范围是[0, 1]时候的情况
+>
+> **Reversed Z**: 在Standard projection基础上反转`Z`数据
+>
+> **Infinite + reversed-Z**: 在Reversed Z基础上将远平面设定为无限远
+>
+> **GL-style standard**: 指正常的没有`Reversed Z`数据, 同时没有将远平面设定为无限远, NDC, 深度范围是[-1, 1]时候的情况
+>
+> **GL-style infinite**: 在GL-style standard基础上将远平面设定为无限远
+
+抱歉未能绘制这些图表，但维度过多导致难以可视化！无论如何，从数据来看，几个普遍结论显而易见：
+
+- 在多数配置中，浮点深度缓冲区与整数深度缓冲区并无差异。算术误差完全淹没了量化误差。部分原因在于float32与int24在[0.5, 1]区间内具有近乎相同的`ulp`（因float32采用23位尾数），因此在绝大多数深度范围内几乎不存在额外量化误差。
+
+  >译者注: 
+  >
+  >**`ulp`**: Unit in the Last Place, 指“在某个数值附近, 浮点数能够表示的最小间隔”(也可理解为该数的相邻可表示浮点数之间的步长). 
+  >
+  >更具体:
+  >
+  >- 对于一个给定的浮点数 `x`, `ulp(x)` 约等于 `nextafter(x) - x`, 即下一个可表示浮点数与它的差.
+  >- 浮点是“指数+尾数”的表示, 所以 `ulp(x)` 不是常数, 而是随 `x` 的数量级变化: 数越大, 间隔越大.
+  >
+  >以 float32 为例(23 位尾数, 隐含 1 使有效精度约 24 bits):
+  >
+  >- 在区间 `[0.5, 1)` 内, `ulp` 大约是 `2^-24`.
+  >- 在区间 `[1, 2)` 内, `ulp` 大约是 `2^-23`.
+  >- 在区间 `[2, 4)` 内, `ulp` 大约是 `2^-22`.
+  >
+  >文章提到 “[0.5, 1] 里 float32 和 int24 的 ulp 很接近” 的意思是:
+  > 在这个范围内 float32 的步长约等于 `2^-24`, 而 24-bit 整数归一化到 `[0,1]` 的步长也是 `1/2^24`. 所以在大部分深度值落在 `[0.5, 1]` 时, float32 并不比 int24 更“细”多少, 量化误差差异就不显著.
+
+- 在多数情况下，遵循`Upchurch`和`Desbrun`的建议**分离视图矩阵与投影矩阵**确实能带来改善。虽然整体误差率未降低，但交换错误(`swap`)似乎已转化为不可区分(`indist`)的误差，这是朝着正确方向迈出的一步。
+
+  > 译者注: 
+  >
+  > 分离矩阵, 能够让误差更晚的发生, 从而减少误差.
+  >
+  > 这里""减少误差""指的是, 分离矩阵之后, 起码不会出现前后深度顺序相反, 顶多是"重叠".
+
+- 无限远平面对误差率的影响微乎其微。`Upchurch`和`Desbrun`曾预测绝对数值误差可降低25%，但这似乎并未转化为比较误差率的降低。
+
+然而上述要点实际上无关紧要，因为真正关键的结果是：反向Z轴映射堪称神奇。请看：
+
+- 在浮点深度缓冲区下，反向Z轴映射在此测试中实现了零误差率。当然，若持续缩小输入深度值的间隔，仍可诱发某些误差。即便如此，浮点反向Z轴的精度仍远超其他任何选项。
+- 采用整数深度缓冲区的反向Z排序与其他整数方案效果相当。
+- 反向Z排序消除了预合成与独立视图/投影矩阵、有限与无限远平面的差异。换言之，使用反向Z排序时，你可以自由组合投影矩阵与其他矩阵，并任意选用远平面，且完全不影响精度。
+
+结论显而易见：任何透视投影场景都应采用浮点深度缓冲区配合反向Z轴！即使无法使用浮点深度缓冲区，仍应启用反向Z轴。虽然它并非解决所有精度问题的万能药——尤其在构建极端深度范围的开放世界环境时——但无疑是绝佳的起点。
+
+>译者注: 
+>
+>这篇文章所讨论的**Reversed-Z"
+>
+>即将通常的
+>
+>`depth = Remap(1/z, 1/nearPlane, 1/farPlane, 0, 1)`
+>
+>改成
+>
+>`depth = Remap(1/z, 1/nearPlane, 1/farPlane, 1, 0)`
+>
+>或者
+>
+>`depth = Remap(1/z, 1/farPlane, 1/nearPlane, 0, 1)`
+>
+>
+>
+>原理其实就是:
+>
+>1/z的等距分布非线性, float的[0,1]精度非线性, 然后将两个部分精度差的对应精度好的, 中和之后, 精度分布就相对均匀.
+>
+>更严格的说法是:
+>
+>- 透视导致深度值本质上是 `1/z` 的线性 remap, 因此**在常规 Z 下, 深度值大量聚集在 near**.
+>- float 的可表示间隔是“随数值大小变化”的: **越靠近 0 间隔越密, 越靠近 1 间隔越稀**(针对 [0,1] 讨论).
+>- Reversed-Z 把“远处”映射到更靠近 0 的深度值区间, 从而让远处利用 float 在 0 附近更密的表示能力, 显著改善远处有效精度.
+>- 注意: 这不是让“整体均匀”, 而是让“有效精度分布更合理”(尤其改善中远距离).
+>
+>
+>
+>但工程上并没有这么简单, 
+>
+>首先要保证不是OpenGL ES平台, 其次如果是OpenGL平台, 需要设置Depth的Mode. 
+>
+>然后, 在渲染管线中还需要做到两点: 
+>
+>- Clear Depth操作: 要从全部变为1改成全部变为0, 因为此时, 0才是远端
+>- Depth test操作: 要从通常的 LESS/LEQUAL 改为 GREATER/GREATER_EQUAL
+>- **所有用深度重建/线性化的代码都要改**
+>   例如从 depth 反推 view-space z, SSAO, SSR, fog, soft particles, shadow receiver bias 等, 只要依赖 depth 的数学, 都要按 reversed 的约定更新.
+
+
+
+###### 参考网页
+
+- [Visualizing Depth Precision \| NVIDIA Technical Blog](https://developer.nvidia.com/blog/visualizing-depth-precision/)
