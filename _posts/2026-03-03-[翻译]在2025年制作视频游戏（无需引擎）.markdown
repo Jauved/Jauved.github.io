@@ -1,0 +1,153 @@
+---
+layout: post
+title: "在2025年制作视频游戏（无需引擎）"
+categories: [翻译]
+tags: 引擎 工具 技术选型 游戏 开发
+math: true
+
+
+---
+
+# [翻译] 在2025年制作视频游戏（无需引擎）
+
+## 原网页
+
+- [Making Video Games in 2025 (without an engine) - Noel Berry](https://www.noelberry.ca/posts/making_games_in_2025/)
+
+2025年5月18日
+
+按照[archive.org](https://web.archive.org/web/20110902045531/http://noelberry.ca/)的记录, 截至2025年我仍然在制作电子游戏, 这是我开始制作游戏以来的20年！坚持做一件事已经相当长时间了……
+
+![Screenshot of my website circa 2011](/assets/image/2005-1772515507120-2.jpeg)
+
+当我分享自己正在做的东西时，人们经常会问我如何制作游戏，并且当我告诉他们我不使用商业游戏引擎时，他们常常感到惊讶（有时甚至担心？）。有人普遍认为，在没有像 Unity 或 Unreal 这样的大型工具的情况下制作游戏，你就是在手工逐条编写自己的汇编指令。
+
+我真心相信，不使用大型“全能型”引擎制作游戏可能更容易、更有趣，而且通常开销更小。我并不打算制作一个“全能型”游戏，也不需要这些引擎提供的 90% 的功能。我对我的游戏的感觉和外观，以及我与工具的互动方式非常讲究。我经常发现像 Unity 这样的大型引擎的默认功能实现非常不足，最终我还是会自己编写。最终，我的项目大多变成了我自己的工具和系统，而引擎只是作为一个提供漂亮界面和一些渲染功能的载体……
+
+在这个状况下，我为什么要使用该引擎？它为我提供了什么？当他们突然做出[不道德和糟糕的商业决策](https://www.theverge.com/2023/9/12/23870547/unit-price-change-game-development)时，我为什么要让一个工具可能毁掉我的工作能力？或者推出一个更新，他们要求在主机上运行我的游戏时必须使用这个更新，而这个更新恰好破坏了我游戏中的整个系统，迫使我重新编写它？当我最终不得不绕过他们的默认系统时，我为什么每天都要为了一个本质上只是一个被美化过的资源加载器和编辑器UI框架而跟它斗争？
+
+对我来说，显而易见的答案就是不要使用大型游戏引擎，而是为我的特定使用案例编写自己的小工具。这更有趣，而且我喜欢掌控自己的开发工作。我知道当出现问题时，我可以找到问题并解决它，而不是提交一个错误报告，三个月后才听到‘不会修复’的回复。我更倾向于的是，即使在二十年后，我仍然能够编译我的游戏，而无需非法使用一个破旧的游戏引擎版本。
+
+当然，这是我的个人偏好——也是一个长期制作独立游戏的人的偏好。在过渡到更轻量、更自定义的工作流程之前，在过去的很多年，我曾使用过游戏引擎, 比如 Game Maker 。我也在非常小的团队中工作过，在那里为团队成员制作一些简单的一次性工具。但我想反驳一种观点，即从零开始制作游戏是一项巨大且不可能完成的任务——尤其是在2025年，考虑到开源框架和库的现状。[许多](https://github.com/TerryCavanagh/VVVVVV)[流行的](https://gamefromscratch.com/balatro-made-with-love-love2d-that-is/)[独立](https://store.steampowered.com/app/813230/ANIMAL_WELL/)[游戏](https://www.stardewvalley.net/)都是在像 FNA、Love2D 或 SDL 这样的[小型框架中](https://github.com/flibitijibibo/RogueLegacy1)[制作的](https://store.steampowered.com/app/504230/Celeste/)。所谓“不使用引擎”制作游戏，并不意味着必须打开一个纯文本编辑器并编写系统调用（除非你愿意）。很多时候, 学会如何自己实现这些系统所需要付出的学习成本，其耗时几乎不亚于学习引擎本身的专有工作流。
+
+正如上面所说的，我觉得聊聊我的工作流程，以及我实际用什么工具来制作游戏，会是一件很有意思的事。
+
+## 编程语言(Programming Languages)
+
+我职业生涯的大部分时间都在使用C#工作，除了几年前短暂使用过C++以外，我还是回到了现代C#的工作流程。我记得有时候，当我向非独立游戏开发者提到C#时，他们脑海中会浮现出2003年左右的样子——一个封闭源代码、解释型、冗长且带有垃圾回收的语言……而现在，C#已经有了很大改进。2025年的C#与2015年的C#也有很大的不同，其中许多变化都是为了提升语言的性能和语法。你可以在栈上分配动态大小的数组！C++做不到这一点（尽管C99[^1]可以 ;)...）。Dotnet开发者也在C#中实现了热重载（大多数时候都能正常工作），这对于游戏开发非常棒。你可以用dotnet watch启动项目，它会实时更新代码更改，这在你想改变某些绘制效果或敌人更新方式时非常惊人。
+
+C# 最终也成为在运行速度快（这是制作视频游戏所需要的）和日常工作中易于使用之间的绝佳折中选择。例如，我一直和我的兄弟 [Liam](https://liamberry.ca/) 一起开发[《City of None》](https://cityofnone.com/)，当我们开始这个项目时，他几乎没有编程经验。但在过去的一年里，他慢慢掌握了这门语言，到现在他可以独自编写整个 Boss 战，因为 C# 就是这么易于上手——而且相对不会产生太多容易踩的坑。对于每个人都身兼多职的小团队来说，这真的是一门非常好的语言。
+
+![A boss fight that Liam coded](/assets/image/bossfight2-1772517575474-5.gif)
+
+最后，它内置了反射……虽然我不会在发布代码中使用它，但能够快速地对游戏对象进行反射以进行编辑器工具开发非常不错。我可以轻松地制作实时检查工具，显示游戏对象的状态，而不需要任何自定义元编程或游戏内反射数据。在用 C++ 制作游戏几年之后，我真的很喜欢重新拥有这个功能。
+
+![Inspecting an object with reflection in Dear ImGui](/assets/image/reflection-1772517777441-8.jpeg)
+
+
+
+## 视窗... 输入... 渲染... 音频?(Windows... Input... Rendering... Audio?)
+
+这是在从零编写“游戏”时的一个大问题，但有很多很棒的库可以帮助你将内容显示到屏幕上——从 [SDL](https://www.libsdl.org/) 到 [GLFW](https://www.glfw.org/)，再到 [Love2D](https://www.love2d.org/)，再到 [Raylib](https://www.raylib.com/) 等等。
+
+我一直在使用 [SDL3](https://wiki.libsdl.org/SDL3/FrontPage)，因为它作为系统的跨平台抽象可以完成我需要的所有事情——从窗口管理、游戏手柄、再到渲染。它可以在 Linux、Windows、Mac、Switch、PS4/5、Xbox 等平台上运行，并且从SDL3开始，它还提供了一套 [GPU 抽象层](https://wiki.libsdl.org/SDL3/CategoryGPU)，用来在 DirectX、Vulkan 和 Metal 上统一处理渲染。它有效，开源，并且被行业里很多公司使用（例如 Valve）。我开始使用它是因为 [FNA[^2]](https://fna-xna.github.io/)（[蔚蓝(Celeste)](https://store.steampowered.com/app/504230/Celeste/) 用它在非 Windows 平台上运行）把SDL3作为平台抽象层来使用。
+
+话虽如此，我在 SDL 之上[自己写了一层 C#](https://github.com/FosterFramework/Foster)，用于通用的渲染和输入工具，这些工具用在了我若干不同项目中。我在游戏结构上做出了高度主观的选择，所以我喜欢有这样一个小层来进行接口。这对我的需求来说非常有效，但也有像 [`MoonWorks`](https://github.com/MoonsideGames/MoonWorks) 这样的功能齐全的替代方案可以填补类似的空间。
+
+在 SDL3 发布并支持 GPU 抽象层之前，我一直在自己编写 OpenGL 和 DirectX 的实现——这可不是件容易的事！但这是一个[很好的学习经历](https://learnopengl.com/)，而且并不像我预想的那么糟。不过，我非常感激 SDL GPU，因为它是一个非常稳固的基础，已经在在数百万设备上进行过测试。
+
+最后，对于音频我们使用的是 [FMOD](https://www.fmod.com/)。这是我们工作流程中最后一个专有工具，我并不喜欢它（尤其是[当某些东西停止工作时](https://www.reddit.com/r/linux_gaming/comments/1ijcfnt/celeste_not_finding_libfmodstudioso10/)，你必须手动修补他们的库），但它是完成这项工作的最佳工具。如果你只是想播放声音，有一些更轻量的开源库，但我与希望对动态音频有精细控制的音频团队合作，因此像 FMOD 这样的工具是必需的。
+
+## 资产(Assets)
+
+我对资源没什么要说的，因为当你自己开发引擎时，你只需在需要的时候加载所需的文件，然后继续。对于我所有的像素艺术游戏，我会在一开始就加载整个游戏，这样“也行”，因为整个游戏大约只有20MB。当我在开发[《Earthblade》](https://exok.com/games/earthblade/)时，游戏的资源更大，我们会在启动时注册它们，然后仅在请求时加载，并在场景切换后释放它们。我们只是采用了最简单直接的实现来完成任务。
+
+![Assets loading in 0.4 seconds](/assets/image/assets-1772520258319-11.jpeg)
+
+有时你会有需要在游戏使用之前转换的资产，在这种情况下，我通常会编写一个小脚本，在游戏编译时运行，执行所需的任何处理。就是这样。
+
+## 关卡编辑, UI...(Level Editors, UI...)
+
+总有一天我会写一个完全程序化生成的游戏，但在那之前，我需要工具来设计游戏内的空间。现有有很多非常棒的工具，比如 [LDtk](https://ldtk.io/)、[Tiled](https://www.mapeditor.org/)、[Trenchbroom](https://trenchbroom.github.io/) 等。我在不同程度上使用过其中的许多工具，它们很容易设置并在项目中运行——你只需要写一个脚本来处理它们输出的数据，并在运行时实例化你的游戏对象。
+
+然而，我通常喜欢为我的项目编写自己的定制关卡编辑器。我喜欢让我的游戏数据直接与编辑器结合，并且我从来不会在功能上做得非常深入，因为我们需要的东西是特定的但有限的。
+
+![A small custom level editor for City of None using Dear ImGui](/assets/image/postcard-1772520507464-14.png)
+
+但我不想实际编写用户界面——编写文本框和下拉菜单不是我特别想做的。我想要一个创建字段和按钮的简单方法，有点像[在 Unity 游戏引擎中编写自己的小编辑器工具](https://docs.unity3d.com/6000.0/Documentation/Manual/editor-CustomEditors.html)时的感觉。
+
+这就是 [Dear ImGui](https://github.com/ocornut/imgui/) 派上用场的地方。它是一个轻量级、跨平台、立即模式（immediate-mode）的 GUI 引擎，你可以轻松地将它嵌入到任何项目中。上面的编辑器截图中，除了真正的“Scene”视图，其余所有界面都是用它做的，而“Scene”视图之所以是自定义的, 是因为它本质上只是在绘制我的关卡。有一些功能更全面（也更重型）的替代方案，但如果它对包括[《王国之泪》](https://github.com/ocornut/imgui/issues/7503#issuecomment-2308380962)在内的[所有这些游戏](https://github.com/ocornut/imgui/wiki/Software-using-dear-imgui)都足够好，那么对我来说也就足够了。
+
+使用 ImGui 使编写编辑器工具变得非常简单。我喜欢让我的工具直接从游戏中提取数据，而将 ImGui 与 C# 反射结合使用使这非常方便。我可以遍历 C# 中的所有 Actor 类，并通过几行代码在我的编辑器中访问它们！对于更复杂的工具，有时自己实现会显得过于复杂，这时我会回归使用为特定任务构建的现有工具（比如用于设计 3D 环境的 [`Trenchbroom`](https://trenchbroom.github.io/)）。
+
+## 移植游戏...?(Porting Games ... ?)
+
+我几年前学习C++的主要原因是因为我对可移植性有所担忧。当时，在游戏主机上运行C#代码并不容易，因为C#是“即时”编译的，而许多平台并不支持这种方式。我们的游戏《Celeste》使用了一个叫[BRUTE](http://brute.rocks/)的工具，将C#的[IL](https://en.wikipedia.org/wiki/Common_Intermediate_Language)（中间语言二进制文件）转换为C++，然后再为目标平台重新编译。Unity也有[一个非常类似的工具](https://docs.unity3d.com/6000.0/Documentation/Manual/scripting-backends-il2cpp.html)，做的事情也是一样的。这种方法可行，但对我来说并不理想。我希望能够直接为目标平台编译我们的代码，所以学习C++感觉是唯一真正的选择。
+
+然而，后来，C# 在其 [Native-AOT](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/) 工具链方面取得了令人难以置信的进展（这基本上意味着所有代码都是“提前编译”的——像 C++ 和 Rust 这样的语言默认就是这样）。现在可以将 C# 代码编译到所有主要的主机架构，这非常棒。[FNA 项目](https://fna-xna.github.io/docs/appendix/Appendix-B%3A-FNA-on-Consoles/)在这方面非常积极，能够让游戏可以在所有主要平台上发布，同时使用的是 C#。
+
+![Platforms supported by SDL3](/assets/image/platforms-1772521254538-17.jpeg)
+
+最后，SDL3 为所有主要平台提供了控制台端口。将其用作你的平台抽象层（只要你对系统调用的处理足够小心）意味着很多功能将“开箱即用”。
+
+## 再见, Windows(Goodbye, Windows)
+
+最后，总结一下……我不再使用 Windows 来开发我的游戏（测试除外）。我感觉这符合我使用开源、跨平台工具和库的一贯理念。我发现使用 Windows [越来越让人沮丧](https://www.howtogeek.com/739837/fyi-windows-11-home-will-require-a-microsoft-account-for-initial-setup/)，他们的[商业行为令人反感](https://bdsmovement.net/microsoft)，而且操作系统整体上也很不足。我是在使用 Windows 的环境中长大的，但大约三年前我完全转向了 Linux。坦率地说，对于制作电子游戏来说，我一点也没想念它。它无法提供比在 Linux 上更快、更优雅完成的任何东西。
+
+当然，有些工作流程和工具在 Linux 上无法使用，这就是目前的现实。我也不是完全摆脱了微软——我使用 vscode，我用 C# 编写游戏，并且把项目托管在 github 上……但每天使用 Linux 的人越多，给Windows的压力就越大，开源替代方案的支持也就越多。
+
+（题外话，我现在大部分游戏都在 Steam Deck 上玩，这意味着在我的电脑、游戏机、网络服务器和手机之间，我总是在使用 Linux 平台）
+
+## 其他七七八八(Miscellaneous thoughts)
+
+- Godot如何？
+
+  如果你处在想要一个更大型游戏引擎提供的功能的位置，我绝对认为 Godot 是最好的选择。它是开源的并由社区维护，这消除了我对其他专有游戏引擎的许多问题，但它仍然通常不是我想要制作游戏的方式。我确实打算将来针对我有的一些特定想法尝试使用它。
+
+- 3D 呢？
+
+  我认为使用大型引擎对于 3D 游戏确实更有意义——但即便如此，对于任何我想做的 3D 项目，我都会自己开发一个小框架。我想制作高度风格化的游戏，不需要非常现代的技术，而我发现实现这一点相当简单(译者注: 原文是"and I have found that to be fairly straight forward", 不知道该怎么翻译)（例如，我们在不到两周的时间里在几乎没有任何 3D 知识的情况下制作了 Celeste 64）。
+
+  ![Celeste 64 screenshot](/assets/image/celeste64-1772521919405-20.jpeg)
+
+- 我只需要最顶级的高端技术来实现我的游戏创意
+
+  那就用 Unreal 吧！这没问题，但我的项目并不需要那种功能（而且我会说，我所需的大多数东西通常都可以相对快速地学会）。
+
+- 我整个团队都熟悉 [Game Engine XYZ]
+
+  将整个团队迁移到自定义引擎的成本可能很高，也很耗时。我说这些绝对是从小型/单人团队的角度出发的。不过话说回来，根据我的经验，我知道有几个中型工作室正在转向自定义引擎，因为他们认为使用专有引擎的潜在风险太高，而迁移和学习的成本是值得的。我认为现在对于大团队来说，使用自定义引擎比很久以前要容易了。
+
+  ![Screeshot of Aseprite](/assets/image/aseprite-1772522123439-23.jpeg)
+
+- 特定的工作流程
+
+  我加载 [`Aseprite`](https://www.aseprite.org/) 文件，并让我的 City of None 引擎自动将它们转换成游戏动画，使用它们内置的标签和帧时间。这个格式[出奇地简单](https://github.com/aseprite/aseprite/blob/main/docs/ase-file-specs.md)。当你编写自己的工具时，添加这样的功能真的很容易！
+
+## 结语(Alright!)
+
+我就说到这里！这就是我在2025年制作游戏的方式！
+
+我认为你应该在没有大型引擎的情况下制作游戏吗？我的答案是：如果听起来有趣的话。
+
+-Noel
+
+###### 参考网页
+
+- [Making Video Games in 2025 (without an engine) - Noel Berry](https://www.noelberry.ca/posts/making_games_in_2025/)
+- [Noel Berry](https://web.archive.org/web/20110902045531/http://noelberry.ca/)
+- [NoelFB (Noel Berry)](https://github.com/NoelFB)
+- [SDL3/FrontPage - SDL Wiki](https://wiki.libsdl.org/SDL3/FrontPage)
+- [FosterFramework/Foster: A small C# game framework](https://github.com/FosterFramework/Foster)
+- 许多流行的独立游戏...小型框架中制作的
+  - [TerryCavanagh/VVVVVV: The source code to VVVVVV! http://thelettervsixtim.es/](https://github.com/TerryCavanagh/VVVVVV)
+  - [Balatro Made with Love... Love2D That is – GameFromScratch.com](https://gamefromscratch.com/balatro-made-with-love-love2d-that-is/)
+  - [在 Steam 上的 ANIMAL WELL](https://store.steampowered.com/app/813230/ANIMAL_WELL/)
+  - [Stardew Valley](https://www.stardewvalley.net/)
+  - [Steam 上的 Celeste](https://store.steampowered.com/app/504230/Celeste/)
+  - [flibitijibibo/RogueLegacy1: Rogue Legacy Source Code](https://github.com/flibitijibibo/RogueLegacy1)
+
+[^1]: 这里的 C99 指的是 C 语言标准的 1999 年版本(ISO/IEC 9899:1999). 它引入/规范了若干特性, 其中与这句话相关的是对“变长数组”(VLA, Variable Length Array)的支持, 允许在某些情况下用运行时确定的长度声明栈上数组.
+[^2]:FNA 是对 Microsoft XNA Game Studio 4.0 Refresh 库的一套开源“重实现”(reimplementation). 它的目标是提供一个尽可能准确的 XNA4 运行时, 从而让基于 XNA 的游戏更容易在不同平台上移植与运行.
+
+译者注: XNA在微软和社区并没有正式的说明是什么的缩写, 在实际工程中, 作为专属名词即可, 类似GGX. 当然, 早期媒体报道中也出现过 **“Xbox/DirectX New Generation Architecture”** 这类解释, 但并不是微软官方认可的. 同样的, FNA特指XNA的开源重实现, 也作为专属名词即可.

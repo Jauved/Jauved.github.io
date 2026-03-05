@@ -222,6 +222,18 @@ icacls  "E:\Projects" /setowner "%USERNAME%" /T
 - 找到`HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layouts\`
 - 在其子项中找到残留的键盘设置->删除
 
+### 锁屏界面1min后强制息屏
+
+- 打开注册表编辑器
+  - 运行->`regedit`
+- 找到`HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\7516b95f-f776-4464-8c53-06167f40cc99\8ec4b3a5-6868-48c2-be75-4f3044be88a7`
+- 将`Attributes`的值从`1`改成`2`
+- 打开`控制面板\所有控制面板项\电源选项\编辑计划设置`
+  - 找到`更改高级电源设置`
+  - 展开`显示`
+  - 展开`控制台锁定显示关闭超时`
+  - 设置时间为期望的锁屏时间
+
 ## 02 实用工具
 
 ### Windows壁纸存储工具
@@ -253,3 +265,4 @@ icacls  "E:\Projects" /setowner "%USERNAME%" /T
 - [为什么INTEL卷管理设备VMD会障碍你安装windows？ - 知乎](https://zhuanlan.zhihu.com/p/841132167)
 - [onedrive一直显示“正在处理更改” · Issue #27 · baidut/windowsSystemHelper](https://github.com/baidut/windowsSystemHelper/issues/27)
 - [Qzincs/SpotlightGallery: A clean Windows desktop wallpaper application](https://github.com/Qzincs/SpotlightGallery)
+- [Windows 11 总是在手动锁屏1分钟后息屏（关闭显示器） - Microsoft Q&A](https://learn.microsoft.com/zh-cn/answers/questions/3989872/windows-11-1)

@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "深度精度的可视化"
-categories: [URP, 后处理]
-tags: URP 后处理 DepthOfField
+categories: [翻译]
+tags: 翻译 深度 精度 渲染
 math: true
 
 
