@@ -1,0 +1,43 @@
+---
+layout: post
+title: "[Git]找回被删除的文件"
+categories: [Git]
+tags: Git 找回
+math: true
+
+
+---
+
+# [Git]找回被删除的文件
+
+## 00 前置知识
+
+有的时候, 我们会需要找回Git中被删除的文件, 如果文件所在的目录还存在, 通过查询文件夹的历史记录可以轻松找到. 但是如果文件夹都被删掉了, 那么就需要其他手段去找回.
+
+## 01 实施
+
+- 确认文件路径
+
+  比如, `Assets/Scripts/OldFolder/MyFile.cs`
+
+- 用以下命令查看到删除这个文件的提交记录
+
+  ```bash
+  git log --diff-filter=D --summary -- "Assets/Scripts/OldFolder/MyFile.cs"
+  ```
+
+- 确认的commit的信息后, 可以找到删除的这笔提交, 选择你需要恢复的文件, "还原所选更改"即可.
+
+- 也可以用命令行恢复文件或者文件夹
+
+  ```bash
+  git restore --source <delete_commit> -- "Assets/Scripts/OldFolder/MyFile.cs"
+  ```
+
+  ```bash
+  git restore --source <delete_commit> -- "Assets/Scripts/OldFolder/"
+  ```
+
+  
+
+###### 参考网页
