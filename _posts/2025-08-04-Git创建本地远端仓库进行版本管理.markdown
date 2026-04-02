@@ -145,4 +145,16 @@ git clone E:/GitBareRepos/YourRepo.git D:/Projects/YourRepo
 
 
 
+## 03 直接拉取
+
+先进入你要存放仓库的目录, 然后进入`git bash`, 执行拉取命令即可, 千万注意, windows下的反斜杠使用方法, 直接复制路径, 反斜杠是不对的.
+
+```bash
+git clone E:/GitBareRepos/YourRepo.git
+```
+
+
+
+
+
 ###### 参考网页
