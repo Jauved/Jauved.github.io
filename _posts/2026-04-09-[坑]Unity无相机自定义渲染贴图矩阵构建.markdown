@@ -1,0 +1,260 @@
+---
+layout: post
+title: "[坑]Unity无相机自定义渲染贴图矩阵构建"
+categories: [URP, 坑]
+tags: URP 坑 阴影 矩阵
+math: true
+
+
+---
+
+# [坑]Unity无相机自定义渲染贴图矩阵构建
+
+## 00 前置知识
+
+很多时候, 我们会需要自定义一个相机去渲染特定的图. 比如顶视图渲染深度用来做积水. 单个物体的深度用来做阴影. 但实际上我们构建一个相机也是为了获得其视空间的VP矩阵, FOV, 裁剪面等渲染用数据. 
+而在SRP中, 实际上只要我们准备好这些数据, 本质上是无需声明摄像机的.
+
+## 01 坑
+
+我想要实现指定范围内的阴影图, 本来需要从灯光所在位置, 与灯光同方向放置一个摄像机来获取深度. 但由于实际上, 方向已知, 裁剪框由阴影对象的包围盒确定, 把数据输入渲染管线就应该可以渲染.
+
+于是我写了一个feature, shader, 和一个测试用脚本
+
+feature核心代码如下:
+
+```c#
+public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
+{
+    if (_overrideMaterial == null)
+    {
+        return;
+    }
+
+    Light light = LightSpaceDepthRuntime.DirectionalLight;
+    if (light == null)
+    {
+        return;
+    }
+
+    CommandBuffer cmd = CommandBufferPool.Get("LightSpace Depth");
+
+    Vector3 center = LightSpaceDepthRuntime.Center;
+    Vector2 orthoSize = LightSpaceDepthRuntime.OrthoSize;
+    float viewDepth = Mathf.Max(0.01f, LightSpaceDepthRuntime.ViewDepth);
+
+    Vector3 lightForward = light.transform.forward;
+    Vector3 lightUp = light.transform.up;
+
+    Vector3 eye = center - lightForward * (viewDepth * 0.5f);
+
+    // 与当前已验证通过的 occupancy 约定保持一致.
+    Matrix4x4 view = Matrix4x4.Scale(new Vector3(1, 1, -1)) * Matrix4x4.LookAt(center, -eye, lightUp).inverse;
+    Matrix4x4 proj = Matrix4x4.Ortho(
+        -orthoSize.x * 0.5f,
+         orthoSize.x * 0.5f,
+        -orthoSize.y * 0.5f,
+         orthoSize.y * 0.5f,
+         0.01f - viewDepth * 0.5f,
+         viewDepth * 0.5f);
+
+    Matrix4x4 gpuProj = GL.GetGPUProjectionMatrix(proj, SystemInfo.graphicsUVStartsAtTop);
+    Matrix4x4 worldToClip = gpuProj * view;
+
+    cmd.SetGlobalMatrix(_worldToLightId, worldToClip);
+
+    context.ExecuteCommandBuffer(cmd);
+    cmd.Clear();
+
+    SortingCriteria sorting = SortingCriteria.CommonOpaque;
+    DrawingSettings drawingSettings = CreateDrawingSettings(s_ShaderTags, ref renderingData, sorting);
+    drawingSettings.overrideMaterial = _overrideMaterial;
+    drawingSettings.overrideMaterialPassIndex = 0;
+
+    FilteringSettings filteringSettings = new FilteringSettings(
+        RenderQueueRange.all,
+        LightSpaceDepthRuntime.CasterLayer);
+
+    context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref filteringSettings);
+
+    context.ExecuteCommandBuffer(cmd);
+    CommandBufferPool.Release(cmd);
+}
+```
+
+注意这三行:
+
+```c#
+Matrix4x4 view = Matrix4x4.Scale(new Vector3(1, 1, -1)) * Matrix4x4.LookAt(center, -eye, lightUp).inverse;
+Matrix4x4 proj = Matrix4x4.Ortho(
+        -orthoSize.x * 0.5f,
+         orthoSize.x * 0.5f,
+        -orthoSize.y * 0.5f,
+         orthoSize.y * 0.5f,
+         0.01f - viewDepth * 0.5f,
+         viewDepth * 0.5f);
+Matrix4x4 gpuProj = GL.GetGPUProjectionMatrix(proj, SystemInfo.graphicsUVStartsAtTop);
+```
+
+原本一开始我用的是
+
+```c#
+Matrix4x4 view = Matrix4x4.LookAt(eye, center, lightUp)
+Matrix4x4 proj = Matrix4x4.Ortho(
+        -orthoSize.x * 0.5f,
+         orthoSize.x * 0.5f,
+        -orthoSize.y * 0.5f,
+         orthoSize.y * 0.5f,
+         0.01f,
+         viewDepth);
+Matrix4x4 gpuProj = GL.GetGPUProjectionMatrix(proj, false);
+```
+
+第一次修正是因为发现渲染出来的图片上下颠倒.
+
+此时, 通过查询`GL.GetGPUProjectionMatrix`的用法, 在文件
+
+`Library/PackageCache/com.unity.render-pipelines.universal@12.1.15/Runtime/Passes/RenderObjectsPass.cs`
+
+找到
+
+```c#
+projectionMatrix = GL.GetGPUProjectionMatrix(projectionMatrix, cameraData.IsCameraProjectionMatrixFlipped());
+...
+RenderingUtils.SetViewAndProjectionMatrices(cmd, viewMatrix, projectionMatrix, false);
+```
+
+继续查找`cameraData.IsCameraProjectionMatrixFlipped()`
+
+进入
+
+`Library/PackageCache/com.unity.render-pipelines.universal@12.1.15/Runtime/UniversalRenderPipelineCore.cs`
+
+找到
+
+```c#
+public bool IsCameraProjectionMatrixFlipped()
+{
+    // Users only have access to CameraData on URP rendering scope. The current renderer should never be null.
+    var renderer = ScriptableRenderer.current;
+    Debug.Assert(renderer != null, "IsCameraProjectionMatrixFlipped is being called outside camera rendering scope.");
+
+    if (renderer != null)
+    {
+        bool renderingToBackBufferTarget = renderer.cameraColorTarget == BuiltinRenderTextureType.CameraTarget;
+#if ENABLE_VR && ENABLE_XR_MODULE
+        if (xr.enabled)
+            renderingToBackBufferTarget |= renderer.cameraColorTarget == xr.renderTarget && !xr.renderTargetIsRenderTexture;
+#endif
+        bool renderingToTexture = !renderingToBackBufferTarget || targetTexture != null;
+        return SystemInfo.graphicsUVStartsAtTop && renderingToTexture;
+    }
+
+    return true;
+}
+```
+
+很明显`SystemInfo.graphicsUVStartsAtTop && renderingToTexture`就是关键, 这里我本来就是渲染到Texture, 所以直接用`SystemInfo.graphicsUVStartsAtTop`进行修正第一版.
+
+```
+Matrix4x4 gpuProj = GL.GetGPUProjectionMatrix(proj, SystemInfo.graphicsUVStartsAtTop);
+```
+
+
+
+然后, 从灯光方向, 向物体中心, 以灯光对象的"上"为上方向, 构建渲染用的view矩阵, 此时进行旋转, 发现旋转中心是灯. 实际上, 我需要的是以物体为旋转中心的渲染方式.
+
+于是, 修正了第二版, 原理是假设摄像机在物体上, 看向灯照射的方向.
+
+```c#
+Matrix4x4 view = Matrix4x4.LookAt(center, -eye, lightUp);
+```
+
+这个时候发现, 随着旋转, 物体会被裁剪.
+
+因为此时, 实际上摄像机是和物体重叠的, 那么物体肯定会被近裁剪框剪掉.
+
+那么修正第三版, 将裁剪框从摄像机位置开始改成摄像机位置的前后, 修改如下:
+
+```c#
+Matrix4x4 proj = Matrix4x4.Ortho(
+        -orthoSize.x * 0.5f,
+         orthoSize.x * 0.5f,
+        -orthoSize.y * 0.5f,
+         orthoSize.y * 0.5f,
+         0.01f - viewDepth * 0.5f,
+         viewDepth * 0.5f);
+```
+
+此时, 在灯光水平时, 看起来是正常的. 
+
+### 右手坐标系和左手坐标系
+
+在第三版修正完成后, 一旦我开始进行红轴(x轴)和蓝轴(z轴)的旋转, 视觉上就是在操作另一个轴, 比如我旋转红轴(x轴), 视觉上是在旋转蓝轴(z轴), 反之亦然. 只有旋转y轴是合乎预期的.
+
+通过多次的尝试和搜索, 
+
+在文件
+
+`Library/PackageCache/com.unity.render-pipelines.core@12.1.15/Runtime/Lights/LightAnchor.cs`
+
+发现:
+
+```c#
+if (m_FrameSpace == UpDirection.Local)
+{
+    Vector3 localUp = Camera.main.transform.up;
+    viewToWorld = Matrix4x4.Scale(new Vector3(1, 1, -1)) * Matrix4x4.LookAt(camera.transform.position, anchor, localUp).inverse;
+    viewToWorld = viewToWorld.inverse;
+}
+// Correct view to world for perspective
+else if (!camera.orthographic && camera.transform.position != anchor)
+{
+    var d = (anchor - camera.transform.position).normalized;
+    var f = Quaternion.LookRotation(d);
+    viewToWorld = Matrix4x4.Scale(new Vector3(1, 1, -1)) * Matrix4x4.TRS(camera.transform.position, f, Vector3.one).inverse;
+    viewToWorld = viewToWorld.inverse;
+}
+```
+
+这里, 显然是为了得到`viewToWorld = viewToWorld.inverse;`, 那么右边的`viewToWorld`实际上就是`worldToView`, 而这里, unity的算法是
+
+`viewToWorld = Matrix4x4.Scale(new Vector3(1, 1, -1)) * Matrix4x4.LookAt(camera.transform.position, anchor, localUp).inverse;`
+
+首先, 它乘了一个`Matrix4x4.Scale(new Vector3(1, 1, -1))`, 然后取了逆矩阵.
+
+将这个用到我的方案中, 旋转正常了.
+
+##  02 原因分析
+
+现在我只是把这个记录下来, 通过一定的搜索, 
+
+首先`Matrix4x4.LookAt`返回的是一个世界空间的TRS坐标转换.
+
+其inverse矩阵是世界到View空间的变化矩阵.
+
+然后Unity渲染空间是左手坐标系.
+
+需要进行进行右手坐标系向左手坐标系的矩阵转化操作, 要乘一个`Matrix4x4.Scale(new Vector3(1, 1, -1))`.
+
+注: [Matrix4x4.LookAt](https://docs.unity3d.com/ScriptReference/Matrix4x4.LookAt.html), 明确说明是一个右手坐标系的API. 
+
+所以完整的坐标转换操作就是
+
+```
+Matrix4x4 view = Matrix4x4.Scale(new Vector3(1, 1, -1)) * Matrix4x4.LookAt(center, -eye, lightUp).inverse;
+```
+
+
+
+###### 参考网页
+
+- `Library/PackageCache/com.unity.render-pipelines.universal@12.1.15/Runtime/Passes/RenderObjectsPass.cs`
+
+  ```
+  projectionMatrix = GL.GetGPUProjectionMatrix(projectionMatrix, cameraData.IsCameraProjectionMatrixFlipped());
+  ...
+  RenderingUtils.SetViewAndProjectionMatrices(cmd, viewMatrix, projectionMatrix, false);
+  ```
+
+- [Unity - Scripting API: Matrix4x4.LookAt](https://docs.unity3d.com/ScriptReference/Matrix4x4.LookAt.html)
