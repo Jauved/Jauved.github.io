@@ -37,6 +37,14 @@ math: true
   
   正常安装AdobeCreativeCloud, 以及其他的应用. 安装完毕后恢复通常的状态.
 
+## 02 疑难杂症
 
+- x2rayN, 开启`Tun`模式无法联网
+
+  设置->参数设置->Tun模式设置, 关闭`Strict Route`即可. 参见https://github.com/2dust/v2rayN/discussions/3888#discussioncomment-8577132
+
+- 打开应用, 提示无法连接验证服务器
+
+  开启`Tun`模式. 开启后联网失败参见上一条.
 
 ###### 参考网页
