@@ -1,0 +1,210 @@
+---
+layout: post
+title: "Unity环境贴图强度换算贴图曝光度的坑"
+categories: [URP, 后处理]
+tags: URP 环境光 漫反射 换算 强度 坑
+math: true
+
+
+---
+
+# Unity环境贴图强度换算贴图曝光度的坑
+
+## 00 现象
+
+目标效果是:
+
+```
+原 EXR + Unity Skybox/Cubemap Exposure = 1.17
+```
+
+希望把这个曝光效果直接烘进 EXR, 然后在 Unity 中使用:
+
+```
+处理后的 EXR + Unity Skybox/Cubemap Exposure = 1.0
+```
+
+一开始尝试了两种方式:
+
+```
+Blender Exposure = 1.17
+```
+
+结果明显曝光过度。
+
+随后按普通曝光档位换算:
+
+```
+Blender Exposure = log2(1.17) ≈ 0.226
+```
+
+或者直接把 EXR 线性乘以:
+
+```
+RGB × 1.17
+```
+
+结果二者一致, 但都比 Unity 中 `Exposure = 1.17` 的效果偏暗。
+
+## 01 根因
+
+Unity 内置 `Skybox/Cubemap` Shader 中, `_Exposure` 属性是这样声明的:
+
+```
+[Gamma] _Exposure ("Exposure", Range(0, 8)) = 1.0
+```
+
+片元阶段则是:
+
+```
+half4 tex = texCUBE(_Tex, i.texcoord);
+half3 c = DecodeHDR(tex, _Tex_HDR);
+c = c * _Tint.rgb * unity_ColorSpaceDouble.rgb;
+c *= _Exposure;
+return half4(c, 1);
+```
+
+关键点是 `[Gamma] _Exposure`。
+
+在 Linear Color Space 项目中, Inspector 上填写的 `_Exposure` 值不是简单原样传入 Shader 计算, 而会经过 Gamma-to-Linear 转换。
+
+因此 Inspector 中的:
+
+```
+Exposure = 1.17
+```
+
+在 Shader 内部实际参与乘法的线性倍率更接近:
+
+```
+GammaToLinear(1.17) ≈ pow(1.17, 2.2) ≈ 1.41
+```
+
+所以 `Exposure = 1.17` 并不等价于 EXR 像素值乘以 `1.17`, 而更接近 EXR 像素值乘以 `1.41`。
+
+## 02 正确换算
+
+如果要把 Unity `Skybox/Cubemap` 材质上的 `_Exposure` 烘进 EXR, 应该先把 Inspector 中的 Exposure 转成线性倍率:
+
+```
+linearMultiplier = GammaToLinearSpace(unityInspectorExposure)
+```
+
+近似公式:
+
+```
+linearMultiplier ≈ pow(unityInspectorExposure, 2.2)
+```
+
+然后如果在 Blender 中使用 `Exposure` 节点, 还需要把线性倍率转换为 EV 曝光值:
+
+```
+blenderExposure = log2(linearMultiplier)
+```
+
+合并后:
+
+```
+blenderExposure = log2(GammaToLinearSpace(unityInspectorExposure))
+```
+
+近似为:
+
+```
+blenderExposure ≈ log2(pow(unityInspectorExposure, 2.2))
+```
+
+也就是:
+
+```
+blenderExposure ≈ 2.2 * log2(unityInspectorExposure)
+```
+
+## 03 本次案例
+
+Unity 中目标值:
+
+```
+Skybox/Cubemap Exposure = 1.17
+```
+
+换算为线性倍率:
+
+```
+linearMultiplier ≈ pow(1.17, 2.2) ≈ 1.41
+```
+
+换算为 Blender Exposure:
+
+```
+blenderExposure = log2(1.41) ≈ 0.496
+```
+
+最终验证:
+
+```
+原 EXR + Unity Exposure = 1.17
+```
+
+与:
+
+```
+EXR 在 Blender 中 Exposure = 0.496 后导出 + Unity Exposure = 1.0
+```
+
+视觉结果一致。
+
+## 04 常见错误换算
+
+错误 1:
+
+```
+Blender Exposure = 1.17
+```
+
+原因: Blender Exposure 是 EV 档位, `1.17` 代表约 `2^1.17 ≈ 2.25` 倍, 会明显过曝。
+
+错误 2:
+
+```
+Blender Exposure = log2(1.17) ≈ 0.226
+```
+
+原因: 这只等价于 EXR 线性乘以 `1.17`, 但 Unity Shader 中 `[Gamma] _Exposure` 实际让 `1.17` 转成了约 `1.41` 的线性倍率, 所以结果偏暗。
+
+## 05 结论
+
+对于 Unity 内置 `Skybox/Cubemap` Shader:
+
+```
+[Gamma] _Exposure
+```
+
+意味着 Inspector 中的 Exposure 值在 Linear Color Space 下需要先做 Gamma-to-Linear 转换。
+
+因此, 要把 Unity Skybox Exposure 烘进 EXR, 不要直接使用 Inspector 数值, 也不要只做 `log2(inspectorExposure)`。
+
+应使用:
+
+```
+linearMultiplier = GammaToLinearSpace(unityInspectorExposure)
+blenderExposure = log2(linearMultiplier)
+```
+
+本例中:
+
+```
+Unity Exposure 1.17
+≈ EXR 线性乘以 1.41
+≈ Blender Exposure 0.496
+```
+
+## 06 工程细节
+
+Blender节点图如下:
+
+![image-20260429164426164](/assets/image/image-20260429164426164.png)
+
+设置好之后, 使用`Render`->`Render Image`进行出图
+
+###### 参考网页

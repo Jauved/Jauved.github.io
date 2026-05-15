@@ -1,0 +1,20 @@
+---
+layout: post
+title: "高通GSR2实现"
+categories: [算法]
+tags: 高通 GSR2 算法
+math: true
+
+
+---
+
+# 高通GSR2实现
+
+## 00 前置知识
+
+## 01 实施
+
+###### 参考网页
+
+- [Introducing Snapdragon Game Super Resolution 2](https://www.qualcomm.com/developer/blog/2024/10/introducing-snapdragon-game-super-resolution-2)
+- [adreno-gpu-vulkan-code-sample-framework/samples/sgsr2 at main · SnapdragonGameStudios/adreno-gpu-vulkan-code-sample-framework](https://github.com/SnapdragonGameStudios/adreno-gpu-vulkan-code-sample-framework/tree/main/samples/sgsr2)

@@ -2,7 +2,7 @@
 layout: post
 title: "[ShaderGraph]Time字段重定义问题"
 categories: [URP, ShaderGraph]
-tags: URP ShaderGraph 定制 PBR Time 重定义 redefinition
+tags: URP ShaderGraph 定制 PBR Time 重定义 redefinition 字段
 math: true
 
 
@@ -12,7 +12,7 @@ math: true
 
 ## 00 前置知识
 
-在写ShaderGraph的Custom Function的时候, 经常会遇到`redefinition of '_Time' at line 40`的问题.
+在写`ShaderGraph`的`Custom Function`的时候, 经常会遇到`redefinition of '_Time' at line 40`的问题.
 
 经过排查. 
 
