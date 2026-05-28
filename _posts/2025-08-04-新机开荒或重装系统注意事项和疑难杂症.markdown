@@ -164,6 +164,42 @@ math: true
 
 - [取消链接并重新链接 OneDrive - Microsoft 支持](https://support.microsoft.com/zh-cn/office/取消链接并重新链接-onedrive-3c4680bf-cc36-4204-9ca5-e7b24cdd23ea)
 
+### 取消Bitlocker加密
+
+- 对于通常用户来说, Bitlocker加密只会害了你, 建议关闭
+
+- 查看Bitlocker状态
+
+  ```shell
+  # 查看所有盘
+  manage-bde -status
+  # 查看单盘
+  manage-bde -status C:
+  ```
+
+- 关闭指定盘的加密, 注意, 解密需要时间, 可以通过查看Bitlocker状态来确定解密有没有完成.
+
+  ```shell
+  manage-bde -off C:
+  ```
+
+### 查看Bios版本/显卡驱动版本
+
+```shell
+# 查看bios版本
+wmic bios get manufacturer,name,version,smbiosbiosversion,releasedate
+# 查看显卡驱动版本
+wmic path win32_VideoController get name,driverversion,driverdate
+```
+
+### 快速关机命令
+
+```shell
+shutdown /s /f /t 0
+```
+
+
+
 ### 枪神9p的支持页面
 
 - [G815LR - 服务支持](https://www.asus.com.cn/supportonly/g815lr/helpdesk_bios/)
@@ -233,6 +269,22 @@ icacls  "E:\Projects" /setowner "%USERNAME%" /T
   - 展开`显示`
   - 展开`控制台锁定显示关闭超时`
   - 设置时间为期望的锁屏时间
+
+### 笔记本电源键无法开机
+
+- 先排除硬件问题.
+
+- 如果是长按电源键之后, 就可以开机了. 可以尝试关闭休眠/快速启动
+
+  ```shell
+  powercfg /h off
+  ```
+
+  - 如果想重新开启的话
+
+    ```shell
+    powercfg /h on
+    ```
 
 ## 02 实用工具
 
