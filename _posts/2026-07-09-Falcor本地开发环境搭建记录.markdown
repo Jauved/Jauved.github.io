@@ -1,0 +1,657 @@
+---
+layout: post
+title: "Falcor 本地开发环境搭建记录"
+categories: [工具, 图形学]
+tags: Falcor Mogwai DirectX12 D3D12 RenderGraph RenderPass CMake Ninja MSVC VSBuildTools WindowsGraphicsTools DebugLayer
+math: true
+
+
+---
+
+# Falcor本地开发环境搭建记录
+
+本文记录一次完整的 Falcor 本地环境搭建过程。目标不是安装完整 Visual Studio IDE, 而是在 Windows 上使用 VS Build Tools + CMake/Ninja 构建并运行 Mogwai, 后续用于自定义 RenderPass / RenderGraph / 渲染算法实验。
+
+---
+
+## 1. 最终验证环境
+
+```text
+OS:
+- Windows 11 Pro 25H2
+- OS Build: 26200.8655
+
+GPU:
+- NVIDIA GeForce RTX 5070 Ti Laptop GPU
+- Driver: 596.13
+- VRAM: 12227 MiB
+
+Falcor:
+- Source: D:\Dev\Falcor
+- Branch: master
+- Commit: eb540f67
+- Version shown by Mogwai: Falcor 8.0
+
+Build:
+- Preset: windows-ninja-msvc
+- Build dir: D:\Dev\Falcor\build\windows-ninja-msvc
+- Output: D:\Dev\Falcor\build\windows-ninja-msvc\bin\Release\Mogwai.exe
+```
+
+说明: 部分 PowerShell / 注册表接口可能显示 Windows 10 Pro, 但 `winver` 显示为 Windows 11 Pro 25H2。后续按 Windows 11 Pro 25H2 处理。
+
+---
+
+## 2. 准备工具
+
+本次不安装完整 Visual Studio IDE, 只安装 Build Tools。
+
+需要准备:
+
+```text
+- Git
+- Build Tools for Visual Studio 2022
+- MSVC v143
+- Windows SDK
+- CMake
+- Ninja
+- Python
+```
+
+实际验证版本:
+
+```text
+Git:
+- git version 2.51.0.windows.1
+
+Visual Studio Build Tools:
+- Visual Studio 2022 Build Tools
+- Version: 17.14.35
+- Path: C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools
+
+MSVC:
+- cl version 19.44.35228
+
+Windows SDK:
+- 10.0.19041.0
+- 10.0.26100.0
+
+CMake:
+- VS Build Tools bundled CMake
+- cmake version 3.31.6-msvc6
+```
+
+VS Build Tools 的开发者环境脚本路径:
+
+```text
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat
+```
+
+VS Build Tools 自带 CMake 路径:
+
+```text
+C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe
+```
+
+---
+
+## 3. 验证工具链
+
+打开 PowerShell, 执行:
+
+```powershell
+Test-Path "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
+Test-Path "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat"
+```
+
+验证 MSVC:
+
+```powershell
+cmd /c "`"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`" -arch=x64 && cl"
+```
+
+预期能看到类似输出:
+
+```text
+Visual Studio 2022 Developer Command Prompt
+用于 x64 的 Microsoft (R) C/C++ 优化编译器 19.44.xxxxx 版
+```
+
+验证 Windows SDK:
+
+```powershell
+Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include" | Select-Object Name
+```
+
+验证 CMake:
+
+```powershell
+cmd /c "`"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`" -arch=x64 && cmake --version"
+```
+
+---
+
+## 4. 配置临时网络代理
+
+如果访问 GitHub 或 Falcor 依赖下载较慢, 可以只在当前 PowerShell 会话中设置代理。
+
+本机代理示例:
+
+```text
+HTTP(S): 127.0.0.1:10809
+SOCKS:   127.0.0.1:10808
+```
+
+当前 PowerShell 临时设置:
+
+```powershell
+$env:HTTP_PROXY  = "http://127.0.0.1:10809"
+$env:HTTPS_PROXY = "http://127.0.0.1:10809"
+```
+
+验证 GitHub 访问:
+
+```powershell
+git ls-remote https://github.com/NVIDIAGameWorks/Falcor.git HEAD
+```
+
+成功时会输出类似:
+
+```text
+eb540f6748774680ce0039aaf3ac9279266ec521        HEAD
+```
+
+注意:
+
+```text
+$env:HTTP\_PROXY / $env:HTTPS_PROXY 只影响当前 PowerShell 会话。
+netsh winhttp set proxy 是系统级 WinHTTP 设置, 不要误认为只影响当前窗口。
+```
+
+---
+
+## 5. 获取 Falcor 源码
+
+```powershell
+cd D:\Dev
+git clone https://github.com/NVIDIAGameWorks/Falcor.git
+cd D:\Dev\Falcor
+```
+
+检查状态:
+
+```powershell
+git status
+git branch --show-current
+git rev-parse --short HEAD
+git tag --list | Select-Object -Last 10
+```
+
+本次验证状态:
+
+```text
+branch: master
+commit: eb540f67
+tag 可见: 8.0, 7.0, 6.0, ...
+```
+
+---
+
+## 6. 运行 setup.bat
+
+Falcor 的依赖通过 `setup.bat` 下载和准备。
+
+```powershell
+cd D:\Dev\Falcor
+
+$env:HTTP_PROXY  = "http://127.0.0.1:10809"
+$env:HTTPS_PROXY = "http://127.0.0.1:10809"
+
+.\setup.bat 2>&1 | Tee-Object -FilePath .\setup_log.txt
+
+echo $LASTEXITCODE
+```
+
+成功标志:
+
+```text
+$LASTEXITCODE = 0
+```
+
+本次 setup 成功后拉取了:
+
+```text
+external/args
+external/fmt
+external/glfw
+external/imgui
+external/pybind11
+external/vulkan-headers
+```
+
+packman 依赖缓存目录:
+
+```text
+D:\packman-repo
+```
+
+部分依赖示例:
+
+```text
+python
+cmake
+ninja
+clang-format
+falcor_media
+falcor_dependencies
+slang
+WinPixEventRuntime
+dxcompiler
+agility-sdk
+nanovdb
+nvtt
+nv-usd
+rtxdi
+nrd
+dlss
+```
+
+说明: 本机 Python 不需要加入全局 PATH。Falcor 会使用 packman 准备的 Python。
+
+---
+
+## 7. 查看 CMake preset
+
+进入 VS Build Tools x64 环境后查看 preset:
+
+```powershell
+cd D:\Dev\Falcor
+
+cmd /c "`"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`" -arch=x64 && cmake --list-presets"
+```
+
+本次可用 preset:
+
+```text
+windows-vs2022
+windows-vs2022-ci
+windows-ninja-msvc
+windows-ninja-msvc-ci
+linux-clang
+linux-clang-ci
+linux-gcc
+linux-gcc-ci
+```
+
+本次选择:
+
+```text
+windows-ninja-msvc
+```
+
+原因:
+
+```text
+- 不依赖完整 Visual Studio IDE
+- 适合 VS Build Tools + Rider
+- 使用 MSVC 编译器和 Ninja 构建
+```
+
+---
+
+## 8. CMake configure
+
+```powershell
+cd D:\Dev\Falcor
+
+cmd /c "`"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`" -arch=x64 && cmake --preset windows-ninja-msvc"
+```
+
+成功标志:
+
+```text
+Build files have been written to:
+D:/Dev/Falcor/build/windows-ninja-msvc
+```
+
+本次关键配置结果:
+
+```text
+CMAKE_CXX_COMPILER = cl
+CMAKE_MAKE_PROGRAM = D:/Dev/Falcor/tools/.packman/ninja/ninja.exe
+
+FALCOR_HAS_D3D12 = TRUE
+FALCOR_HAS_VULKAN = ON
+FALCOR_HAS_PIX = ON
+FALCOR_HAS_D3D12_AGILITY_SDK = ON
+FALCOR_HAS_NRD = ON
+FALCOR_HAS_DLSS = ON
+FALCOR_HAS_NV_USD = ON
+
+FALCOR_HAS_CUDA = OFF
+FALCOR_HAS_OPTIX = OFF
+FALCOR_HAS_NVAPI = OFF
+FALCOR_HAS_AFTERMATH = OFF
+```
+
+说明: CUDA / OptiX / NVAPI / Aftermath 为 OFF, 不影响 Mogwai 和基础 Falcor 渲染环境验证。
+
+---
+
+## 9. 编译 Mogwai
+
+```powershell
+cd D:\Dev\Falcor
+
+cmd /c "`"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`" -arch=x64 && cmake --build build/windows-ninja-msvc --target Mogwai --config Release" 2>&1 | Tee-Object -FilePath .\build_mogwai_log.txt
+
+echo $LASTEXITCODE
+```
+
+成功标志:
+
+```text
+$LASTEXITCODE = 0
+```
+
+输出文件:
+
+```text
+D:\Dev\Falcor\build\windows-ninja-msvc\bin\Release\Mogwai.exe
+```
+
+---
+
+## 10. 启动 Mogwai
+
+```powershell
+cd D:\Dev\Falcor
+
+.\build\windows-ninja-msvc\bin\Release\Mogwai.exe
+```
+
+成功启动时可看到类似日志:
+
+```text
+Falcor 8.0 (commit: eb540f67, branch: master)
+Created GPU device 'NVIDIA GeForce RTX 5070 Ti Laptop GPU' using 'Direct3D 12' API (SM6.7).
+Loaded 33 plugin(s)
+```
+
+第一次看到绿色窗口是正常的, 因为还没有加载 Render Graph 和 Scene。
+
+---
+
+## 11. 加载测试脚本和场景
+
+在 Mogwai 中执行:
+
+```text
+File -> Load Script
+选择:
+D:\Dev\Falcor\scripts\MinimalPathTracer.py
+```
+
+然后加载场景:
+
+```text
+File -> Load Scene
+选择:
+D:\Dev\Falcor\media\test_scenes\cornell_box.pyscene
+```
+
+成功后可看到 Cornell Box 画面。
+
+本次验证组合:
+
+```text
+Render script:
+D:\Dev\Falcor\scripts\MinimalPathTracer.py
+
+Scene:
+D:\Dev\Falcor\media\test_scenes\cornell_box.pyscene
+
+Output:
+ToneMapper.dst
+```
+
+启动或加载过程中可能出现大量 Slang warning, 例如:
+
+```text
+warning 30081: implicit conversion ...
+warning 41016: use of uninitialized variable ...
+```
+
+这些来自 Falcor 自带 shader / sample, 当前不作为环境错误处理。
+
+---
+
+## 12. 安装 Windows Graphics Tools
+
+Falcor README 中提到, 如果要启用 DirectX 12 debug layer, 需要安装 Windows Graphics Tools。
+
+管理员 PowerShell 检查状态:
+
+```powershell
+Get-WindowsCapability -Online -Name "Tools.Graphics.DirectX~~~~0.0.1.0"
+```
+
+如果是 `NotPresent`, 安装:
+
+```powershell
+Add-WindowsCapability -Online -Name "Tools.Graphics.DirectX~~~~0.0.1.0"
+```
+
+再检查:
+
+```powershell
+Get-WindowsCapability -Online -Name "Tools.Graphics.DirectX~~~~0.0.1.0"
+```
+
+成功状态:
+
+```text
+Name  : Tools.Graphics.DirectX~~~~0.0.1.0
+State : Installed
+```
+
+本次安装曾在一个网络下失败:
+
+```text
+0x800b0109 - CERT_E_UNTRUSTEDROOT
+```
+
+换网络后安装成功:
+
+```text
+Online        : True
+RestartNeeded : False
+State         : Installed
+```
+
+结论:
+
+```text
+- Graphics Tools 是 D3D12 debug layer 的前置组件。
+- 它不是 Mogwai UI 里的 Debug Window。
+- 安装后不会自动改变 Mogwai 界面。
+```
+
+---
+
+## 13. 使用 D3D12 debug layer 启动 Mogwai
+
+Falcor / Mogwai 自己提供了命令行参数:
+
+```text
+--enable-debug-layer
+```
+
+代码搜索结果:
+
+```text
+Source\Mogwai\Mogwai.cpp:
+- Enable debug layer (enabled by default in Debug build).
+- command line flag: --enable-debug-layer
+- config.deviceDesc.enableDebugLayer = true;
+```
+
+启动方式:
+
+```powershell
+cd D:\Dev\Falcor
+
+.\build\windows-ninja-msvc\bin\Release\Mogwai.exe --enable-debug-layer
+```
+
+用途:
+
+```text
+- 检查 D3D12 resource state 问题
+- 检查 barrier 问题
+- 检查 descriptor / root signature / pipeline state 问题
+- 排查 device removed / GPU crash
+```
+
+注意:
+
+```text
+- Debug layer 不是画面调试器。
+- Mogwai UI 一般不会有明显变化。
+- 主要变化是控制台 / debugger output 中会出现更多 D3D12 / DXGI / GFX warning 或 error。
+- 性能会下降, 不建议日常默认开启。
+```
+
+重点关注日志关键词:
+
+```text
+D3D12 ERROR
+D3D12 WARNING
+DXGI ERROR
+DEVICE_REMOVED
+RESOURCE_BARRIER
+STATE
+DESCRIPTOR
+ROOT_SIGNATURE
+HEAP
+VALIDATION
+```
+
+可暂时忽略:
+
+```text
+Slang warning 30081
+Slang warning 41016
+```
+
+---
+
+## 14. 本地启动脚本
+
+为了日常使用, 建议在:
+
+```text
+D:\Dev\FalcorScript
+```
+
+放置三个脚本:
+
+```text
+Start_Mogwai.bat
+Build_Mogwai.bat
+Start_Mogwai_DebugLayer.bat
+```
+
+也可以同时保留 `.ps1` 版本:
+
+```text
+Start_Mogwai.ps1
+Build_Mogwai.ps1
+Start_Mogwai_DebugLayer.ps1
+```
+
+用途:
+
+```text
+Start_Mogwai.bat:
+- 普通启动 Mogwai
+
+Build_Mogwai.bat:
+- 重新编译 Mogwai
+
+Start_Mogwai_DebugLayer.bat:
+- 使用 --enable-debug-layer 启动 Mogwai
+- 只在排查 D3D12 问题时使用
+```
+
+---
+
+## 15. 日常命令速查
+
+普通启动:
+
+```powershell
+cd D:\Dev\Falcor
+.\build\windows-ninja-msvc\bin\Release\Mogwai.exe
+```
+
+启用 D3D12 debug layer 启动:
+
+```powershell
+cd D:\Dev\Falcor
+.\build\windows-ninja-msvc\bin\Release\Mogwai.exe --enable-debug-layer
+```
+
+重新编译 Mogwai:
+
+```powershell
+cd D:\Dev\Falcor
+
+cmd /c "`"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`" -arch=x64 && cmake --build build/windows-ninja-msvc --target Mogwai --config Release"
+```
+
+重新 configure:
+
+```powershell
+cd D:\Dev\Falcor
+
+cmd /c "`"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`" -arch=x64 && cmake --preset windows-ninja-msvc"
+```
+
+重新跑依赖 setup:
+
+```powershell
+cd D:\Dev\Falcor
+
+$env:HTTP_PROXY  = "http://127.0.0.1:10809"
+$env:HTTPS_PROXY = "http://127.0.0.1:10809"
+
+.\setup.bat
+```
+
+---
+
+## 16. 当前结论
+
+```text
+已完成:
+- Falcor 源码 clone
+- setup.bat 成功
+- CMake configure 成功
+- Mogwai Release 编译成功
+- Mogwai D3D12 启动成功
+- MinimalPathTracer + Cornell Box 验证成功
+- Windows Graphics Tools 安装成功
+- Mogwai --enable-debug-layer 验证成功
+
+暂不安装:
+- NVAPI
+- CUDA
+- OptiX
+- Nsight Aftermath
+
+后续方向:
+- 基于现有环境开发自定义 RenderPass
+- 学习 RenderGraph / RenderPass / shader 组织方式
+- 在需要时再启用 D3D12 debug layer 排查底层资源问题
+```

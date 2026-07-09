@@ -1,0 +1,32 @@
+---
+layout: post
+title: "罗技G系列鼠标不使用GHub设置的方式"
+categories: [其他, 罗技]
+tags: 罗技 G系列 鼠标 GHub 设置 OMM
+math: true
+
+
+---
+
+# 罗技G系列鼠标不使用GHub设置的方式
+
+## 00 前置知识
+
+罗技G系列鼠标, 官方推荐是使用G Hub进行设置和配置. 
+
+如果你出于任何的理由不想用G Hub.
+
+## 01 实施
+
+- [下载`OnBoard Memory Manager`](https://support.logi.com/hc/zh-tw/articles/360059641133-Onboard-Memory-Manager)
+- 放在你磁盘上记得的地方
+- 连接你的G系列鼠标
+- 启动`OnBoard Memory Manager`, 并对鼠标进行设置
+
+## 02 备注
+
+通过`OnBoard Memory Manager`进行设置, 会将配置记录在鼠标上. 相比之下, GHub是使用连接时覆盖鼠标配置的方式来完成的. 即GHub的配置跟随软件. 而`OnBoard Memory Manager`的配置跟随鼠标.
+
+###### 参考网页
+
+- [Onboard Memory Manager – Logitech 支援 + 下載](https://support.logi.com/hc/zh-tw/articles/360059641133-Onboard-Memory-Manager)

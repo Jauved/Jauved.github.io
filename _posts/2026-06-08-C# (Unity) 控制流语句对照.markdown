@@ -1,0 +1,630 @@
+---
+layout: post
+title: "C# (Unity) 控制流语句对照"
+categories: [C#, API]
+tags: C# API 函数 循环 协程 异步
+math: true
+
+
+---
+
+# C# (Unity) 控制流语句对照
+
+## 1. 更短的记忆版
+
+| 目的                   | 使用方式                                 |
+| ---------------------- | ---------------------------------------- |
+| 结束函数               | `return;`                                |
+| 结束函数并返回结果     | `return value;`                          |
+| 结束当前循环           | `break;`                                 |
+| 跳过本轮循环           | `continue;`                              |
+| 协程等待下一帧         | `yield return null;`                     |
+| 协程等待一段时间       | `yield return new WaitForSeconds(t);`    |
+| 协程等待本帧渲染结束   | `yield return new WaitForEndOfFrame();`  |
+| 协程等待下一次物理更新 | `yield return new WaitForFixedUpdate();` |
+| 结束协程               | `yield break;`                           |
+| async 方法等待任务完成 | `await task;`                            |
+| iterator 逐个产出数据  | `yield return value;`                    |
+| iterator 结束枚举      | `yield break;`                           |
+
+一句话记忆:
+
+```text
+return 管函数.
+break 管循环.
+continue 管本轮循环.
+yield return 管协程暂停或 iterator 产出.
+yield break 管协程或 iterator 结束.
+await 管异步等待.
+```
+
+------
+
+## 2. 最终归类总表
+
+| 操作意图                | 普通函数                   | 循环内部        | Unity 协程                            | C# async 方法                          | C# iterator                                                 |
+| ----------------------- | -------------------------- | --------------- | ------------------------------------- | -------------------------------------- | ----------------------------------------------------------- |
+| 结束当前函数 / 当前流程 | `return;`                  | `return;`       | `yield break;`                        | `return;`                              | `yield break;`                                              |
+| 结束并返回结果          | `return value;`            | `return value;` | 不推荐直接用协程返回业务结果          | `return value;`                        | 不用 `return value;`, 而是用 `yield return value;` 逐个产出 |
+| 结束当前循环            | 不适用                     | `break;`        | 循环里仍然用 `break;`                 | 循环里仍然用 `break;`                  | 循环里仍然用 `break;`                                       |
+| 跳过本轮循环            | 不适用                     | `continue;`     | 循环里仍然用 `continue;`              | 循环里仍然用 `continue;`               | 循环里仍然用 `continue;`                                    |
+| 暂停后继续              | 不支持                     | 不支持          | `yield return ...;`                   | `await ...;`                           | `yield return value;` 后, 下一次枚举时继续                  |
+| 产出一个值              | `return value;` 一次性返回 | 不适用          | 通常产出等待指令, 不是业务值          | `return value;` 一次性返回             | `yield return value;` 可多次产出                            |
+| 等待下一帧              | 不支持                     | 不支持          | `yield return null;`                  | 需要额外机制, 例如 UniTask / Awaitable | 不适用                                                      |
+| 等待指定时间            | 不支持                     | 不支持          | `yield return new WaitForSeconds(t);` | `await Task.Delay(...)` 或 UniTask 等  | 不适用                                                      |
+
+------
+
+## 3. 相似行为分组
+
+### 3.1 结束整个流程
+
+| 场景                 | 写法            | 结束对象                               |
+| -------------------- | --------------- | -------------------------------------- |
+| 普通函数             | `return;`       | 当前函数                               |
+| 普通函数, 有返回值   | `return value;` | 当前函数, 并返回结果                   |
+| async 方法           | `return;`       | 当前 async 方法                        |
+| async `Task<T>` 方法 | `return value;` | 当前 async 方法, 并完成 `Task<T>` 结果 |
+| Unity 协程           | `yield break;`  | 当前协程                               |
+| C# iterator          | `yield break;`  | 当前迭代器                             |
+
+普通函数示例:
+
+```csharp
+void Test()
+{
+    if (someCondition)
+        return;
+
+    DoSomething();
+}
+```
+
+含义:
+
+```text
+如果 someCondition 为 true, Test() 直接结束.
+DoSomething() 不会执行.
+```
+
+协程示例:
+
+```csharp
+IEnumerator TestCoroutine()
+{
+    if (someCondition)
+        yield break;
+
+    yield return null;
+
+    DoSomething();
+}
+```
+
+含义:
+
+```text
+如果 someCondition 为 true, 当前协程直接结束.
+后面的 yield return null 和 DoSomething() 都不会执行.
+```
+
+------
+
+### 3.2 只结束当前循环
+
+| 场景                 | 写法     | 后续函数代码是否继续 |
+| -------------------- | -------- | -------------------- |
+| `for`                | `break;` | 继续                 |
+| `while`              | `break;` | 继续                 |
+| `foreach`            | `break;` | 继续                 |
+| 多层循环中的内层循环 | `break;` | 只退出当前这一层循环 |
+
+示例:
+
+```csharp
+void Test()
+{
+    for (int i = 0; i < 10; i++)
+    {
+        if (i == 3)
+            break;
+
+        Debug.Log(i);
+    }
+
+    Debug.Log("After loop");
+}
+```
+
+执行结果:
+
+```text
+0
+1
+2
+After loop
+```
+
+说明:
+
+```text
+break 只结束 for 循环.
+循环后面的 Debug.Log("After loop") 仍然会执行.
+```
+
+------
+
+### 3.3 在循环中使用 return
+
+循环中的 `return` 结束的是循环所在的外层函数, 不是只结束循环。
+
+示例:
+
+```csharp
+void Test()
+{
+    for (int i = 0; i < 10; i++)
+    {
+        if (i == 3)
+            return;
+
+        Debug.Log(i);
+    }
+
+    Debug.Log("After loop");
+}
+```
+
+执行结果:
+
+```text
+0
+1
+2
+```
+
+说明:
+
+```text
+当 i == 3 时, return 直接结束 Test() 函数.
+所以 Debug.Log("After loop") 不会执行.
+```
+
+对比:
+
+```csharp
+void Test()
+{
+    for (int i = 0; i < 10; i++)
+    {
+        if (i == 3)
+            break;
+
+        Debug.Log(i);
+    }
+
+    Debug.Log("After loop");
+}
+```
+
+执行结果:
+
+```text
+0
+1
+2
+After loop
+```
+
+核心区别:
+
+| 写法      | 结束对象 | 是否继续执行函数后续代码 |
+| --------- | -------- | ------------------------ |
+| `break;`  | 当前循环 | 是                       |
+| `return;` | 当前函数 | 否                       |
+
+------
+
+### 3.4 跳过本轮循环
+
+| 场景      | 写法        | 含义                           |
+| --------- | ----------- | ------------------------------ |
+| `for`     | `continue;` | 跳过本轮剩余代码, 进入下一轮   |
+| `while`   | `continue;` | 跳过本轮剩余代码, 回到条件判断 |
+| `foreach` | `continue;` | 跳过当前元素, 处理下一个元素   |
+
+示例:
+
+```csharp
+void Test()
+{
+    for (int i = 0; i < 5; i++)
+    {
+        if (i == 2)
+            continue;
+
+        Debug.Log(i);
+    }
+}
+```
+
+执行结果:
+
+```text
+0
+1
+3
+4
+```
+
+说明:
+
+```text
+当 i == 2 时, continue 会跳过本轮循环中剩下的代码.
+所以 Debug.Log(i) 不会输出 2.
+```
+
+------
+
+### 3.5 暂停当前流程, 之后继续
+
+| 场景       | 写法                                     | 恢复条件               | 继续位置       |
+| ---------- | ---------------------------------------- | ---------------------- | -------------- |
+| Unity 协程 | `yield return null;`                     | 下一帧                 | 当前语句下一行 |
+| Unity 协程 | `yield return new WaitForSeconds(t);`    | 等待 t 秒              | 当前语句下一行 |
+| Unity 协程 | `yield return new WaitForEndOfFrame();`  | 当前帧渲染结束后       | 当前语句下一行 |
+| Unity 协程 | `yield return new WaitForFixedUpdate();` | 下一次物理更新         | 当前语句下一行 |
+| async 方法 | `await task;`                            | task 完成              | 当前语句下一行 |
+| iterator   | `yield return value;`                    | 下一次 MoveNext / 枚举 | 当前语句下一行 |
+
+Unity 协程示例:
+
+```csharp
+IEnumerator TestCoroutine()
+{
+    Debug.Log("A");
+
+    yield return null;
+
+    Debug.Log("B");
+}
+```
+
+执行过程:
+
+| 帧      | 执行内容                                        |
+| ------- | ----------------------------------------------- |
+| 第 1 帧 | 输出 `A`, 执行到 `yield return null;`, 协程暂停 |
+| 第 2 帧 | 从 `yield return null;` 下一行继续, 输出 `B`    |
+
+说明:
+
+```text
+yield return null 不是结束协程.
+它是暂停协程, 等下一帧继续执行.
+```
+
+等待指定时间示例:
+
+```csharp
+IEnumerator DelayDestroy(GameObject target)
+{
+    yield return new WaitForSeconds(1f);
+
+    GameObject.Destroy(target);
+}
+```
+
+说明:
+
+```text
+协程暂停 1 秒.
+1 秒后从下一行继续, 然后销毁 target.
+```
+
+------
+
+### 3.6 async 方法中的 await
+
+示例:
+
+```csharp
+async Task LoadAsync()
+{
+    Debug.Log("Start");
+
+    await LoadFileAsync();
+
+    Debug.Log("Loaded");
+}
+```
+
+说明:
+
+```text
+await 会暂停当前 async 方法.
+等 LoadFileAsync() 完成后, 从 await 的下一行继续执行.
+```
+
+它和 Unity 协程中的 `yield return` 有相似点:
+
+```text
+yield return ... = 协程暂停, 等 Unity 协程系统恢复.
+await ...        = async 方法暂停, 等异步任务完成后恢复.
+```
+
+但它们不是同一套机制:
+
+| 对比项                    | Unity 协程                          | async / await                      |
+| ------------------------- | ----------------------------------- | ---------------------------------- |
+| 主要用途                  | 分帧执行, 延迟执行, 等待 Unity 指令 | 文件, 网络, IO, 后台任务等异步操作 |
+| 常见返回类型              | `IEnumerator`                       | `Task`, `Task<T>`, `UniTask`       |
+| 恢复方式                  | Unity 协程调度                      | C# async 状态机和任务调度          |
+| 是否天然适合 Unity 帧循环 | 是                                  | 不一定, 取决于具体实现             |
+
+------
+
+### 3.7 iterator 中的 yield return
+
+C# iterator 的 `yield return value;` 表示“产出一个值, 并暂停当前迭代器”。
+
+示例:
+
+```csharp
+IEnumerable<int> GetNumbers()
+{
+    yield return 1;
+    yield return 2;
+    yield return 3;
+}
+```
+
+使用:
+
+```csharp
+foreach (int number in GetNumbers())
+{
+    Debug.Log(number);
+}
+```
+
+输出:
+
+```text
+1
+2
+3
+```
+
+说明:
+
+```text
+每次 yield return value 都会向外产出一个值.
+下一次 foreach 继续取值时, 迭代器会从上一次 yield return 的下一行继续执行.
+```
+
+Unity 协程和 C# iterator 都使用 `yield return`, 但语义侧重点不同:
+
+| 场景        | 写法                                                   | 重点         |
+| ----------- | ------------------------------------------------------ | ------------ |
+| Unity 协程  | `yield return null;` / `yield return waitInstruction;` | 交出等待指令 |
+| C# iterator | `yield return value;`                                  | 交出枚举值   |
+
+------
+
+## 4. 最容易混淆的几组
+
+### 4.1 `break` 和 `return`
+
+| 写法      | 结束对象 | 函数后续代码 |
+| --------- | -------- | ------------ |
+| `break;`  | 当前循环 | 继续执行     |
+| `return;` | 当前函数 | 不再执行     |
+
+记忆:
+
+```text
+break 是循环级退出.
+return 是函数级退出.
+```
+
+------
+
+### 4.2 `continue` 和 `yield return null`
+
+| 写法                 | 含义                               |
+| -------------------- | ---------------------------------- |
+| `continue;`          | 跳过当前这一轮循环, 立刻进入下一轮 |
+| `yield return null;` | 暂停协程, 下一帧继续执行           |
+
+注意:
+
+```text
+continue 不等待.
+yield return null 不跳过逻辑, 而是暂停到下一帧.
+```
+
+------
+
+### 4.3 `yield return` 和 `yield break`
+
+| 写法                | 含义           |
+| ------------------- | -------------- |
+| `yield return ...;` | 暂停, 之后继续 |
+| `yield break;`      | 结束, 不再继续 |
+
+记忆:
+
+```text
+yield return = 暂停并等待恢复.
+yield break  = 直接结束.
+```
+
+------
+
+### 4.4 `return value` 和 `yield return value`
+
+| 写法                  | 使用场景                        | 含义                   |
+| --------------------- | ------------------------------- | ---------------------- |
+| `return value;`       | 普通函数 / async `Task<T>` 方法 | 一次性返回一个最终结果 |
+| `yield return value;` | iterator                        | 多次逐个产出结果       |
+
+示例:
+
+```csharp
+int GetNumber()
+{
+    return 1;
+}
+```
+
+说明:
+
+```text
+调用 GetNumber() 会直接得到一个 int 结果.
+IEnumerable<int> GetNumbers()
+{
+    yield return 1;
+    yield return 2;
+    yield return 3;
+}
+```
+
+说明:
+
+```text
+调用 GetNumbers() 得到的是一个可枚举序列.
+每次枚举时逐个产出 1, 2, 3.
+```
+
+------
+
+## 5. Unity 中的常用写法
+
+```csharp
+// 结束当前普通函数
+return;
+
+// 结束当前普通函数, 并返回结果
+return value;
+
+// 结束当前循环
+break;
+
+// 跳过当前这一轮循环
+continue;
+
+// 协程暂停一帧, 下一帧继续
+yield return null;
+
+// 协程暂停指定时间
+yield return new WaitForSeconds(1f);
+
+// 协程等到本帧渲染结束后继续
+yield return new WaitForEndOfFrame();
+
+// 协程等到下一次物理更新时继续
+yield return new WaitForFixedUpdate();
+
+// 结束当前协程
+yield break;
+
+// async 方法等待任务完成
+await SomeTask();
+```
+
+------
+
+## 6. 推荐判断方式
+
+当你写代码时, 可以按下面的问题判断该用哪个:
+
+### 问题 1: 我要结束整个函数吗?
+
+使用:
+
+```csharp
+return;
+```
+
+如果有返回值:
+
+```csharp
+return value;
+```
+
+------
+
+### 问题 2: 我只是想退出当前循环吗?
+
+使用:
+
+```csharp
+break;
+```
+
+------
+
+### 问题 3: 我只是想跳过当前这一轮循环吗?
+
+使用:
+
+```csharp
+continue;
+```
+
+------
+
+### 问题 4: 我在协程里, 想等到下一帧继续吗?
+
+使用:
+
+```csharp
+yield return null;
+```
+
+------
+
+### 问题 5: 我在协程里, 想结束这个协程吗?
+
+使用:
+
+```csharp
+yield break;
+```
+
+------
+
+### 问题 6: 我在 async 方法里, 想等待一个异步任务完成吗?
+
+使用:
+
+```csharp
+await task;
+```
+
+------
+
+## 7. 总结
+
+最核心的边界如下:
+
+| 语句           | 管理对象                     |
+| -------------- | ---------------------------- |
+| `return`       | 当前函数                     |
+| `break`        | 当前循环                     |
+| `continue`     | 当前这一轮循环               |
+| `yield return` | 当前协程暂停 / iterator 产出 |
+| `yield break`  | 当前协程 / iterator 结束     |
+| `await`        | 当前 async 方法等待异步任务  |
+
+最终记忆:
+
+```text
+return 是函数级控制.
+break 是循环级控制.
+continue 是单轮循环控制.
+yield return 是可恢复的暂停.
+yield break 是协程或迭代器结束.
+await 是异步任务等待.
+```

@@ -12,9 +12,77 @@ math: true
 
 Rider大部分情况下并不会识别一些特殊的缩写, 比如"MS", 比如"SRGB", 比如"OS", 等等.
 
+需要注意的是, Rider中和缩写相关的问题大体可以分成两类:
+
+1. 命名风格检查, 例如`MSBuildImporter`被认为不符合C#命名规则.
+2. 拼写检查, 例如`SRGB`, `URP`, `GBuffer`这类词被认为是拼写错误.
+
+这两类问题需要用不同的方式处理.
+
 查看Rider的说明文档给了我们一个加入缩略词的有界面的方案, 却没有给我们删除这个词的方案, 下面让我们一一解决.
 
 ## 01 处理方法
+
+### 加入拼写检查词典中的缩写
+
+如果Rider提示的是拼写错误, 比如`Typo`, `Spelling`, `Proofreading`相关提示, 那么应该优先使用拼写检查词典, 而不是命名风格中的缩写列表.
+
+比如下面这些词:
+
+```text
+URP
+SRGB
+GBuffer
+MSAA
+BRDF
+LUT
+```
+
+如果只是被Rider当成拼写错误, 可以直接加入拼写词典.
+
+做法如下:
+
+1. 将光标放到被标记为拼写错误的词上.
+2. 按`Alt+Enter`.
+3. 选择类似下面的选项:
+
+```text
+Save '<word>' to dictionary
+```
+
+也可以从设置界面中手动添加:
+
+```text
+File | Settings | Editor | Natural Languages | Spelling
+```
+
+然后在`Accepted Words`中添加对应的词.
+
+如果这个词只是个人使用, 可以加入用户级词典. 如果是团队工程中的通用技术词, 建议加入项目级词典, 或者使用自定义`.dic`文件统一维护.
+
+项目级词典通常可以放在项目的`.idea/dictionaries`目录中, 这样可以随工程一起提交, 便于团队共享.
+
+例如可以维护一个类似下面的词典:
+
+```text
+URP
+HDRP
+SRGB
+GBuffer
+MSAA
+BRDF
+BTDF
+DFG
+FGD
+LUT
+Mip
+MipMap
+RenderPass
+SubTarget
+ShaderGraph
+```
+
+这种方式适合处理“Rider不认识这个技术词”的问题.
 
 ### 加入特定缩写
 
@@ -27,10 +95,10 @@ Rider大部分情况下并不会识别一些特殊的缩写, 比如"MS", 比如"
 > 有时您可能想在驼峰式命名（CamelCase）的符号名称中使用大写缩写、首字母缩略词或缩写字（例如使用MS代表MicroSoft）。默认情况下，JetBrains Rider会将连续出现的几个大写字母检测为不一致的驼峰式大小写：
 >
 > ```csharp
->  class MSBuildImporter
+> class MSBuildImporter
 > ```
 >
-> 其中```MSBuildImporter```会被认为是不符合大写开头的驼峰命名法.
+> 其中`MSBuildImporter`会被认为是不符合大写开头的驼峰命名法.
 >
 > 为了避免这种情况，您可以配置命名风格检查时要忽略的缩写列表。
 >
@@ -43,14 +111,11 @@ Rider大部分情况下并不会识别一些特殊的缩写, 比如"MS", 比如"
 > 将缩写添加到忽略列表中﻿
 >
 > 1. 在编辑器中，将光标放在使用缩写的高亮显示的符号上。
->
 > 2. 按Alt+Enter或点击光标左侧的操作指示器以打开操作列表。
->
 > 3. 选择检查'不一致的命名'(Inspection: 'Inconsistent Naming') -> 将[缩写]添加到缩写列表中(Add [abbreviation] to the abbreviations list)
->
 > 4. 将缩写添加到忽略列表 如果需要，您可以选择保存此偏好设置的位置。更多信息，请参考[基于层的设置](https://www.jetbrains.com/help/rider/2023.2/Sharing_Configuration_Options.html)。
 
-然后, 可以愉快的看到此时```MSBuildImporter```不再被认为是不符合规范了, 但是, 如果我们错误操作导致误加入了缩写列表我们该如何删除呢?
+然后, 可以愉快的看到此时`MSBuildImporter`不再被认为是不符合规范了, 但是, 如果我们错误操作导致误加入了缩写列表我们该如何删除呢?
 
 ### 删除特定缩写
 
@@ -62,15 +127,90 @@ How to access abbreviation list? – Rider Support \| JetBrains
 
 ![image-20231105223257035](/assets/image/image-20231105223257035.png)
 
-在本机上找到类似的目录下的文件```C:\Users\ASUS\AppData\Roaming\JetBrains\Rider2023.2\resharper-host```,
+在本机上找到类似的目录下的文件`C:\Users\ASUS\AppData\Roaming\JetBrains\Rider2023.2\resharper-host`,
 
-用任何编辑器打开, 比如VS Code. 然后搜索```Abbreviations```
+用任何编辑器打开, 比如VS Code. 然后搜索`Abbreviations`
 
 然后可以看到类似语句
 
-```<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=SRGB/@EntryIndexedValue">SRGB</s:String>```
+```xml
+<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/Abbreviations/=SRGB/@EntryIndexedValue">SRGB</s:String>
+```
 
 删除该行即可
+
+## 02 两种方案的区别与建议
+
+上面两种方案都没有过时, 但是它们处理的问题不同.
+
+### 拼写检查词典
+
+拼写检查词典处理的是“这个词Rider不认识”的问题.
+
+例如:
+
+```text
+SRGB
+URP
+GBuffer
+MSAA
+BRDF
+```
+
+如果这些词在注释, 字符串, Markdown, 或者代码标识符中被当成拼写错误, 那么应该加入拼写词典.
+
+优点:
+
+1. 适合处理大量技术名词.
+2. 不会改变C#命名规则.
+3. 可以通过项目级词典或`.dic`文件在团队中共享.
+4. 删除和维护都比较直观.
+
+缺点:
+
+1. 只能解决拼写检查问题.
+2. 不能解决`Inconsistent Naming`这类命名风格问题.
+
+### 命名缩写列表
+
+命名缩写列表处理的是“这个缩写能不能出现在C#命名规则中”的问题.
+
+例如:
+
+```csharp
+class MSBuildImporter
+{
+}
+```
+
+如果Rider提示的是`Inconsistent Naming`, 那么应该使用命名缩写列表.
+
+优点:
+
+1. 能解决C#命名风格检查中的缩写问题.
+2. 适合处理`MS`, `IO`, `UI`, `XML`这类确实会出现在类型名, 方法名, 属性名中的缩写.
+3. 和Rider的C#命名规则系统一致.
+
+缺点:
+
+1. 不适合用来维护大量技术词.
+2. 它影响的是命名风格判断, 不是拼写检查.
+3. 误加入后, 删除路径不如拼写词典直观.
+
+### 建议
+
+如果Rider提示的是`Typo`, `Spelling`, `Proofreading`, 优先使用拼写词典.
+
+如果Rider提示的是`Inconsistent Naming`, 再使用命名缩写列表.
+
+简单来说:
+
+```text
+拼写错误 -> 加入 Spelling / Accepted Words
+命名风格错误 -> 加入 Naming / Abbreviations
+```
+
+不要为了消除拼写错误而把大量技术词加入命名缩写列表. 命名缩写列表应该只处理真正影响C#命名风格的缩写.
 
 ###### 参考网页
 
@@ -81,3 +221,5 @@ How to access abbreviation list? – Rider Support \| JetBrains
 [Layer-based settings \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Sharing_Configuration_Options.html#solution-team-shared-layer)
 
 [Code Style. C# \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Settings_Code_Style_CSHARP.html)
+
+[Spelling \| JetBrains Rider Documentation](https://www.jetbrains.com/help/rider/Spellchecking.html)

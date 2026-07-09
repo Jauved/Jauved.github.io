@@ -2,7 +2,7 @@
 layout: post
 title: "设置颜色到材质球时的注意事项"
 categories: [URP, Shader]
-tags: URP Shader 材质球 设置 Gamma 颜色空间
+tags: URP Shader 材质球 设置 Gamma 颜色空间 颜色 面板 HDR
 math: true
 
 
