@@ -1,0 +1,205 @@
+---
+layout: post
+title: "用于渲染算法的模型资源"
+categories: [URP, 后处理]
+tags: URP 后处理 DepthOfField
+math: true
+
+
+---
+
+# 用于渲染算法的模型资源
+
+## 00 前置知识
+
+验证渲染算法需要规范的模型资源. 从0开始手工建模明显不现实. 
+
+## 01 场景资源
+
+### [Open Research Content Archive (ORCA)](https://developer.nvidia.com/orca/)
+
+> 注意：这是一个旧版 SDK. 开发者可以下载并继续使用, 但不再提供支持. 
+>
+> ORCA 是一个由专业团队创建的 3D 资源库, 捐赠给科研社区使用. ORCA 让研究人员能够使用高质量的, 具有挑战性的资源来开发, 测试和发现新想法. 
+>
+> 初始资源由 Amazon Lumberyard, SpeedTree, NVIDIA 和 Epic 捐赠, 我们也鼓励更多的 3D 资源捐赠. 
+>
+> ORCA 资源采用 FBX 格式, 可用于任何渲染系统. 每个资源都包含一个 Falcor 场景文件, 其中包含相机和灯光配置. 
+
+包含5部分的资源. 
+
+#### [Amazon Lumberyard Bistro](https://developer.nvidia.com/orca/amazon-lumberyard-bistro)
+
+- 捐赠者：Amazon, 2017.7
+
+- 历史：
+
+  在2017年游戏开发者大会上首次展示, 用于展示Lumberyard游戏引擎的新抗锯齿和透明度功能. 
+
+- 许可证：
+
+  - Creative Commons [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+
+- 详情：
+
+  - 室内：1,046,609 个三角形
+  - 带酒的室内：1,293,691 个三角形
+  - 室外：2,832,120 个三角形
+  - 文件格式：FBX 和 Falcor 场景文件 (注, 该Falcor场景文件大概率无法适配目前你能够Build的Falcor)
+
+#### [NVIDIA Emerald Square City Scene](https://developer.nvidia.com/orca/nvidia-emerald-square)
+
+- 捐赠者：
+  - NVIDIA, 2017.7
+  - 艺术家：Nicholas Hull
+- 历史：
+  - 专为ORCA策展, 设计用于图形研究. 
+  - 资产中的所有内容均为Nicholas Hull原创, 除了树木和植物是SpeedTree ORCA的素材. 
+- 许可证：
+  - Creative Commons [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/)
+- 详情：
+  - 10,046,405 个三角形
+
+#### [SpeedTree](https://developer.nvidia.com/orca/speedtree)
+
+- 捐赠者：
+
+  SpeedTree, 2017.7
+
+- 历史：
+
+  SpeedTree 为计算机生成的电影和电子游戏场景提供了大量的树木和植物. SpeedTree 慷慨地向图形研究社区（这里是 ORCA）捐赠了一系列树木, 蕨类植物, 树篱, 花卉和草. 例如可以在 NVIDIA 的无限城市场景中看到它的使用. 
+
+- 许可协议：
+
+  Creative Commons [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/)
+
+- 详细信息：
+
+  SpeedTree 捐赠了以下单独资产：
+
+  - 杜鹃花
+  - 后院草坪
+  - 波士顿蕨
+  - 欧洲椴树
+  - 树篱
+  - 日本枫树
+  - 红枫幼树
+  - 白橡树
+  - 文件格式：FBX
+
+#### [UE4 Sun Temple](https://developer.nvidia.com/ue4-sun-temple)
+
+- 捐赠者：
+
+  Epic Games, 2017.10
+
+- 历史：
+
+  - 作为虚幻引擎4示例场景包的一部分, 太阳神庙旨在展示移动设备的功能. 这个单一关卡包含详细的PBR材质, 可用于各种图形功能和技术. 
+  - 由Kai-Hwa Yao和Nicholas Hull直接从虚幻引擎导出. 
+
+- 许可：
+
+  - Creative Commons [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+- 详情：
+
+  - 多边形数量 – 1,641,711 个顶点
+  - 文件格式：FBX 和 Falcor 场景文件 (注, 该Falcor场景文件大概率无法适配目前你能够Build的Falcor)
+
+#### [BEEPLE Zero-Day](https://developer.nvidia.com/orca/beeple-zero-day)
+
+- 捐赠者：
+
+  [Mike "BEEPLE" Winkelmann](https://www.beeple-crap.com/), 2019.11
+
+- 历史：
+
+  数字艺术家 Mike Winkelmann 在 2015 年创作了一部名为《[Zero-Day](https://www.beeple-crap.com/resources)》的短片. 这部短片最初用离线渲染器渲染, 每个场景都包含光泽材质和漫反射材质的混合, 并由数千个带动画的自发光三角面片模型进行照明. 
+
+  NVIDIA 的研究人员在 2019 年 8 月展示了这部短片中的[首个实时光线路径追踪场景](https://news.developer.nvidia.com/turning-up-the-lights-interactive-path-tracing-scenes-from-a-short-film/). 这个资源包包含《Zero-Day》的两个场景, 这些场景已由 Kai-Hwa Yao 和 Kate Anderson 从原始的 Octane 和 Cinema4D 格式转换为支持实时渲染的格式和材质规范. 
+
+  感谢 OTOY 和 Maxon 慷慨提供的软件捐赠, 使这个项目成为可能. 
+
+- 许可：
+
+  Creative Commons [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+
+- 细节：
+
+  - Measure One: 1,372,670 个三角形, 10,103 个发光三角形
+  - Measure Seven: 1,294,866 个三角形, 10,989 个发光三角形
+  - 文件格式: FBX, DDS
+
+### [Intel 的 GPU Research Samples](https://www.intel.com/content/www/us/en/developer/topic-technology/graphics-research/samples.html)
+
+#### Jungle Ruins Scene (丛林遗迹场景)
+
+- 一个基于亚马逊雨林的大型真实感环境. 
+- 拥有超过一万亿个总三角形数, 针对基于物理的渲染 (PBR) 进行了优化. 
+- 专为渲染技术的研究和开发量身定制. 
+- 包含 Blender 源文件和通用场景描述 (USD) 文件格式. 
+
+#### Sponza 基础场景 (斯蓬扎宫-克罗地亚杜布罗夫尼克老城, 1516)
+
+- 为现代基于物理的渲染（PBR）管线重新制作
+- 融合了通过摄影测量获得的高分辨率几何体和 4K 贴图
+- 提供理想的图像, 便于重现和开发新渲染技术
+- 包含以下文件格式：Autodesk* 3ds Max* 2022 源文件, USD, GLTF 和 FBX
+
+#### Sponza 扩展包
+
+- Colorful Curtains, 彩色帘布. (有价值)
+- Ivy, 常春藤. (有价值)
+- Trees, 树木.
+- Emissive Candles, 自发光蜡烛.
+- Animated Knight, 动画骑士.
+- Flood, 洪水.
+- Volumetric Explosion, 体积爆炸.
+
+## 02 单独物件/少量物体资源
+
+### [glTF-Sample-Assets/Models/Models.md at main · KhronosGroup/glTF-Sample-Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/Models.md)
+
+其中:
+
+- [Boom Box](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/BoomBox/README.md)
+
+- [SciFi Helmet](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/SciFiHelmet/README.md)
+
+- [Antique Camera](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/AntiqueCamera/README.md)
+
+- [Toy Car](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/ToyCar/README.md)
+
+- [Damaged Helmet](https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/DamagedHelmet/README.md)
+
+### [The Stanford 3D Scanning Repository](https://graphics.stanford.edu/data/3Dscanrep/)
+
+斯坦福大学用于研究的模型, 注意, 这里的PLY文件是原始扫描数据, 而得到可用的模型会通过Zipper或者VRIP方式进行重建. 
+
+- Zipper是对齐多个网格, 然后裁掉重合的部分, 缝合边界, 整合网格. 好处是大部分都是原始数据, 但是边界处的处理会导致这部分的模型不那么规整, 同时不会处理扫描错误. 
+- VRIP则是将各个方向的扫描数据整合成体素和距离场, 然后根据整合后的数据重新生成表面, 特点是表面连续性好, 小型的扫描错误会被处理, 坏处是低于体素分辨率的细节会被丢掉, 意味着一些过于微小的空洞会被填充.
+
+其中:
+
+- [bunny.tar.gz(zippered)](http://graphics.stanford.edu/pub/3Dscanrep/bunny.tar.gz)
+- [drill.tar.gz(both)](http://graphics.stanford.edu/pub/3Dscanrep/drill.tar.gz)
+- [happy_recon.tar.gz(Vripped)](http://graphics.stanford.edu/pub/3Dscanrep/happy/happy_recon.tar.gz) 
+- [dragon_recon.tar.gz(Vripped)](http://graphics.stanford.edu/pub/3Dscanrep/dragon/dragon_recon.tar.gz)
+- [Armadillo.ply.gz(Vripped)](http://graphics.stanford.edu/pub/3Dscanrep/armadillo/Armadillo.ply.gz)
+- [lucy.tar.gz(Vripped)](https://graphics.stanford.edu/data/3Dscanrep/lucy.tar.gz)
+- [XYZ RGB dragon.ply.gz(Unknown)](https://graphics.stanford.edu/data/3Dscanrep/xyzrgb/xyzrgb_dragon.ply.gz)
+- [XYZ RGB manuscript.ply.gz(Unknown)](https://graphics.stanford.edu/data/3Dscanrep/xyzrgb/xyzrgb_manuscript.ply.gz)
+- [XYZ RGB statuette.ply.gz(Unknown)](https://graphics.stanford.edu/data/3Dscanrep/xyzrgb/xyzrgb_statuette.ply.gz)
+
+### [Suggestive Contour Gallery (Princeton)](https://gfx.cs.princeton.edu/proj/sugcon/models/)
+
+普林斯顿大学图形实验室用于研究的数据, 这里大部分是PLY文件, 但已经完成重建和三角化.
+
+基本包含了斯坦福大学的部分数据, 值得注意的是:
+
+- [heptoroid.ply](https://gfx.cs.princeton.edu/proj/sugcon/models/heptoroid.ply)
+-  [golfball.ply](https://gfx.cs.princeton.edu/proj/sugcon/models/golfball.ply)
+
+###### 参考网页

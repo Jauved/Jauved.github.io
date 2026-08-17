@@ -172,6 +172,8 @@ netsh winhttp set proxy 是系统级 WinHTTP 设置, 不要误认为只影响当
 
 ## 5. 获取 Falcor 源码
 
+注意, Github目前更新仅支持SSH拉取方式, 如果后续需要更新, 则需要用这个远端: `git@github.com:NVIDIAGameWorks/Falcor.git`
+
 ```powershell
 cd D:\Dev
 git clone https://github.com/NVIDIAGameWorks/Falcor.git

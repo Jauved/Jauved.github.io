@@ -1,0 +1,1380 @@
+---
+layout: post
+title: "本地大模型基础概念: 从模型架构到推理优化"
+categories: [AI, 本地部署]
+tags: AI LLM 本地大模型 本地部署 Dense MoE Router Quantization FP8 GGUF MLX llama.cpp KVCache FlashAttention MTP
+math: true
+
+
+---
+
+# 本地大模型基础概念: 从模型架构到推理优化
+
+本地部署大模型时, 经常会遇到 `Dense`、`MoE`、`FP8`、`GGUF`、`llama.cpp`、`KV Cache` 等名词。
+
+这些概念并不属于同一层级。理解它们最简单的方法, 是先把整个本地大模型系统拆成以下几层:
+
+```text
+本地大模型
+│
+├── 模型架构
+│   │
+│   ├── Dense
+│   │
+│   └── MoE
+│       └── Router
+│
+├── 数值 / 量化
+│   │
+│   ├── FP16
+│   ├── FP8
+│   ├── Q8
+│   ├── Q5
+│   └── Q4
+│       └── K-quant
+│
+├── 模型文件 / 生态
+│   │
+│   ├── GGUF
+│   └── MLX Model
+│
+├── Runtime
+│   │
+│   ├── llama.cpp
+│   └── MLX
+│
+└── 推理优化
+    │
+    ├── KV Cache
+    ├── FlashAttention
+    └── MTP
+```
+
+后续看到一个模型时, 可以先判断某个名词属于哪一层, 再考虑它具体意味着什么。
+
+---
+
+# 1. 模型架构
+
+模型架构描述的是:
+
+> 模型内部如何组织参数, 以及每次推理时哪些参数参与计算.
+
+这一层最常见的是 `Dense` 和 `MoE`。
+
+---
+
+## 1.1 Dense
+
+`Dense Model`, 稠密模型。
+
+Dense 模型生成每个 Token 时, 通常都会使用模型的大部分参数。
+
+例如一个 27B Dense 模型, 可以粗略理解为:
+
+```text
+输入 Token
+    ↓
+27B 模型整体参与计算
+    ↓
+生成下一个 Token
+```
+
+这里的 `27B` 表示大约 270 亿参数。
+
+这种结构的特点是:
+
+```text
+优点:
+- 结构直接.
+- 推理实现成熟.
+- 所有参数都可以参与当前 Token 的处理.
+
+缺点:
+- 每个 Token 的计算量较大.
+- 需要频繁读取大量模型权重.
+- 对显存带宽 / 内存带宽要求较高.
+```
+
+因此:
+
+```text
+模型能装进内存
+```
+
+并不意味着:
+
+```text
+模型一定跑得快
+```
+
+例如一个量化后的 27B Dense 模型可能只有约 18GB, 能够放入 32GB 统一内存。
+
+但生成每个 Token 时, 仍然需要处理大量模型参数, 所以速度可能受到内存带宽限制。
+
+---
+
+## 1.2 MoE
+
+`Mixture of Experts`, 混合专家模型。
+
+MoE 的核心思想是:
+
+> 模型总参数很多, 但每个 Token 只使用其中一部分参数.
+
+例如:
+
+```text
+总参数:
+35B
+
+每个 Token 激活:
+约 3B
+```
+
+这类模型有时会写成:
+
+```text
+35B-A3B
+```
+
+其中:
+
+```text
+A3B
+```
+
+通常表示:
+
+`Activated Parameters ≈ 3 Billion`
+
+即每个 Token 大约激活 30 亿参数。
+
+可以粗略理解成:
+
+```text
+Dense:
+
+27 个专家
+↓
+每个问题
+↓
+27 个全部参与
+
+
+MoE:
+
+35 个专家
+↓
+每个 Token
+↓
+只选择少数几个参与
+```
+
+所以一个:
+
+```text
+35B MoE
+```
+
+完全可能比:
+
+```text
+27B Dense
+```
+
+生成 Token 更快。
+
+但需要注意:
+
+> MoE 的完整模型权重通常仍然需要放入显存或内存.
+
+也就是说:
+
+```text
+35B-A3B
+
+存储需求:
+接近 35B
+
+单 Token 实际计算:
+接近激活参数规模 + 额外路由开销
+```
+
+因此 MoE 主要降低的是**每个 Token 的计算量和有效权重访问量**, 而不是简单把整个模型变成 3B。
+
+---
+
+## 1.3 Router
+
+`Router`, 路由器, 也可以理解为门控网络。
+
+Router 是 MoE 中负责选择 Expert 的组件。
+
+需要注意, Router 并不是简单判断:
+
+```text
+这是 Unity 问题
+→ 使用 Unity Expert
+```
+
+真实过程更接近:
+
+```text
+当前 Token 的 Hidden State
+        ↓
+      Router
+        ↓
+为所有 Expert 计算分数
+        ↓
+选择 Top-K Expert
+        ↓
+对应 Expert 进行计算
+        ↓
+合并结果
+```
+
+例如一层存在 64 个 Expert:
+
+```text
+Expert 0
+Expert 1
+Expert 2
+...
+Expert 63
+```
+
+一个 Token 可能选择:
+
+```text
+Expert 7
+Expert 31
+```
+
+下一个 Token 又可能选择:
+
+```text
+Expert 3
+Expert 52
+```
+
+因此 Router 是**针对 Token 动态进行路由**, 而不是针对整段问题进行人工意义上的分类。
+
+---
+
+# 2. 数值精度与量化
+
+模型本质上包含大量数字。
+
+例如:
+
+```text
+0.01352
+-0.82731
+1.29384
+...
+```
+
+模型文件究竟需要多少内存, 很大程度上取决于这些数字使用多少 bit 保存。
+
+---
+
+## 2.1 FP16
+
+`FP16`, 16-bit Floating Point, 16 位浮点数。
+
+每个参数大约需要:
+
+```text
+16 bit
+=
+2 Byte
+```
+
+因此一个 27B 模型粗略需要:
+
+```text
+27B × 2 Byte
+≈ 54 GB
+```
+
+这里只计算模型参数本身, 不包含运行时和 KV Cache 等额外内存。
+
+---
+
+## 2.2 FP8
+
+`FP8`, 8-bit Floating Point, 8 位浮点数。
+
+每个参数大约需要:
+
+```text
+8 bit
+=
+1 Byte
+```
+
+因此:
+
+```text
+27B × 1 Byte
+≈ 27 GB
+```
+
+实际模型还会包含 Metadata、Scale、额外 Tensor 等数据, 所以文件会比理论值略大。
+
+FP8 本身仍然属于**浮点格式**。
+
+常见编码包括:
+
+```text
+E4M3
+E5M2
+```
+
+表示指数位和尾数位的不同分配方式。
+
+现阶段只需要理解:
+
+> FP8 使用更少的位保存浮点权重, 从而降低模型大小和内存带宽压力.
+
+---
+
+## 2.3 Quantization
+
+`Quantization`, 量化。
+
+量化会把原本高精度的权重压缩成更低 bit 的表示。
+
+常见名称包括:
+
+```text
+Q8
+Q6
+Q5
+Q4
+Q3
+Q2
+```
+
+可以粗略理解为:
+
+```text
+Q8
+↑
+质量通常更高
+模型更大
+│
+Q6
+│
+Q5
+│
+Q4
+│
+Q3
+│
+Q2
+↓
+模型更小
+量化损失通常更明显
+```
+
+例如 Q4 的主要权重大约使用 4 bit 表示。
+
+27B 模型理论最低约为:
+
+```text
+27B × 4 bit
+≈ 13.5 GB
+```
+
+但实际 Q4 模型通常更大, 因为还需要保存 Scale、Metadata 以及部分更高精度的数据。
+
+---
+
+# 3. K-quant
+
+`K-quant` 是 llama.cpp 生态中的一套分块量化方法。
+
+例如:
+
+```text
+Q4_K
+Q5_K
+Q6_K
+```
+
+它并不是简单地把所有权重直接转换成统一的 4-bit 数值。
+
+其核心思想是:
+
+> 把权重分成很多较小的 Block, 为不同 Block 保存各自的量化参数.
+
+---
+
+## 3.1 为什么需要分块
+
+假设一组权重包含:
+
+```text
+0.01
+0.02
+0.03
+...
+3.70
+```
+
+如果所有权重共用同一个量化 Scale, 为了容纳 `3.70`, Scale 必须比较大。
+
+于是:
+
+```text
+0.01
+0.02
+0.03
+```
+
+这些很小的数在低 bit 精度下可能变成相同值, 甚至直接变成 0。
+
+这会产生较大的量化误差。
+
+---
+
+## 3.2 K-quant 的处理方式
+
+以 Q4_K 为例, 可以粗略理解为:
+
+```text
+256 weights
+    ↓
+一个 Super-block
+    ↓
+拆成多个较小 Block
+```
+
+类似:
+
+```text
+Super-block
+
+├── Block 0
+├── Block 1
+├── Block 2
+├── Block 3
+├── Block 4
+├── Block 5
+├── Block 6
+└── Block 7
+```
+
+不同 Block 可以拥有不同的局部 Scale。
+
+例如:
+
+```text
+Block A:
+权重范围 -0.1 ~ 0.1
+→ 使用较小 Scale
+
+Block B:
+权重范围 -4.0 ~ 4.0
+→ 使用较大 Scale
+```
+
+因此即使主体仍然使用 4-bit, 也可以比简单统一量化更准确地表示局部权重分布。
+
+可以将它理解为:
+
+> 不是拿一把 4-bit 的尺子测量整个模型, 而是把模型分成许多小块, 每个块拥有更合适的刻度尺.
+
+---
+
+## 3.3 Q4_K_M
+
+例如:
+
+```text
+Q4_K_M
+```
+
+可以拆成:
+
+```text
+Q4
+│
+└── 主要处于 4-bit 量化档
+
+K
+│
+└── 使用 K-quant 系列量化方案
+
+M
+│
+└── Medium 配置
+```
+
+`M` 的重点在于:
+
+> 整个模型不一定所有 Tensor 都严格使用完全相同的精度.
+
+对于比较重要、对模型质量比较敏感的 Tensor, 可以使用更高精度。
+
+所以 Q4_K_M 可以粗略理解为:
+
+```text
+大部分权重
+→ Q4_K
+
+部分重要权重
+→ 更高精度
+```
+
+因此它实际上是一种**混合精度量化方案**。
+
+这也是为什么 Q4_K_M 的实际平均 bit 数会大于严格的 4 bit。
+
+---
+
+# 4. 模型文件与生态
+
+量化方式回答的是:
+
+> 权重怎么表示?
+
+而模型文件格式回答的是:
+
+> 这些权重和模型信息怎么保存?
+
+二者不要混淆。
+
+---
+
+## 4.1 GGUF
+
+`GGUF` 是 llama.cpp 生态常用的模型文件格式。
+
+可以类比为:
+
+```text
+图片:
+PNG
+JPEG
+EXR
+
+3D:
+FBX
+glTF
+
+大模型:
+GGUF
+```
+
+GGUF 文件通常包含:
+
+```text
+模型权重
+模型结构信息
+Tokenizer
+量化信息
+Metadata
+```
+
+例如:
+
+```text
+Qwen3.8-27B-Q4_K_M.gguf
+```
+
+可以拆成:
+
+```text
+Qwen3.8-27B
+→ 模型
+
+Q4_K_M
+→ 量化方案
+
+.gguf
+→ 文件格式
+```
+
+---
+
+## 4.2 MLX Model
+
+Apple Silicon 上还有另一套 MLX 模型生态。
+
+例如:
+
+```text
+Qwen3.8-27B-4bit
+```
+
+可能是针对 MLX 转换和量化后的版本。
+
+于是可以形成两条不同路线:
+
+```text
+GGUF:
+
+Qwen
+↓
+GGUF
+↓
+llama.cpp
+```
+
+以及:
+
+```text
+MLX:
+
+Qwen
+↓
+MLX Model
+↓
+MLX
+```
+
+两者都可以使用 4-bit 量化, 但:
+
+```text
+文件格式
+量化实现
+Kernel
+Runtime
+```
+
+可能完全不同。
+
+---
+
+# 5. Runtime
+
+`Runtime`, 推理运行时。
+
+模型文件本身只是数据, 并不会自己执行。
+
+需要一个程序负责:
+
+```text
+加载模型
+执行矩阵计算
+调用 GPU
+管理显存 / 内存
+执行 Tokenizer
+管理 KV Cache
+生成 Token
+提供 API
+```
+
+这个程序就是 Runtime。
+
+---
+
+## 5.1 llama.cpp
+
+`llama.cpp` 是一个本地大模型推理引擎。
+
+它并不是一个模型。
+
+关系是:
+
+```text
+Qwen3.8 GGUF
+      ↓
+  llama.cpp
+      ↓
+CPU / GPU
+      ↓
+生成结果
+```
+
+llama.cpp 是跨平台的。
+
+可以运行在:
+
+```text
+Windows
+Linux
+macOS
+```
+
+并支持多种计算后端, 例如:
+
+```text
+CPU
+NVIDIA CUDA
+AMD GPU
+Apple Metal
+```
+
+所以它不是简单的:
+
+```text
+Windows / Linux 专用 Runtime
+```
+
+Mac 同样可以使用。
+
+llama.cpp 还可以启动服务器:
+
+```text
+AI Server
+    ↓
+OpenAI-compatible API
+    ↓
+局域网其他机器访问
+```
+
+因此很适合把一台机器作为独立本地 AI Server。
+
+---
+
+## 5.2 MLX
+
+`MLX` 是 Apple 开发的机器学习框架。
+
+主要面向:
+
+```text
+Apple Silicon
+
+M1
+M2
+M3
+M4
+M5
+...
+```
+
+它能够利用 Apple Silicon 的:
+
+`Unified Memory`, 统一内存。
+
+例如:
+
+```text
+Mac 64GB Unified Memory
+```
+
+CPU 和 GPU 可以共同访问这块统一内存。
+
+而传统 PC 通常是:
+
+```text
+CPU RAM: 64GB
+
+GPU VRAM: 24GB
+```
+
+GPU 最主要依赖独立显存。
+
+因此 Apple Silicon 在本地大模型上的一个特殊优势是:
+
+> 可以让 GPU 使用容量很大的统一内存.
+
+---
+
+## 5.3 llama.cpp 与 MLX
+
+如果使用 Apple Silicon:
+
+```text
+Mac
+│
+├── llama.cpp
+│
+└── MLX
+```
+
+两套方案都可以测试。
+
+可以暂时这样理解:
+
+```text
+llama.cpp
+→ 跨平台, 通用性较强
+
+MLX
+→ Apple Silicon 专用生态
+```
+
+如果是 Windows + NVIDIA GPU:
+
+```text
+Windows
+│
+├── llama.cpp
+├── vLLM
+├── SGLang
+└── 其他 CUDA Runtime
+```
+
+一般不会使用 MLX。
+
+---
+
+# 6. KV Cache
+
+`KV Cache`, Key-Value Cache, 键值缓存。
+
+它属于 Transformer 推理过程中非常重要的缓存。
+
+---
+
+## 6.1 为什么需要 KV Cache
+
+假设模型已经处理:
+
+```text
+我 喜 欢 图 形
+```
+
+现在准备生成下一个 Token。
+
+Attention 中已经为前面的 Token 计算过:
+
+```text
+Key
+Value
+```
+
+如果每生成一个新 Token 都重新计算所有历史 Token, 会产生大量重复工作。
+
+因此会把这些结果保存下来:
+
+```text
+历史 Token
+     ↓
+Key / Value
+     ↓
+KV Cache
+```
+
+生成下一个 Token 时:
+
+```text
+历史 Token
+→ 直接读取 KV Cache
+
+新 Token
+→ 只计算新的 Key / Value
+```
+
+这样可以避免大量重复计算。
+
+---
+
+## 6.2 KV Cache 为什么重要
+
+KV Cache 会占用显存或内存。
+
+并且:
+
+```text
+Context 越长
+↓
+需要缓存的 Token 越多
+↓
+KV Cache 越大
+```
+
+可以粗略理解为:
+
+```text
+KV Cache Size
+∝
+Context Length
+×
+Layer Count
+×
+KV Head Count
+×
+Head Dimension
+×
+Data Type Size
+```
+
+因此:
+
+```text
+8K Context
+```
+
+和:
+
+```text
+256K Context
+```
+
+对内存的要求完全不同。
+
+所以一个模型即使宣称支持:
+
+```text
+262K Context
+```
+
+也不意味着一台 32GB 机器能够轻松使用完整 262K Context。
+
+实际部署时必须同时考虑:
+
+```text
+模型权重
++
+KV Cache
++
+Runtime
++
+系统内存
++
+临时计算 Buffer
+```
+
+---
+
+# 7. FlashAttention
+
+`FlashAttention` 是一种更高效执行 Attention 的算法。
+
+它主要解决的不是模型数学逻辑错误, 而是:
+
+> Attention 在 GPU 上执行时产生了大量不必要的显存读写.
+
+---
+
+## 7.1 普通 Attention 的问题
+
+Attention 中存在类似:
+
+```text
+Q × K^T
+```
+
+这样的运算。
+
+假设 Context 长度是 `N`, Attention 中间矩阵规模会接近:
+
+```text
+N × N
+```
+
+例如:
+
+```text
+4K Context
+→ 4096 × 4096
+
+32K Context
+→ 32768 × 32768
+```
+
+如果直接生成并反复读写这些巨大中间结果:
+
+```text
+GPU Compute
+↓
+写 VRAM
+↓
+读 VRAM
+↓
+继续 Compute
+↓
+再次写 VRAM
+```
+
+大量时间会消耗在显存带宽上。
+
+---
+
+## 7.2 FlashAttention 的核心
+
+FlashAttention 会把 Attention 计算拆成较小的数据块。
+
+大致思路是:
+
+```text
+VRAM / HBM
+     ↓
+加载一小块数据
+     ↓
+GPU 高速片上存储
+     ↓
+连续完成更多计算
+     ↓
+再加载下一块
+```
+
+尽量避免把巨大的 Attention 中间矩阵完整写回显存。
+
+因此它可以:
+
+```text
+减少显存读写
+降低中间内存占用
+提高执行效率
+```
+
+从图形开发角度可以类比成:
+
+```text
+数学结果不变
+
+但通过:
+- 减少 RT 写回.
+- 减少 bandwidth.
+- 提高数据 locality.
+- 更充分利用高速 cache.
+
+获得更高 GPU 效率.
+```
+
+FlashAttention 的核心思想非常类似。
+
+---
+
+# 8. MTP
+
+`MTP`, Multi-Token Prediction, 多 Token 预测。
+
+传统自回归大模型通常一次生成一个 Token:
+
+```text
+我
+↓
+我 喜
+↓
+我 喜 欢
+↓
+我 喜 欢 图
+↓
+我 喜 欢 图 形
+```
+
+每一个 Token 都需要执行一次模型推理。
+
+对于大型 Dense 模型, 这意味着:
+
+```text
+生成 Token 1
+→ 大量模型计算
+
+生成 Token 2
+→ 再执行大量模型计算
+
+生成 Token 3
+→ 再执行大量模型计算
+```
+
+---
+
+## 8.1 MTP 的思路
+
+MTP 会尝试一次预测多个未来 Token。
+
+例如当前文本是:
+
+```text
+我喜欢
+```
+
+额外预测模块可能预测:
+
+```text
+图
+形
+学
+```
+
+主模型再验证这些 Token 是否正确。
+
+如果预测成功:
+
+```text
+传统方式:
+
+计算 → 图
+计算 → 形
+计算 → 学
+```
+
+可以部分变成:
+
+```text
+提前预测:
+图 形 学
+
+↓
+主模型验证
+↓
+一次接受多个 Token
+```
+
+从而提高有效 Token Generation Speed。
+
+---
+
+## 8.2 MTP 为什么对 Dense 模型重要
+
+Dense 模型每生成一个 Token 都需要访问大量权重。
+
+因此常常受到:
+
+`Memory Bandwidth`, 内存带宽限制。
+
+如果一次模型计算能够接受多个 Token:
+
+```text
+一次大规模权重访问
+↓
+产生多个有效 Token
+```
+
+就可以提高整体 Token/s。
+
+但 MTP 并不是固定倍数加速。
+
+如果预测:
+
+```text
+A B C D
+```
+
+验证结果是:
+
+```text
+A ✓
+B ✓
+C ✗
+```
+
+后续错误 Token 就需要丢弃并重新生成。
+
+因此 MTP 的实际效果取决于:
+
+```text
+模型
+任务
+Runtime
+预测准确率
+实现方式
+```
+
+---
+
+# 9. 一个完整例子
+
+假设看到这样一个模型:
+
+```text
+Qwen3.8-27B
+Q4_K_M
+GGUF
+llama.cpp
+FlashAttention
+MTP
+```
+
+可以按照本文的分类逐层理解。
+
+---
+
+## 模型架构
+
+```text
+Qwen3.8-27B
+↓
+27B Dense Model
+```
+
+表示这是一个约 270 亿参数的稠密模型。
+
+---
+
+## 数值 / 量化
+
+```text
+Q4_K_M
+```
+
+表示:
+
+```text
+主要处于 4-bit 量化档
++
+使用 K-quant 分块量化
++
+Medium 混合精度配置
+```
+
+---
+
+## 模型文件
+
+```text
+GGUF
+```
+
+表示模型使用 llama.cpp 生态常见的 GGUF 文件格式保存。
+
+---
+
+## Runtime
+
+```text
+llama.cpp
+```
+
+负责:
+
+```text
+读取 GGUF
+执行模型
+调用 GPU
+管理 KV Cache
+生成 Token
+```
+
+---
+
+## 推理优化
+
+```text
+FlashAttention
+```
+
+负责降低 Attention 计算中的显存读写和中间存储压力。
+
+```text
+MTP
+```
+
+尝试一次预测并接受多个 Token, 提高生成速度。
+
+```text
+KV Cache
+```
+
+保存已经处理过的上下文中的 Attention Key / Value, 避免重复计算。
+
+最终结构就是:
+
+```text
+Qwen3.8-27B
+│
+│ Dense Model
+│
+▼
+Q4_K_M Quantization
+│
+▼
+GGUF Model File
+│
+▼
+llama.cpp Runtime
+│
+├── KV Cache
+├── FlashAttention
+└── MTP
+│
+▼
+CPU / GPU
+│
+▼
+Token Output
+```
+
+---
+
+# 10. 本地部署时真正需要同时考虑的因素
+
+不能只看:
+
+```text
+模型参数量
+```
+
+还需要同时考虑:
+
+```text
+模型架构
+│
+├── Dense
+└── MoE
+
+量化精度
+│
+├── FP16
+├── FP8
+├── Q8
+└── Q4
+
+模型权重大小
+
+Context Length
+
+KV Cache
+
+Runtime
+
+GPU / Unified Memory 容量
+
+Memory Bandwidth
+
+推理优化
+│
+├── FlashAttention
+└── MTP
+```
+
+例如:
+
+```text
+27B Dense Q4
+```
+
+虽然模型可能只有约 18GB, 但是:
+
+```text
+每 Token 计算规模较大
++
+需要持续读取大量权重
+```
+
+因此可能受到内存带宽限制。
+
+而一个:
+
+```text
+35B-A3B MoE
+```
+
+虽然完整模型可能更大, 但每个 Token 只激活少部分参数。
+
+因此实际 Token Generation Speed 反而可能明显更高。
+
+---
+
+# 11. 最简单的记忆方式
+
+最后可以把这些概念压缩成五句话:
+
+```text
+Dense / MoE
+→ 模型内部怎么组织和使用参数.
+
+FP16 / FP8 / Q4
+→ 模型权重用多少精度保存.
+
+GGUF / MLX Model
+→ 模型数据以什么格式和生态保存.
+
+llama.cpp / MLX
+→ 谁负责真正运行模型.
+
+KV Cache / FlashAttention / MTP
+→ 模型运行过程中如何减少重复工作、内存压力或提高生成速度.
+```
+
+以后看到新的本地模型时, 先把相关名词放回这五层, 基本就能够判断它们各自在讨论什么。

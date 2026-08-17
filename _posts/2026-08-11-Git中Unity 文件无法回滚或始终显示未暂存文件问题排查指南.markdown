@@ -1,0 +1,1197 @@
+---
+layout: post
+title: "Git中Unity 文件无法回滚或始终显示未暂存文件问题排查指南"
+categories: [Git, Unity]
+tags: Git Unity gitattributes CRLF LF SourceTree EOL 换行符
+math: true
+
+
+---
+
+# Git中Unity 文件无法回滚或始终显示未暂存文件问题排查指南
+
+## 1. 问题现象
+
+在 Unity 工程中, 偶尔会遇到一种非常奇怪的 Git 状态:
+
+- SourceTree 一直显示某个文件为"未暂存文件".
+- 点击"恢复文件改动"没有效果.
+- 点击"暂存"也没有效果.
+- SourceTree 的 Diff 区域提示:
+
+```text
+未检测到此文件的改变, 或者这是一个二进制文件.
+```
+
+甚至使用 Git 命令:
+
+```bash
+git restore --source=HEAD --staged --worktree -- "文件路径"
+```
+
+之后再执行:
+
+```bash
+git status --short
+```
+
+文件仍然是:
+
+```text
+M path/to/file
+```
+
+这种情况通常不是 SourceTree 出错.
+
+真正的问题往往是:
+
+> Git 对文件的"文本/二进制属性"或者 CRLF/LF 换行规则, 与仓库当前实际保存的文件状态不一致.
+
+------
+
+## 2. 先不要乱操作
+
+遇到这种问题时, 不建议一上来执行:
+
+```bash
+git reset --hard
+```
+
+也不要使用:
+
+```bash
+git update-index --assume-unchanged
+```
+
+来隐藏文件.
+
+更不要反复执行:
+
+```bash
+git add .
+git restore .
+```
+
+因为如果根因是 `.gitattributes`, 这些操作通常解决不了问题.
+
+正确思路应该是:
+
+```text
+确认文件状态
+    ↓
+确认 Git 如何识别文件
+    ↓
+检查 .gitattributes
+    ↓
+检查 core.autocrlf
+    ↓
+判断是否只是 EOL 差异
+    ↓
+再决定 restore 或 renormalize
+```
+
+------
+
+## 3. 第一步: 查看 Git 当前状态
+
+先执行:
+
+```bash
+git status --short
+```
+
+例如:
+
+```text
+ M Samples~/ScanEffectSample/ScanEffectSample_Terrain.asset
+```
+
+这里:
+
+```text
+ M
+```
+
+表示文件在 Working Tree 中发生了修改, 但是没有暂存.
+
+如果是:
+
+```text
+M  File.meta
+```
+
+注意 `M` 在第一列, 则表示:
+
+```text
+Index:        Modified
+Working Tree: Clean
+```
+
+也就是修改已经进入暂存区.
+
+------
+
+## 4. 查看 Git 认为文件是什么类型
+
+这是整个排查过程中非常重要的一条命令:
+
+```bash
+git ls-files --eol -- "文件路径"
+```
+
+例如:
+
+```bash
+git ls-files --eol -- "Samples~/ScanEffectSample/ScanEffectSample_Terrain.asset"
+```
+
+可能得到:
+
+```text
+i/-text w/-text attr/text=auto eol=lf
+```
+
+也可能得到:
+
+```text
+i/crlf w/crlf attr/text eol=lf
+```
+
+这些字段可以这样理解:
+
+```text
+i/...     Index 中的状态
+w/...     Working Tree 中实际文件的状态
+attr/...  .gitattributes 对文件规定的属性
+```
+
+常见状态:
+
+```text
+i/lf
+```
+
+表示 Git Index 中是 LF.
+
+```text
+i/crlf
+```
+
+表示 Git Index 中是 CRLF.
+
+```text
+w/lf
+```
+
+表示硬盘上的实际文件是 LF.
+
+```text
+w/crlf
+```
+
+表示硬盘上的实际文件是 CRLF.
+
+```text
+-text
+```
+
+表示 Git 将其作为二进制文件处理.
+
+------
+
+## 5. 查看 `.gitattributes` 到底对文件做了什么
+
+执行:
+
+```bash
+git check-attr -a -- "文件路径"
+```
+
+例如:
+
+```bash
+git check-attr -a -- "Samples~/ScanEffectSample/ScanEffectSample_Terrain.asset"
+```
+
+如果得到:
+
+```text
+text: set
+eol: lf
+```
+
+表示:
+
+```text
+Git 强制把它当文本
++
+强制使用 LF
+```
+
+如果得到:
+
+```text
+text: auto
+eol: lf
+```
+
+表示:
+
+```text
+Git 自动判断它是不是文本
++
+如果是文本, 则使用 LF
+```
+
+这是一个非常重要的区别.
+
+------
+
+## 6. Unity `.asset` 的一个坑
+
+Unity 的 `.asset` 文件并不保证一定是文本.
+
+例如很多 Unity Serialized Asset 是 YAML 文本:
+
+```yaml
+%YAML 1.1
+--- !u!114 &11400000
+MonoBehaviour:
+  ...
+```
+
+但是某些 `.asset`, 例如 Terrain 相关数据, 可能实际上包含二进制数据.
+
+因此下面这种 `.gitattributes` 配置存在风险:
+
+```gitattributes
+*.asset text eol=lf
+```
+
+因为它的含义是:
+
+> 无论这个 `.asset` 实际是什么, 都强制把它当作文本文件处理.
+
+如果一个 Terrain `.asset` 实际是 binary, 就可能出现:
+
+```text
+Git 实际检测:
+i/-text
+w/-text
+
+但 .gitattributes:
+text eol=lf
+```
+
+也就是:
+
+```text
+实际是 Binary
+    ↕
+规则强制说它是 Text
+```
+
+此时可能出现:
+
+```text
+CRLF will be replaced by LF the next time Git touches it
+```
+
+并且出现这种循环:
+
+```text
+git restore
+    ↓
+文件恢复
+    ↓
+Git 根据 text/eol 规则重新解释文件
+    ↓
+Git 又认为文件发生变化
+    ↓
+Modified
+```
+
+所以看起来就像这个文件"永远恢复不了".
+
+------
+
+## 7. Unity `.asset` 推荐配置
+
+对于 `.asset`, 更合理的配置是:
+
+```gitattributes
+*.asset text=auto eol=lf
+```
+
+这样:
+
+```text
+普通 YAML .asset
+    ↓
+Git 判断为 Text
+    ↓
+使用 LF
+```
+
+而:
+
+```text
+Terrain 等 Binary .asset
+    ↓
+Git 判断为 Binary
+    ↓
+不执行文本换行转换
+```
+
+修改以后可以验证:
+
+```bash
+git check-attr -a -- "文件.asset"
+```
+
+预期:
+
+```text
+text: auto
+eol: lf
+```
+
+再执行:
+
+```bash
+git ls-files --eol -- "文件.asset"
+```
+
+对于二进制 Terrain 文件, 理想状态类似:
+
+```text
+i/-text w/-text attr/text=auto eol=lf
+```
+
+这表示配置正常.
+
+------
+
+## 8. 推荐的 Unity `.gitattributes`
+
+下面是一套比较适合 Unity 工程的基础配置:
+
+```gitattributes
+###############################################################################
+# Default
+###############################################################################
+
+* text=auto
+
+
+###############################################################################
+# Text files
+###############################################################################
+
+*.cs          text eol=lf diff=csharp
+*.shader      text eol=lf
+*.cginc       text eol=lf
+*.hlsl        text eol=lf
+*.glsl        text eol=lf
+*.xml         text eol=lf
+*.json        text eol=lf
+*.txt         text eol=lf
+*.md          text eol=lf
+
+*.meta        text eol=lf
+*.unity       text eol=lf
+*.prefab      text eol=lf
+
+# Unity .asset may be text or binary.
+*.asset       text=auto eol=lf
+
+*.mat         text eol=lf
+*.shadergraph text eol=lf
+
+
+###############################################################################
+# Binary files
+###############################################################################
+
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.dll   binary
+*.so    binary
+*.dylib binary
+
+
+###############################################################################
+# Git LFS
+###############################################################################
+
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.hdr filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+```
+
+注意:
+
+```gitattributes
+* text=auto
+```
+
+应该放在比较靠前的位置.
+
+越具体的规则越往后.
+
+例如:
+
+```gitattributes
+*.tga filter=lfs diff=lfs merge=lfs -text
+```
+
+应该放在默认规则之后.
+
+------
+
+## 9. `core.autocrlf` 不要写进 `.gitattributes`
+
+下面这种写法是错误的:
+
+```gitattributes
+core.autocrlf=false
+```
+
+`core.autocrlf` 是 Git Config, 不是 Git Attribute.
+
+如果当前仓库已经通过 `.gitattributes` 明确控制 LF, 可以在当前仓库执行:
+
+```bash
+git config core.autocrlf false
+```
+
+查看结果:
+
+```bash
+git config --show-origin --get core.autocrlf
+```
+
+如果得到:
+
+```text
+file:.git/config false
+```
+
+说明当前仓库已经覆盖全局设置.
+
+这个设置只影响当前仓库.
+
+如果使用:
+
+```bash
+git config --global core.autocrlf false
+```
+
+才会修改当前用户的全局设置.
+
+我更倾向于大型 Unity 工程先使用仓库级设置:
+
+```bash
+git config core.autocrlf false
+```
+
+然后让 `.gitattributes` 负责具体的 EOL 策略.
+
+------
+
+## 10. 修改 `.gitattributes` 后怎么办
+
+修改规则后, 先不要急着提交.
+
+首先验证目标文件:
+
+```bash
+git check-attr -a -- "文件路径"
+```
+
+然后:
+
+```bash
+git ls-files --eol -- "文件路径"
+```
+
+确认规则正确后, 可以恢复原本异常的文件:
+
+```bash
+git restore --source=HEAD --staged --worktree -- "文件路径"
+```
+
+再看:
+
+```bash
+git status --short
+```
+
+如果原来一直无法恢复的文件已经消失, 说明根因解决.
+
+------
+
+## 11. 什么是 `git add --renormalize`
+
+修改 `.gitattributes` 后, 仓库中已经存在的文件不会自动全部按照新规则重新处理.
+
+这时 Git 提供:
+
+```bash
+git add --renormalize .
+```
+
+它的作用可以简单理解为:
+
+> 根据当前 `.gitattributes`, 重新计算已跟踪文件应该如何保存到 Index.
+
+执行以后不要立即提交.
+
+先看:
+
+```bash
+git status --short
+```
+
+再看:
+
+```bash
+git diff --cached --stat
+```
+
+如果突然出现大量图片、FBX 或其他二进制文件被修改, 应该立即停止并检查 `.gitattributes`.
+
+如果只出现预期的文本换行规范化, 才继续提交.
+
+------
+
+## 12. 如何确认修改只有 CRLF/LF
+
+这是非常实用的命令:
+
+```bash
+git diff --cached --ignore-space-at-eol -- "文件或目录"
+```
+
+例如:
+
+```bash
+git diff --cached --ignore-space-at-eol -- \
+"Packages/com.vehicle.render.shadergraph"
+```
+
+如果命令:
+
+```text
+完全没有输出
+```
+
+说明忽略行尾差异以后, 文件内容完全一致.
+
+换句话说:
+
+```text
+没有 Unity 数据变化
+没有代码变化
+没有 GUID 变化
+只有 CRLF/LF 变化
+```
+
+这种修改通常可以安全地视为 EOL normalization.
+
+------
+
+## 13. 为什么 Diff Stat 会显示很多行修改
+
+例如:
+
+```text
+7 files changed, 46 insertions(+), 46 deletions(-)
+```
+
+并不一定表示真的改了 46 行.
+
+CRLF:
+
+```text
+\r\n
+```
+
+变成 LF:
+
+```text
+\n
+```
+
+时, Git 有时会把整行视为:
+
+```text
+旧行删除
++
+新行添加
+```
+
+因此可能出现:
+
+```text
+20 ++++++++++----------
+```
+
+只要:
+
+```bash
+git diff --cached --ignore-space-at-eol
+```
+
+没有输出, 就可以确认实际文本内容没有变化.
+
+------
+
+## 14. 嵌套 Git 仓库特别容易出现这种问题
+
+还有一种比较特殊的情况:
+
+```text
+Repository A
+└── Packages/
+    └── Repository B
+```
+
+Repository B 自己是一个 Git 仓库.
+
+但 Repository A 又没有把 B 当作 Submodule, 而是直接把 B 里面的文件当普通文件一起跟踪.
+
+于是同一个物理文件实际上同时受两个 Git 仓库管理:
+
+```text
+SomeFile.meta
+    ├── Repository A 的 Index
+    └── Repository B 的 Index
+```
+
+两个仓库还有各自的:
+
+```text
+.git/index
+.git/config
+.gitattributes
+```
+
+这意味着:
+
+> 同一个磁盘文件可能同时面对两套不同的 Git 规则.
+
+------
+
+## 15. 嵌套仓库的典型问题
+
+例如仓库 B 已经规范为:
+
+```text
+LF
+```
+
+但是仓库 A 的历史 Index 仍然保存:
+
+```text
+CRLF
+```
+
+检查时可能看到:
+
+```text
+i/crlf w/crlf attr/text eol=lf
+```
+
+这里已经出现一个明显矛盾:
+
+```text
+Index = CRLF
+Working Tree = CRLF
+Attribute = 要求 LF
+```
+
+`.gitattributes` 规则本身可能完全没有问题.
+
+真正的问题是:
+
+> 仓库历史 Index 没有按照后来存在的 `eol=lf` 规则进行过 normalization.
+
+------
+
+## 16. 如果父仓库 `.gitattributes` 不能修改怎么办
+
+这种情况很常见.
+
+例如 Repository A 是团队主仓库, 自己没有权限随便修改它的 `.gitattributes`.
+
+此时不要修改 A 的规则.
+
+首先只设置当前仓库自己的 Git Config:
+
+```bash
+git config core.autocrlf false
+```
+
+这个修改写入:
+
+```text
+.git/config
+```
+
+不会提交给别人.
+
+然后只对真正异常的几个文件执行 renormalize.
+
+例如:
+
+```bash
+git add --renormalize -- \
+"Path/A.meta" \
+"Path/B.meta" \
+"Path/C.meta"
+```
+
+不要一上来执行:
+
+```bash
+git add --renormalize .
+```
+
+尤其父仓库非常大时, 这样可能一次性影响大量历史文件.
+
+------
+
+## 17. renormalize 后如何验证
+
+再次查看:
+
+```bash
+git ls-files --eol -- "Path/A.meta"
+```
+
+原本可能是:
+
+```text
+i/crlf w/crlf attr/text eol=lf
+```
+
+执行 renormalize 后可能变成:
+
+```text
+i/lf w/crlf attr/text eol=lf
+```
+
+这里最重要的是:
+
+```text
+i/lf
+```
+
+说明 Index 已经按照 `.gitattributes` 正规化为 LF.
+
+然后执行:
+
+```bash
+git diff --cached --ignore-space-at-eol -- "相关目录"
+```
+
+如果没有输出, 就证明只是 EOL normalization.
+
+提交以后, Repository A 的历史状态就从:
+
+```text
+Index = CRLF
+Attribute = LF
+```
+
+修复成:
+
+```text
+Index = LF
+Attribute = LF
+```
+
+这样以后 Repository B 再以 LF 写这些共享文件时, Repository A 就不会反复认为它们发生了异常修改.
+
+------
+
+## 18. SourceTree 出现异常时的快速处理流程
+
+以后如果再次看到:
+
+```text
+文件一直 Modified
+恢复无效
+暂存异常
+Diff 又看不到实际变化
+```
+
+可以直接按下面流程执行.
+
+### Step 1: 查看状态
+
+```bash
+git status --short
+```
+
+### Step 2: 查看 EOL 和文件类型
+
+```bash
+git ls-files --eol -- "文件路径"
+```
+
+重点看:
+
+```text
+i/...
+w/...
+attr/...
+```
+
+### Step 3: 查看 Git Attribute
+
+```bash
+git check-attr -a -- "文件路径"
+```
+
+### Step 4: 查看 autocrlf
+
+```bash
+git config --show-origin --get core.autocrlf
+```
+
+### Step 5: 判断是不是只有换行符变化
+
+未暂存文件:
+
+```bash
+git diff --ignore-space-at-eol -- "文件路径"
+```
+
+已经暂存:
+
+```bash
+git diff --cached --ignore-space-at-eol -- "文件路径"
+```
+
+如果没有输出, 基本可以确认只是 EOL.
+
+------
+
+## 19. 常见情况对照表
+
+### 情况 A: 二进制 `.asset` 被强制当文本
+
+看到:
+
+```text
+i/-text w/-text attr/text eol=lf
+```
+
+说明:
+
+```text
+文件实际是 Binary
+但是规则强制 text
+```
+
+检查 `.gitattributes` 是否存在:
+
+```gitattributes
+*.asset text eol=lf
+```
+
+如果自己可以修改仓库规则, 建议改成:
+
+```gitattributes
+*.asset text=auto eol=lf
+```
+
+------
+
+### 情况 B: Index 是 CRLF, 但规则要求 LF
+
+看到:
+
+```text
+i/crlf w/crlf attr/text eol=lf
+```
+
+说明:
+
+```text
+仓库历史文件 = CRLF
+.gitattributes = LF
+```
+
+如果确认没有实际内容修改:
+
+```bash
+git diff --ignore-space-at-eol -- "文件"
+```
+
+可以使用:
+
+```bash
+git add --renormalize -- "文件"
+```
+
+将 Index 正规化成 LF.
+
+------
+
+### 情况 C: 已经 renormalize
+
+看到:
+
+```text
+i/lf w/crlf attr/text eol=lf
+```
+
+说明:
+
+```text
+Index 已经修复为 LF
+Working Tree 暂时还是 CRLF
+```
+
+重点是:
+
+```text
+i/lf
+```
+
+说明提交后的仓库状态已经符合规范.
+
+------
+
+### 情况 D: 二进制文件完全正常
+
+例如:
+
+```text
+i/-text w/-text attr/text=auto
+```
+
+表示 Git 自动检测后认为它是 Binary.
+
+通常无需处理.
+
+------
+
+## 20. 不推荐的处理方式
+
+### 20.1 `assume-unchanged`
+
+不要为了让 SourceTree 清净就执行:
+
+```bash
+git update-index --assume-unchanged "文件"
+```
+
+这只是隐藏问题.
+
+文件真正发生修改时也可能被忽略.
+
+------
+
+### 20.2 无脑 `reset --hard`
+
+```bash
+git reset --hard HEAD
+```
+
+只能恢复文件.
+
+如果问题来自:
+
+```text
+.gitattributes
+EOL normalization
+Git filter
+```
+
+恢复以后 Git 仍然可能再次把它判断为 Modified.
+
+------
+
+### 20.3 无脑全仓库 renormalize
+
+不要在大型项目中上来就执行:
+
+```bash
+git add --renormalize .
+```
+
+正确做法是:
+
+```text
+先诊断
+    ↓
+小范围 renormalize
+    ↓
+查看 diff
+    ↓
+确认只有 EOL
+    ↓
+再决定是否扩大范围
+```
+
+------
+
+## 21. Git 分页器卡在 `:` 怎么办
+
+执行:
+
+```bash
+git diff
+```
+
+或者:
+
+```bash
+git log
+```
+
+以后, 有时终端底部会出现:
+
+```text
+:
+```
+
+这不是 Git 卡死.
+
+这是进入了 `less` 分页器.
+
+直接按:
+
+```text
+q
+```
+
+即可退出.
+
+如果不希望使用分页器:
+
+```bash
+git --no-pager diff
+```
+
+例如:
+
+```bash
+git --no-pager diff --cached -- .gitattributes
+```
+
+------
+
+## 22. 最终排查口诀
+
+如果以后又遇到类似问题, 可以只记住下面几条命令:
+
+```bash
+git status --short
+git ls-files --eol -- "文件"
+git check-attr -a -- "文件"
+git config --show-origin --get core.autocrlf
+git diff --ignore-space-at-eol -- "文件"
+```
+
+或者已经暂存时:
+
+```bash
+git diff --cached --ignore-space-at-eol -- "文件"
+```
+
+如果需要正规化:
+
+```bash
+git add --renormalize -- "文件"
+```
+
+然后再次确认:
+
+```bash
+git ls-files --eol -- "文件"
+```
+
+------
+
+## 23. 总结
+
+这类问题的核心不是 SourceTree.
+
+SourceTree 只是把 Git 的状态显示出来.
+
+真正需要判断的是三个东西:
+
+```text
+1. Index 中保存的文件是什么状态.
+2. Working Tree 中实际文件是什么状态.
+3. .gitattributes 规定文件应该是什么状态.
+```
+
+也就是重点关注:
+
+```text
+i/...
+w/...
+attr/...
+```
+
+如果三者不一致, 就容易出现:
+
+```text
+恢复无效
+一直 Modified
+只有换行差异
+二进制文件无法正常 Diff
+```
+
+对于 Unity 工程尤其需要注意:
+
+```text
+.asset 不一定是文本
+```
+
+因此相比:
+
+```gitattributes
+*.asset text eol=lf
+```
+
+更推荐:
+
+```gitattributes
+*.asset text=auto eol=lf
+```
+
+而对于已经明确属于文本序列化的 Unity 文件, 例如:
+
+```text
+.meta
+.unity
+.prefab
+```
+
+则可以明确要求:
+
+```gitattributes
+text eol=lf
+```
+
+最后, 如果一个物理目录同时被父仓库和子仓库管理, 一定要意识到:
+
+> 同一个文件可能同时被两套 Git Index 和 Attribute 规则解释.
+
+遇到异常时, 应该分别进入两个仓库检查:
+
+```bash
+git ls-files --eol
+git check-attr
+```
+
+通常很快就能定位问题.
