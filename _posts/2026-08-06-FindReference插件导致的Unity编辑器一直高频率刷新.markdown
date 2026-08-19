@@ -18,6 +18,6 @@ math: true
 
 点开FR2的窗口, 点击窗口右上角的三个点, 呼出菜单, 临时取消勾选`Enable`和`Auto Refresh`, 然后手动`Refresh`, 之后再勾选`Enable`, 即可解决.
 
-![image-20260806154455881](.//assets/image/image-20260806154455881.png)
+![image-20260806154455881](/assets/image/image-20260806154455881.png)
 
 ###### 参考网页
