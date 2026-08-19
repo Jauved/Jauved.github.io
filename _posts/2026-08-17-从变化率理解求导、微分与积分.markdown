@@ -1202,3 +1202,4 @@ F(b) - F(a)
 
 - [[1811.03459\] Simplifying and Refactoring Introductory Calculus](https://arxiv.org/abs/1811.03459)
 - [Markdown 数学公式指导手册 \| Freeopen](https://freeopen.github.io/blog/mathjax/#8-ru-he-shu-ru-ji-fen)
+  - 注: 这篇文章已过时, 正确的 $\mathrm{d}$ 的写法应该是```\mathrm{d}```, 空格的写法是```\,```

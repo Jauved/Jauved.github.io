@@ -13,29 +13,93 @@ math: true
 
 ### 1.1上下标
 
+```
+$f\_0$
+$f\_{a+b}$
+
+```
+
 $f\_0$,$f\_{a+b}$
+
+```
+$f^2$
+$f^{a+b}$
+```
 
  $f^2$,$f^{a+b}$​
 
+```
+$^af$
+$^{a+b}f$
+```
+
 $^af$,$^{a+b}f$
+
+```
+$\_af$
+$\_{a+b}f$
+```
 
 $\_af$,$\_{a+b}f$​
 
+```
+$f^a\_b$
+$f^{a+b}\_{c+d}$
+```
+
 $f^a\_b$,$f^{a+b}\_{c+d}$
 
+```
 $\mathop{A} \limits\_{i=0}^n$
+```
+
+$\mathop{A} \limits\_{i=0}^n$
+
+```
+$X\stackrel{F}{\longrightarrow}Y$
+```
 
 $X\stackrel{F}{\longrightarrow}Y$
 
 ### 1.2 求和
 
+```
+$\sum\_a^b$
+\limits_{i=0}^n$
+```
+
 $\sum\_a^b$,$\sum \limits\_{i=0}^n$
 
 ### 1.3 积分
 
-$\int\_0^{\pi}\frac{e^3/x}{x^2}dx$
+```
+$\int\_0^{\pi}\frac{e^3/x}{x^2} \, {\mathrm d}x$
+```
 
+$\int\_0^{\pi}\frac{e^3/x}{x^2} \, {\mathrm d}x$
 
+## 2. 注意
+
+不要出现类似:
+
+```
+{{
+```
+
+这样会触发类似:
+
+```
+Liquid syntax error (line 216):
+Variable '{{\rm d}' was not properly terminated
+```
+
+的报错.
+
+原因是:
+
+> Jekyll 使用的 Liquid 模板语言会把```{{```识别成"Liquid 变量开始".
+>
+> 然后又无法按照 Liquid 语法找到合法的结束结构, 于是构建直接失败
 
 
 
