@@ -82,22 +82,20 @@ $\int\_0^{\pi}\frac{e^3/x}{x^2} \, {\mathrm d}x$
 
 不要出现类似:
 
-```
-{{
-```
+**\{\{**
 
 这样会触发类似:
 
 ```
 Liquid syntax error (line 216):
-Variable '{{\rm d}' was not properly terminated
+Variable '\{\{\rm d}' was not properly terminated
 ```
 
 的报错.
 
 原因是:
 
-> Jekyll 使用的 Liquid 模板语言会把```{{```识别成"Liquid 变量开始".
+> Jekyll 使用的 Liquid 模板语言会把"\{\{"识别成"Liquid 变量开始".
 >
 > 然后又无法按照 Liquid 语法找到合法的结束结构, 于是构建直接失败
 
