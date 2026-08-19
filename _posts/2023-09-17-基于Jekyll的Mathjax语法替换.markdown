@@ -78,6 +78,77 @@ $\int\_0^{\pi}\frac{e^3/x}{x^2} \, {\mathrm d}x$
 
 $\int\_0^{\pi}\frac{e^3/x}{x^2} \, {\mathrm d}x$
 
+### 1.4 求和积分极限综合
+
+```
+
+$$
+
+\int_a^b f(x) \, \mathrm{d}x=\lim_{N\to\infty}
+\sum_{i=0}^{N-1}
+f(x_i)\Delta x
+
+$$
+
+```
+
+$$
+
+\int_a^b f(x) \, \mathrm{d}x=\lim_{N\to\infty}
+\sum_{i=0}^{N-1}
+f(x_i)\Delta x
+
+$$
+
+### 1.5 对齐
+
+```
+
+$$
+
+\begin{aligned}
+F(2)-F(0) &= (4.05+C)-C \\ &= 4 \\ 
+\end{aligned}
+
+$$
+
+```
+
+$$
+
+\begin{aligned}
+F(2)-F(0) 	&= (4.05+C)-C \\ 
+			&= 4.05 \\
+			&\approx4
+\end{aligned}
+
+$$
+
+除了`begin{aligned}`和`end{aligned}`, 关键是用`&`符号标识出对齐的位置即可. 
+
+### 1.5 省略号
+
+```
+
+$$
+
+f(x_0)\Delta x
++
+f(x_1)\Delta x
++
+f(x_2)\Delta x
++\cdots
+
+$$
+
+```
+
+$f(x\_0)\Delta x+f(x\_1)\Delta x+f(x\_2)\Delta x+\cdots$
+
+
+
+
+
 ## 2. 注意
 
 不要出现类似:

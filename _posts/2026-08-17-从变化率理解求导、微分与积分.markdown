@@ -389,7 +389,7 @@ $$
 
 $$
 
-你要高兴的话写成: $dy=(x+1)dx$ 也可以, 这样类似之前的写法. 
+你要高兴的话写成: $\mathrm{d}y=(x+1) \, \mathrm{d}x$ 也可以, 这样类似之前的写法. 
 
 
 
@@ -489,7 +489,7 @@ $$
 
 $$
 
-\int_0^2(x+1)\mathrm{d}x = F(2)-F(0)
+\int_0^2(x+1) \, \mathrm{d}x = F(2)-F(0)
 
 $$
 
@@ -520,7 +520,7 @@ $$
 $$
 
 \boxed{
-\int_0^2(x+1)\mathrm{d}x=4
+\int_0^2(x+1) \, \mathrm{d}x=4
 }
 
 $$
@@ -587,7 +587,7 @@ F(b) - F(a)
 
 $$
 
-\int e^{-x^2}\mathrm{d}x
+\int e^{-x^2} \, \mathrm{d}x
 
 $$
 
@@ -610,7 +610,7 @@ $$
 
 $$
 
-\int_0^1e^{-x^2}\mathrm{d}x
+\int_0^1e^{-x^2} \, \mathrm{d}x
 
 $$
 
@@ -644,7 +644,7 @@ F(1) - F(0)
 
 $$
 
-\int_0^1e^{-x^2}\mathrm{d}x
+\int_0^1e^{-x^2} \, \mathrm{d}x
 
 $$
 
@@ -821,7 +821,7 @@ $$
 
 $$
 
-\int_0^1e^{-x^2}\mathrm{d}x
+\int_0^1e^{-x^2} \, \mathrm{d}x
 \approx0.821999
 
 $$
@@ -875,7 +875,7 @@ $$
 $$
 
 \boxed{
-\int_0^1e^{-x^2}\mathrm{d}x
+\int_0^1e^{-x^2} \, \mathrm{d}x
 \approx0.746824
 }
 
@@ -953,7 +953,7 @@ sum ≈ 0.746856
 
 $$
 
-\int_a^b f(x)\mathrm{d}x=\lim_{N\to\infty}
+\int_a^b f(x) \, \mathrm{d}x=\lim_{N\to\infty}
 \sum_{i=0}^{N-1}
 f(x_i)\Delta x
 
