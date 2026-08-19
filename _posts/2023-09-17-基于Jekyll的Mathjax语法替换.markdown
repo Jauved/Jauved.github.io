@@ -177,3 +177,5 @@ Variable '\{\{\rm d}' was not properly terminated
 [jekyll下Markdown的填坑技巧 \| Weclome to eipi10](https://eipi10.cn/others/2019/12/07/jekyll-markdown-skills/)
 
 [LaTex写公式怎么换行？ - 知乎 (zhihu.com)](https://www.zhihu.com/question/618818933)
+
+[Markdown 数学公式指导手册 \| Freeopen](https://freeopen.github.io/blog/mathjax/#8-ru-he-shu-ru-ji-fen)
