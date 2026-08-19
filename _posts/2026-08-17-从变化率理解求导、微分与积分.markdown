@@ -116,9 +116,7 @@ $$
 
 $$
 
-\frac{
-{\rm d}y}{
-{\rm d}x}=2x
+\frac{\mathrm{d}y}{\mathrm{d}x}=2x
 
 $$
 
@@ -138,9 +136,7 @@ $$
 
 $$
 
-\frac{
-{\rm d}y}{
-{\rm d}x}=6
+\frac{\mathrm{d}y}{\mathrm{d}x}=6
 
 $$
 
@@ -158,9 +154,7 @@ $$
 
 $$
 
-\frac{
-{\rm d}y}{
-{\rm d}x}=2x
+\frac{\mathrm{d}y}{\mathrm{d}x}=2x
 
 $$
 
@@ -168,33 +162,33 @@ $$
 
 $$
 
-{\rm d}y=2x\,{\rm d}x
+\mathrm{d}y=2x \, \mathrm{d}x
 
 $$
 
 这里:
 
-${\rm d}x$ 表示 $x$ 的微小变化。
+$\mathrm{d}x$ 表示 $x$ 的微小变化。
 
-${\rm d}y$ 表示这个变化对应产生的 $y$ 的微小变化。
+$\mathrm{d}y$ 表示这个变化对应产生的 $y$ 的微小变化。
 
 因此:
 
 $$
 
-{\rm d}y=2x\,{\rm d}x
+\mathrm{d}y=2x \, \mathrm{d}x
 
 $$
 
 可以理解成:
 
-> 当 $x$ 发生微小变化 $dx$ 时, $y$ 对应产生微小变化 ${\rm d}y$。
+> 当 $x$ 发生微小变化 $dx$ 时, $y$ 对应产生微小变化 $\mathrm{d}y$。
 
 例如 $x=3$ 时:
 
 $$
 
-{\rm d}y=6\,{\rm d}x
+\mathrm{d}y=6 \, \mathrm{d}x
 
 $$
 
@@ -223,13 +217,13 @@ y 微小变化约 6 份
 
 导数和微分来自同一个局部变化规律, 只是**关注的信息**不同。
 
-**导数关注:** $\frac{{\rm d}x}{{\rm d}y}$
+**导数关注:** $\frac{\mathrm{d}x}{\mathrm{d}y}$
 
 即: **变化比例是多少?**
 
-**微分关注:** ${\rm d}y=f′(x)\,{\rm d}x$
+**微分关注:** $\mathrm{d}y=f′(x) \, \mathrm{d}x$
 
-即: **给定一个微小输入变化 ${\rm d}x$, 会产生多少输出变化 ${\rm d}y$?**
+即: **给定一个微小输入变化 $\mathrm{d}x$, 会产生多少输出变化 $\mathrm{d}y$?**
 
 对于:
 
@@ -243,9 +237,7 @@ $$
 
 $$
 
-\frac{
-{\rm d}y}{
-{\rm d}x}=2x
+\frac{\mathrm{d}y}{\mathrm{d}x}=2x
 
 $$
 
@@ -255,7 +247,7 @@ $$
 
 $$
 
-{\rm d}y=2x \,{\rm d}x
+\mathrm{d}y=2x \, \mathrm{d}x
 
 $$
 
@@ -293,7 +285,7 @@ dy = 2x dx
 
 $$
 
-{\rm d}y=2x \,{\rm d}x
+\mathrm{d}y=2x \, \mathrm{d}x
 
 $$
 
@@ -305,7 +297,7 @@ $$
 
 $$
 
-\int {\rm d}y
+\int \mathrm{d}y
 
 $$
 
@@ -313,7 +305,7 @@ $$
 
 $$
 
-\int_1^3 2x\,{\rm d}x
+\int_1^3 2x \, \mathrm{d}x
 
 $$
 
@@ -341,13 +333,13 @@ dx -> 产生一个 dy
 
 > 积分就是把连续的微小贡献累加起来。
 
-这里的微小贡献不一定叫 ${\rm d}y$。
+这里的微小贡献不一定叫 $\mathrm{d}y$。
 
 例如速度问题中:
 
 $$
 
-{\rm d}s=v(t){\rm d}t
+\mathrm{d}s=v(t)\mathrm{d}t
 
 $$
 
@@ -357,7 +349,7 @@ $v(t)dt$ 是一小段路程。
 
 $$
 
-\int v(t){\rm d}t
+\int v(t)\mathrm{d}t
 
 $$
 
@@ -377,7 +369,7 @@ $$
 
 $$
 
-\int_0^2(x+1){\rm d}x
+\int_0^2(x+1)\mathrm{d}x
 
 $$
 
@@ -385,7 +377,7 @@ $$
 
 $$
 
-(x+1){\rm d}x
+(x+1)\mathrm{d}x
 
 $$
 
@@ -393,7 +385,7 @@ $$
 
 $$
 
-{\rm d}F=(x+1){\rm d}x
+\mathrm{d}F=(x+1)\mathrm{d}x
 
 $$
 
@@ -405,9 +397,7 @@ $$
 
 $$
 
-\frac{
-{\rm d}F}{
-{\rm d}x}=x+1
+\frac{\mathrm{d}F}{\mathrm{d}x}=x+1
 
 $$
 
@@ -427,9 +417,7 @@ $$
 
 $$
 
-\frac{
-{\rm d}}{
-{\rm d}x}\left(\frac{1}{2}x^2\right)=x
+\frac{\mathrm{d}}{\mathrm{d}x}\left(\frac{1}{2}x^2\right)=x
 
 $$
 
@@ -437,9 +425,7 @@ $$
 
 $$
 
-\frac{
-{\rm d}}{
-{\rm d}x}(x)=1
+\frac{\mathrm{d}}{\mathrm{d}x}(x)=1
 
 $$
 
@@ -461,17 +447,13 @@ $$
 
 $$
 
-\frac{
-{\rm d}}{
-{\rm d}x}(x^2+1)=2x
+\frac{\mathrm{d}}{\mathrm{d}x}(x^2+1)=2x
 
 $$
 
 $$
 
-\frac{
-{\rm d}}{
-{\rm d}x}(x^2+100)=2x
+\frac{\mathrm{d}}{\mathrm{d}x}(x^2+100)=2x
 
 $$
 
@@ -507,7 +489,7 @@ $$
 
 $$
 
-\int_0^2(x+1){\rm d}x = F(2)-F(0)
+\int_0^2(x+1)\mathrm{d}x = F(2)-F(0)
 
 $$
 
@@ -538,7 +520,7 @@ $$
 $$
 
 \boxed{
-\int_0^2(x+1){\rm d}x=4
+\int_0^2(x+1)\mathrm{d}x=4
 }
 
 $$
@@ -605,7 +587,7 @@ F(b) - F(a)
 
 $$
 
-\int e^{-x^2}{\rm d}x
+\int e^{-x^2}\mathrm{d}x
 
 $$
 
@@ -628,7 +610,7 @@ $$
 
 $$
 
-\int_0^1e^{-x^2}{\rm d}x
+\int_0^1e^{-x^2}\mathrm{d}x
 
 $$
 
@@ -662,7 +644,7 @@ F(1) - F(0)
 
 $$
 
-\int_0^1e^{-x^2}{\rm d}x
+\int_0^1e^{-x^2}\mathrm{d}x
 
 $$
 
@@ -839,7 +821,7 @@ $$
 
 $$
 
-\int_0^1e^{-x^2}{\rm d}x
+\int_0^1e^{-x^2}\mathrm{d}x
 \approx0.821999
 
 $$
@@ -893,7 +875,7 @@ $$
 $$
 
 \boxed{
-\int_0^1e^{-x^2}{\rm d}x
+\int_0^1e^{-x^2}\mathrm{d}x
 \approx0.746824
 }
 
@@ -971,7 +953,7 @@ sum ≈ 0.746856
 
 $$
 
-\int_a^b f(x){\rm d}x=\lim_{N\to\infty}
+\int_a^b f(x)\mathrm{d}x=\lim_{N\to\infty}
 \sum_{i=0}^{N-1}
 f(x_i)\Delta x
 
@@ -1086,9 +1068,7 @@ $$
 
 $$
 
-\frac{
-{\rm d}y}{
-{\rm d}x}=2x
+\frac{\mathrm{d}y}{\mathrm{d}x}=2x
 
 $$
 
@@ -1100,13 +1080,13 @@ $$
 
 $$
 
-{\rm d}y=2x \, {\rm d}x
+\mathrm{d}y=2x \, \mathrm{d}x
 
 $$
 
 表示:
 
-> 一个微小的 ${\rm d}x$, 会产生多少 ${\rm d}y$。
+> 一个微小的 $\mathrm{d}x$, 会产生多少 $\mathrm{d}y$。
 
 ------
 
@@ -1116,7 +1096,7 @@ $$
 
 $$
 
-\int {\rm d}y
+\int \mathrm{d}y
 
 $$
 
@@ -1146,7 +1126,7 @@ $$
 
 $$
 
-\int_a^b f(x){\rm d}x=F(b)-F(a)
+\int_a^b f(x)\mathrm{d}x=F(b)-F(a)
 
 $$
 
