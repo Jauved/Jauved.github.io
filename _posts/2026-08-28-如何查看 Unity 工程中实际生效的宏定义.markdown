@@ -1,0 +1,240 @@
+---
+layout: post
+title: "如何查看 Unity 工程中实际生效的宏定义"
+categories: [Unity, CSharp]
+tags: Unity CSharp Rider DefineConstants 条件编译 宏定义
+math: false
+
+
+---
+
+# 如何查看 Unity 工程中实际生效的宏定义
+
+在 Unity 工程中, 经常会遇到这类条件编译代码:
+
+```csharp
+#if UNITY_2022_1_OR_NEWER
+// ...
+#endif
+```
+
+如果需要确认当前工程、当前 Assembly 实际定义了哪些宏, 最直接的方法是查看 Unity 生成的 `.csproj` 文件中的 `DefineConstants`。
+
+## 1. 在 Rider 中查看 `DefineConstants`
+
+按:
+
+```text
+Ctrl + Shift + F
+```
+
+搜索:
+
+```xml
+<DefineConstants>
+```
+
+搜索范围选择整个解决方案。
+
+在对应的 `.csproj` 中可以看到类似内容:
+
+```xml
+<DefineConstants>
+TRACE;
+UNITY_2021_3;
+UNITY_2021;
+UNITY_2021_3_OR_NEWER;
+UNITY_2021_2_OR_NEWER;
+UNITY_EDITOR;
+UNITY_EDITOR_WIN;
+...
+</DefineConstants>
+```
+
+这里列出的内容, 就是当前 Assembly 实际使用的条件编译符号。
+
+例如存在:
+
+```text
+UNITY_2021_3_OR_NEWER
+```
+
+那么:
+
+```csharp
+#if UNITY_2021_3_OR_NEWER
+Debug.Log("Unity 2021.3 or newer");
+#endif
+```
+
+这段代码就会参与编译。
+
+## 2. 一定要查看正确的 `.csproj`
+
+Unity 工程通常会生成多个 `.csproj`, 例如:
+
+```text
+Assembly-CSharp.csproj
+Assembly-CSharp-Editor.csproj
+Example.Render.Runtime.csproj
+Example.Render.Editor.csproj
+```
+
+假设某段代码位于一个名为:
+
+```text
+Example.Render.Editor
+```
+
+的 Assembly 中, 那么应优先查看:
+
+```text
+Example.Render.Editor.csproj
+```
+
+而不是只看:
+
+```text
+Assembly-CSharp.csproj
+```
+
+原因是不同 Assembly 的 `DefineConstants` 可能不同。
+
+推荐排查顺序:
+
+```text
+目标代码
+→ 确认所属 .asmdef
+→ 找到对应 .csproj
+→ 查看 DefineConstants
+```
+
+## 3. 只想确认某一个宏是否生效
+
+如果只是快速验证某个宏, 可以直接写:
+
+```csharp
+#if UNITY_2022_1_OR_NEWER
+Debug.Log("Unity 2022.1+");
+#else
+Debug.Log("Older Unity");
+#endif
+```
+
+Rider 通常会将当前不会参与编译的分支显示为灰色。
+
+这种方式适合验证单个宏; 如果需要查看完整宏列表, 仍建议查看 `DefineConstants`。
+
+## 4. Unity 宏的主要来源
+
+Unity 工程中的条件编译符号主要来自三类来源:
+
+```text
+Unity 自动定义
+├─ UNITY_EDITOR
+├─ UNITY_ANDROID
+├─ UNITY_2021_3_OR_NEWER
+└─ ...
+
+Project Settings
+└─ Scripting Define Symbols
+
+.asmdef
+└─ Version Defines
+```
+
+项目级自定义宏可以在:
+
+```text
+Project Settings
+→ Player
+→ Other Settings
+→ Scripting Define Symbols
+```
+
+中配置。
+
+例如项目中定义:
+
+```text
+ENABLE_CUSTOM_RENDERING
+```
+
+就可以写:
+
+```csharp
+#if ENABLE_CUSTOM_RENDERING
+CustomRender();
+#endif
+```
+
+`.asmdef` 还可以通过 `Version Defines` 根据 Package 版本定义只对特定 Assembly 生效的宏。
+
+例如某个 Assembly 可以根据 Package 版本生成:
+
+```text
+HAS_RENDER_PIPELINE_14
+```
+
+然后在代码中使用:
+
+```csharp
+#if HAS_RENDER_PIPELINE_14
+// Code for the corresponding package version.
+#endif
+```
+
+## 5. `UNITY_xxx_OR_NEWER` 的含义
+
+Unity 的版本宏通常具有类似形式:
+
+```text
+UNITY_2021
+UNITY_2021_3
+UNITY_2021_3_OR_NEWER
+UNITY_2022_1_OR_NEWER
+```
+
+例如:
+
+```text
+UNITY_2022_1_OR_NEWER
+```
+
+表示当前 Unity 版本满足:
+
+```text
+Unity >= 2022.1
+```
+
+因此常见的跨版本代码会写成:
+
+```csharp
+#if UNITY_2022_1_OR_NEWER
+UseNewApi();
+#else
+UseLegacyApi();
+#endif
+```
+
+不过在实际排查兼容性问题时, 与其只根据 Unity 版本号推测, 更可靠的方法仍然是直接查看目标 Assembly 的 `DefineConstants`。
+
+## 原理
+
+Unity 会为不同 C# Assembly 生成对应的 `.csproj`, 并将当前编译环境中的条件编译符号写入:
+
+```xml
+<DefineConstants>...</DefineConstants>
+```
+
+因此, `DefineConstants` 可以看作当前 Assembly 编译环境中实际宏定义的一份直接结果。
+
+需要注意, `.csproj` 通常由 Unity 自动生成, 不应直接修改其中的 `DefineConstants`。
+
+如果需要添加自定义宏, 应通过以下正式入口配置:
+
+```text
+Scripting Define Symbols
+.asmdef Version Defines
+其他 Unity 提供的正式编译配置
+```

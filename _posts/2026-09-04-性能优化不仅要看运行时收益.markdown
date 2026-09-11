@@ -1,0 +1,550 @@
+---
+layout: post
+title: "性能优化不仅要看运行时收益"
+categories: [软件工程, 性能优化]
+tags: 性能优化 Unity 分帧 TimeSlicing 状态管理 生命周期 系统复杂度
+math: false
+
+
+---
+
+# 性能优化不仅要看运行时收益
+
+## 1. 结论
+
+本文采用以下工程判断原则:
+
+> 性能优化不仅要评估运行时收益, 还要评估由此增加的状态复杂度、生命周期管理和维护成本.
+
+因此, 不能仅通过:
+
+```text
+Before: 3ms
+After:  0.5ms/frame
+```
+
+判断一个优化方案是否更好。
+
+应该同时比较:
+
+```text
+性能收益
++
+Frame Budget 改善
++
+新增状态
++
+生命周期复杂度
++
+异常与取消处理
++
+测试成本
++
+维护成本
+```
+
+对于 Unity 中的分帧、异步、Job、后台构建等方案尤其如此。
+
+------
+
+## 2. Unity 中的实际判断方式
+
+以后遇到一个性能问题, 可以先按照下面的顺序判断:
+
+```text
+这项工作必须做吗?
+↓
+必须每帧做吗?
+↓
+必须这一帧全部完成吗?
+↓
+多次工作能否合并?
+↓
+是否存在优先级?
+↓
+必须 Main Thread 做吗?
+↓
+最后再考虑算法和代码层面的优化
+```
+
+这里分别对应:
+
+```text
+Skip / Cache
+Reduce Frequency
+Time Slicing
+Batch / Merge
+Prioritize
+Job / Worker / GPU
+Algorithm Optimization
+```
+
+这种思路与浏览器 Main Thread 优化非常相似。《The Browser's Main Thread Is Expensive》将相关策略总结为 Splitting、Batching、Prioritizing、Deferring, 并进一步讨论把工作转移到 Worker 或直接消除工作。
+
+Unity 中可以采用相同的系统级思考方式, 只是具体执行机制不同。
+
+------
+
+## 3. 分帧为什么不是免费的
+
+假设一个任务原本需要 3ms:
+
+```text
+Frame N
+└─ Process
+   └─ 3ms
+```
+
+分帧后可能变成:
+
+```text
+Frame N      0.5ms
+Frame N+1    0.5ms
+Frame N+2    0.5ms
+...
+```
+
+这显著降低了单帧峰值。
+
+但是原来的任务模型:
+
+```text
+Input
+↓
+Process
+↓
+Result
+```
+
+也随之变成:
+
+```text
+Input
+↓
+Running
+↓
+Partial
+↓
+Partial
+↓
+Complete
+↓
+Result
+```
+
+原本只有:
+
+```text
+Before
+After
+```
+
+现在增加了:
+
+```text
+Idle
+Running
+Partially Completed
+Completed
+Invalid
+Cancelled
+Failed
+```
+
+所以:
+
+> 分帧降低的是单帧执行压力, 但通常会增加时间维度上的状态复杂度.
+
+------
+
+## 4. 为什么这些额外状态必须处理
+
+例如:
+
+```text
+Frame 100
+基于 Input A 开始任务
+
+Frame 101
+完成 30%
+
+Frame 102
+Input 已经变成 B
+```
+
+此时系统必须明确:
+
+```text
+旧任务继续执行还是取消?
+中间结果是否仍然有效?
+是否重新开始?
+旧结果还能否继续使用?
+```
+
+此外还可能发生:
+
+```text
+对象 Destroy
+Component Disable
+Scene 切换
+资源释放
+新任务覆盖旧任务
+系统 Shutdown
+```
+
+所以分帧并不仅意味着“下一帧继续计算”。
+
+它实际上引入了一个任务生命周期。
+
+可靠实现通常需要考虑:
+
+```text
+Input Snapshot
+Working State
+Task Lifetime
+Generation / Version
+Cancellation
+Commit / Swap
+Cleanup
+Failure Handling
+```
+
+这些系统并不是附加优化, 而是分帧方案本身的一部分。
+
+------
+
+## 5. 正式状态与 Working State 应该分离
+
+一个重要原则是:
+
+> 不要让正式系统读取半完成结果.
+
+应尽量避免:
+
+```text
+A = New
+B = Old
+C = Old
+```
+
+更可靠的模型是:
+
+```text
+             ┌── Current Result
+             │   正式系统继续使用
+             │
+Input ───────┤
+             │
+             └── Working Result
+                     ↓
+                  分帧构建
+                     ↓
+                   Complete
+                     ↓
+                 Commit / Swap
+                     ↓
+                New Current Result
+```
+
+如果任务中途失效:
+
+```text
+Working Result
+↓
+Discard
+```
+
+而不是:
+
+```text
+修改正式状态
+↓
+发现失败
+↓
+尝试 Rollback
+```
+
+这可以显著减少中间态泄漏到正式系统的风险。
+
+------
+
+## 6. 更核心的问题是 State Complexity
+
+分帧只是一个例子。
+
+类似问题还存在于:
+
+```text
+异步加载
+Job System
+多线程
+后台资源构建
+渐进式 Bake
+网络请求
+GPU Async Compute
+```
+
+这些技术经常以性能优化为目的, 但同时都会改变系统的时间关系和状态关系。
+
+2006 年的论文《Out of the Tar Pit》把 State 和 Control 视为大型软件复杂度的重要来源, 并特别指出性能需求可能迫使系统引入额外的 accidental complexity, 即并非业务问题本身要求、而是实现方式带来的复杂度。论文主张尽可能避免这种复杂度, 无法避免时则应将其隔离。
+
+从这个角度看:
+
+```text
+同步任务
+→ 简单控制流
+
+为了性能进行分帧
+→ 新增进度状态
+→ 新增时间关系
+→ 新增取消与失效关系
+```
+
+因此性能提升本身可能成为新的系统复杂度来源。
+
+这并不意味着不应该优化。
+
+而是意味着:
+
+> 性能收益必须足够大, 才值得购买这部分复杂度.
+
+------
+
+## 7. 为什么任务生命周期尤其重要
+
+并发和异步系统的另一个典型问题是任务生命周期失去边界。
+
+例如一个任务已经启动, 但创建它的对象已经失效:
+
+```text
+Owner
+↓
+Start Task
+↓
+Owner Destroy
+↓
+Task ?
+```
+
+如果任务没有明确的生命周期关系, 后续就需要处理大量:
+
+```text
+谁负责取消?
+谁负责等待?
+结果交给谁?
+异常交给谁?
+资源由谁释放?
+```
+
+Structured Concurrency, 即“结构化并发”的相关研究和工程实践正是在处理这一类问题: 让子任务生命周期受明确作用域约束, 从而重新获得可以推理的任务边界。Nathaniel J. Smith 在关于 Structured Concurrency 的文章中重点讨论了无结构并发导致任务生命周期难以推理的问题。
+
+即使 Unity 中不直接采用某个 Structured Concurrency 框架, 这个思想仍然值得借鉴:
+
+```text
+任务必须有明确 Owner
+任务必须有明确开始
+任务必须有明确结束
+任务必须有明确取消规则
+```
+
+------
+
+## 8. Job System 也没有消除这些问题
+
+将工作从 Unity Main Thread 转移到 Worker Thread 可以显著改善 CPU 利用率。
+
+Unity Job System 就是为了把适合的工作调度到 Worker Threads 执行。Unity 同时提供 Job Dependency 和 Safety System, 用于约束执行顺序和减少数据竞争风险。
+
+但 Job System 解决的是其中一部分问题:
+
+```text
+CPU 并行执行
+依赖关系
+线程安全
+```
+
+它不会自动回答业务层的问题:
+
+```text
+这个结果是否已经过期?
+输入中途变化怎么办?
+Owner 被销毁怎么办?
+旧任务是否应该取消?
+完成结果什么时候可以提交?
+```
+
+所以:
+
+> “放到 Job”与“完整地设计异步任务生命周期”不是同一件事.
+
+------
+
+## 9. 如何判断一个优化是否值得
+
+以后评估类似方案时, 可以同时记录两组信息。
+
+### 性能收益
+
+```text
+CPU/GPU 时间减少多少?
+单帧峰值降低多少?
+是否改善 Worst Frame?
+是否改善持续 Frame Budget?
+是否影响延迟?
+```
+
+### 工程成本
+
+```text
+新增多少状态?
+是否需要 Snapshot?
+是否需要 Double Buffer?
+是否需要 Cancellation?
+是否存在过期结果?
+资源生命周期是否变复杂?
+测试路径增加多少?
+故障是否更难复现?
+```
+
+最终判断的不是:
+
+```text
+3ms → 0.5ms
+```
+
+而是:
+
+```text
+这部分性能收益
+是否值得新增的系统复杂度?
+```
+
+例如:
+
+```text
+偶尔执行一次的 Editor 3ms Task
+→ 通常不值得建立完整分帧系统
+
+Runtime 持续产生的 3ms Stall
+→ 很可能值得
+```
+
+具体阈值取决于系统的 Frame Budget 和业务要求。
+
+------
+
+## 10. 最终原则
+
+性能优化可以首先尝试减少工作本身:
+
+```text
+不做
+↓
+少做
+↓
+合并做
+↓
+延后做
+↓
+分开做
+↓
+并行做
+↓
+GPU 做
+↓
+最后再优化单次计算本身
+```
+
+但每向后引入一种更复杂的调度方式, 都应该同时检查:
+
+```text
+State
+Lifetime
+Ownership
+Cancellation
+Commit
+Cleanup
+```
+
+因此本文最终采用的工程原则是:
+
+> 在满足性能预算的前提下, 使用尽可能低的系统复杂度获得足够的性能收益.
+
+性能优化的目标不是让 Profiler 中的数字无限降低。
+
+目标是得到一个:
+
+```text
+性能足够
++
+状态可控
++
+行为可预测
++
+能够测试
++
+能够长期维护
+```
+
+的系统。
+
+------
+
+## 11. 参考资料
+
+### The Browser's Main Thread Is Expensive
+
+本文最直接的启发来源。
+
+重点关注:
+
+```text
+Splitting
+Batching
+Prioritizing
+Deferring
+Worker
+Eliminating Work
+```
+
+它讨论的是浏览器, 但核心是如何管理实时系统中的稀缺执行预算。
+
+### Out of the Tar Pit
+
+Ben Moseley, Peter Marks, 2006.
+
+适合进一步理解:
+
+```text
+State 为什么增加复杂度
+Control 为什么增加复杂度
+Performance 为什么可能引入 accidental complexity
+为什么应该隔离非必要复杂度
+```
+
+### Notes on Structured Concurrency
+
+Nathaniel J. Smith, 2018.
+
+适合进一步理解:
+
+```text
+异步任务生命周期
+任务 Ownership
+Cancellation
+为什么没有边界的异步任务难以推理
+```
+
+### Unity Job System Documentation
+
+用于了解 Unity 对以下问题的官方解决方式:
+
+```text
+Worker Threads
+Job Dependency
+Safety System
+NativeContainer
+Parallel Jobs
+```
+
+需要注意, 这些机制主要解决执行和数据安全问题, 不能替代业务层面的任务生命周期设计。

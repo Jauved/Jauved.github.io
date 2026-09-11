@@ -1,0 +1,334 @@
+---
+layout: post
+title: "Git 仓库的 .gitattributes 与 .gitignore 配置"
+categories: [Git, 配置]
+tags: Git GitLFS gitattributes gitignore
+math: true
+
+
+---
+
+# Unity Package Git 配置: `.gitattributes` 与 `.gitignore`
+
+本文目标很简单: 为 Unity Package 仓库准备一套可复用的 `.gitattributes` 与 `.gitignore`, 并说明新仓库、旧仓库如何让它们正确生效.
+
+## `.gitattributes`
+
+作用: 规定**已经进入 Git 的文件应该如何处理**, 主要负责 LF、二进制文件和 Git LFS.
+
+```gitattributes
+###############################################################################
+# Default
+###############################################################################
+* text=auto
+.gitattributes    text eol=lf
+.gitignore        text eol=lf
+
+###############################################################################
+# Text
+###############################################################################
+*.cs              text eol=lf diff=csharp
+*.shader          text eol=lf
+*.compute         text eol=lf
+*.cginc           text eol=lf
+*.hlsl            text eol=lf
+*.glsl            text eol=lf
+*.shadergraph     text eol=lf
+*.shadersubgraph  text eol=lf
+
+*.xml             text eol=lf
+*.json            text eol=lf
+*.txt             text eol=lf
+*.md              text eol=lf
+*.asmdef          text eol=lf
+*.asmref          text eol=lf
+
+*.meta            text eol=lf
+*.unity           text eol=lf
+*.prefab          text eol=lf
+*.mat             text eol=lf
+
+# .asset 可能是文本或二进制.
+*.asset           text=auto eol=lf
+
+###############################################################################
+# Binary
+###############################################################################
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.dll   binary
+*.so    binary
+*.dylib binary
+
+###############################################################################
+# Git LFS
+###############################################################################
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.hdr filter=lfs diff=lfs merge=lfs -text
+*.tga filter=lfs diff=lfs merge=lfs -text
+```
+
+核心原则:
+
+```text
+代码 / Shader / Unity YAML -> LF
+.asset                    -> 自动判断, 文本则 LF
+普通二进制                -> binary
+大型纹理                  -> Git LFS
+```
+
+Git LFS 是电脑级安装. 确认:
+
+```bash
+git lfs version
+```
+
+首次配置当前用户时执行一次:
+
+```bash
+git lfs install
+```
+
+仓库中哪些文件走 LFS, 由 `.gitattributes` 决定.
+
+------
+
+## `.gitignore`
+
+作用: 规定**哪些文件不应该进入 Git**.
+
+```gitignore
+###############################################################################
+# OS
+###############################################################################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+###############################################################################
+# IDE
+###############################################################################
+.idea/
+.vs/
+.vscode/
+
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+
+###############################################################################
+# Generated project files
+###############################################################################
+*.csproj
+*.csproj.user
+*.sln
+*.slnx
+*.unityproj
+
+###############################################################################
+# Build / Debug
+###############################################################################
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.tmp
+*.temp
+*.bak
+*.log
+
+###############################################################################
+# Unity generated directories
+###############################################################################
+/Library/
+/Temp/
+/Obj/
+/Logs/
+/UserSettings/
+/MemoryCaptures/
+/Recordings/
+
+###############################################################################
+# Output
+###############################################################################
+/Build/
+/Builds/
+*.unitypackage
+*.tgz
+
+###############################################################################
+# Temporary
+###############################################################################
+~$*
+*.swp
+*.swo
+```
+
+Unity Package 中这些内容**不要忽略**:
+
+```text
+*.meta
+Runtime/
+Editor/
+Tests/
+Samples~/
+Documentation~/
+package.json
+README.md
+CHANGELOG.md
+LICENSE.md
+```
+
+尤其不要写:
+
+```gitignore
+*.meta
+```
+
+------
+
+## 新仓库
+
+建议在第一次提交前就放好:
+
+```text
+.gitattributes
+.gitignore
+```
+
+然后正常初始化:
+
+```bash
+git init
+git remote add origin <repository>
+
+git add .
+git commit -m "Initial commit"
+git push -u origin master
+```
+
+这种情况不需要 `renormalize`, 因为文件第一次进入 Git 时规则就已经存在.
+
+------
+
+## 旧仓库新增 `.gitattributes`
+
+加入文件后执行:
+
+```bash
+git add .gitattributes
+git add --renormalize .
+git status
+```
+
+确认变化正常后:
+
+```bash
+git commit -m "Add Git attributes and normalize files"
+git push
+```
+
+`--renormalize` 的作用是让**已经被 Git 跟踪的文件重新应用 `.gitattributes` 规则**.
+
+------
+
+## 旧仓库新增 `.gitignore`
+
+新加入 `.gitignore` 后, 对**尚未被 Git 跟踪的文件立即生效**, 不需要 `renormalize`.
+
+```bash
+git add .gitignore
+git status
+```
+
+但如果某个文件已经被 Git 跟踪, 后来才决定忽略, 需要先停止跟踪:
+
+```bash
+git rm -r --cached <path>
+```
+
+例如:
+
+```bash
+git rm -r --cached .idea
+```
+
+然后:
+
+```bash
+git add .gitignore
+git commit -m "Update Git ignore rules"
+git push
+```
+
+`--cached` 只从 Git Index 中移除, 不会删除本地文件.
+
+另外, 如果修改得特别多, 不想每个路径/文件都去找到路径执行, 那么可以用:
+
+```bash
+# 移除所有缓存
+git rm -r --cached .
+# 再次加入所有文件到缓存(此时gitignore生效)
+git add .
+# 确认git状况
+git status
+# 提交到本地
+git commit -m "Refresh Git ignore rules"
+# 推送到远端
+git push
+```
+
+上面的命令根据实际情况来选择执行.
+
+------
+
+## 旧仓库同时新增两个文件
+
+最常用流程:
+
+```bash
+git add .gitattributes .gitignore
+git add --renormalize .
+git status
+```
+
+如果 `.gitignore` 中包含以前已经被跟踪的目录, 再执行:
+
+```bash
+git rm -r --cached <path>
+```
+
+确认后:
+
+```bash
+git commit -m "Add Git configuration"
+git push
+```
+
+------
+
+## 快速记忆
+
+| 情况                                    | 操作                           |
+| --------------------------------------- | ------------------------------ |
+| 新仓库                                  | 放好两个文件后正常 `git add .` |
+| 旧仓库新增 `.gitattributes`             | `git add --renormalize .`      |
+| 旧仓库新增 `.gitignore`, 文件从未被跟踪 | 自动生效                       |
+| 已跟踪文件现在需要忽略                  | `git rm -r --cached <path>`    |
+
+最后只需要记住:
+
+```text
+.gitignore     -> 决定文件要不要进入 Git
+.gitattributes -> 决定进入 Git 后如何处理
+```

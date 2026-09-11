@@ -1,0 +1,869 @@
+---
+layout: post
+title: "Arc Blanc: 实时海洋模拟框架的核心架构与技术概述"
+categories: [图形学, 海洋模拟]
+tags: Unity Ocean FFT FDM GPU-Reduction Tessendorf Arc-Blanc 海洋 水体 水面 水
+math: true
+
+
+---
+
+# Arc Blanc: 实时海洋模拟框架的核心架构与技术概述
+
+## 1. 结论
+
+**Arc Blanc** 是 David Algis、Bérenger Bramas、Emmanuelle Darles、Lilian Aveneau 提出的实时海洋模拟框架, 发表于 2025 年的 *Journal of Computer Graphics Techniques, JCGT*.
+
+它的主要价值不是提出一种完全新的海浪算法, 而是将几个已有但通常独立存在的技术组织成一个完整的实时系统:
+
+```text
+Global Ocean
+Tessendorf + FFT
+      ↓
+Ocean Height / Displacement / Velocity
+      ↓
+Fluid → Solid
+浮力 / 水阻力 / 空气阻力
+      ↓
+Solid Motion
+      ↓
+Solid → Fluid
+局部 FDM Interaction Waves
+      ↓
+Final Ocean Surface
+```
+
+最终形成:
+
+```text
+Ocean → Solid → Ocean
+```
+
+的双向反馈系统.
+
+论文同时提出了两个比较重要的扩展: 一是从 Tessendorf 海洋中实时计算**任意深度的水流速度**, 二是根据物体与自由水面的实际交线构建局部互动波的输入.
+
+------
+
+## 2. Arc Blanc 在解决什么问题
+
+很多实时海洋方案实际上只解决:
+
+```text
+Ocean → Rendering
+```
+
+即:
+
+```text
+Wave Spectrum
+↓
+Height / Displacement
+↓
+Ocean Mesh
+↓
+Rendering
+```
+
+这已经足够得到视觉上可信的大海.
+
+但如果场景中存在船只等动态物体, 还需要解决两个问题:
+
+```text
+Ocean → Solid
+水如何推动船
+
+Solid → Ocean
+船如何扰动水面
+```
+
+Arc Blanc 因此把问题拆成三个系统:
+
+| 系统               | 职责                     |
+| ------------------ | ------------------------ |
+| Ocean Free Surface | 模拟大范围自然海浪       |
+| Fluid → Solid      | 计算海水对物体产生的力   |
+| Solid → Fluid      | 模拟物体造成的局部互动波 |
+
+三个系统互相提供数据, 而不是三个独立视觉效果.
+
+------
+
+## 3. FFT: 大尺度海洋
+
+### 3.1 FFT 是什么
+
+FFT, **Fast Fourier Transform**, 即**快速傅里叶变换**.
+
+它本身不是一种海浪算法, 而是一种高效计算傅里叶变换的方法.
+
+对于海洋模拟, 可以将复杂海面理解为大量不同频率、方向和振幅的波叠加:
+
+```text
+很多不同频率的波
+↓
+Frequency Domain
+频域
+↓
+IFFT
+Inverse Fast Fourier Transform
+逆快速傅里叶变换
+↓
+Spatial Domain
+空间域
+↓
+实际海面高度
+```
+
+也就是说, 系统首先描述:
+
+> 海洋中应该存在哪些波.
+
+然后通过 IFFT 将频域信息转换成实际空间中的海面.
+
+Arc Blanc 的全局海洋主要基于经典的 **Tessendorf Ocean** 方法.
+
+------
+
+## 4. 大尺度海洋的频谱
+
+Arc Blanc 并没有直接使用最基础的 Phillips Spectrum, 而是采用更接近实际海洋统计特性的组合:
+
+```text
+JONSWAP Spectrum
+控制不同频率包含多少能量
+
++
+
+Donelan-Banner Directional Spectrum
+控制波浪传播方向
+
++
+
+Swell
+控制涌浪方向性
+```
+
+其中 JONSWAP 是来自海洋学研究的深水波频谱模型. Arc Blanc 使用它描述不同波长上的能量分布, 再利用方向频谱决定这些波主要向哪里传播.
+
+最终生成频域数据:
+
+```text
+Wave Spectrum
+↓
+Frequency Domain
+↓
+IFFT
+↓
+Height
+Horizontal Displacement
+Derivative
+Velocity
+```
+
+这些结果之后既可以用于渲染, 也可以继续参与物理计算.
+
+------
+
+## 5. Cascade: 不同尺度的海浪分开计算
+
+单个固定尺寸 FFT 网格容易产生周期重复问题.
+
+直接扩大 FFT Resolution 虽然可以改善这一问题, 但计算成本会明显增加.
+
+Arc Blanc 使用多个 Cascade:
+
+```text
+Cascade 0
+长波 / 大尺度
+
++
+
+Cascade 1
+中尺度
+
++
+
+Cascade 2
+短波 / 小尺度
+
+↓
+
+Final Ocean
+```
+
+默认采用三个 Cascade, 每个 Cascade 负责不同范围的波长.
+
+这里体现的是一个很常见的实时图形思想:
+
+```text
+不同空间尺度
+↓
+不同数据层处理
+↓
+最终组合
+```
+
+与 Shadow Cascade、Clipmap、Mip 等技术在架构思想上相似.
+
+------
+
+## 6. 一个值得关注的扩展: 任意深度的 Water Velocity
+
+普通 FFT Ocean 通常重点计算:
+
+```text
+Height
+Displacement
+Normal
+Foam
+```
+
+因为这些数据已经足以完成海面渲染.
+
+但如果需要计算船受到的水动力, 仅知道水面高度是不够的.
+
+还需要知道:
+
+```text
+Position(x, y, z)
+↓
+Water Velocity(x, y, z)
+```
+
+也就是某个水下位置的水当前向什么方向移动、速度是多少.
+
+Arc Blanc 从 Tessendorf 模型继续推导出了水流速度表达式. 水流速度随着深度增加而快速衰减.
+
+如果直接为完整三维空间执行大量 IFFT, 成本无法满足实时要求.
+
+Arc Blanc 因此采用:
+
+```text
+Depth 0 ─── IFFT
+Depth 1 ─── IFFT
+Depth 2 ─── IFFT
+Depth 3 ─── IFFT
+...
+
+中间深度
+↓
+Interpolation
+```
+
+只计算少量代表深度.
+
+由于水流速度随深度并不是线性变化, 作者进一步采用:
+
+```text
+Logarithmic Depth Sampling
++
+Exponential Interpolation
+```
+
+即**对数深度采样 + 指数插值**.
+
+这个方案本质上是在做:
+
+```text
+连续三维场
+↓
+少量 Representative Samples
+↓
+GPU 计算
+↓
+Interpolation
+↓
+近似连续场
+```
+
+这部分是论文中比较值得关注的原创内容之一.
+
+------
+
+## 7. Fluid → Solid: 海洋如何作用于物体
+
+为了计算船体受到的力, Arc Blanc 使用封闭的三角形 Mesh 作为物理代理.
+
+GPU 对 Mesh Triangle 进行并行处理:
+
+```text
+Triangle
+↓
+与海面关系
+↓
+Submerged Area / Volume
+Normal
+Water Velocity
+Object Velocity
+↓
+Force
+```
+
+最终主要处理:
+
+```text
+Gravity
+Buoyancy
+Water Drag
+Air Drag
+```
+
+这里并没有运行完整的 CFD, 即 Computational Fluid Dynamics, **计算流体力学模拟**.
+
+而是使用经过简化的解析模型计算物体所受的主要作用力.
+
+因此 Arc Blanc 的目标不是得到严格的流体力学结果, 而是在:
+
+```text
+Physical Plausibility
+物理可信度
+
+和
+
+Real-time Performance
+实时性能
+```
+
+之间取得平衡.
+
+------
+
+## 8. GPU Reduction: GPU 和 CPU 之间的数据边界
+
+### 8.1 GPU Reduction 是什么
+
+Reduction 可以理解为:
+
+> 将大量数据逐步合并成少量结果.
+
+例如有大量 Triangle Force:
+
+```text
+F0
+F1
+F2
+F3
+...
+F4095
+```
+
+最简单的做法是把它们全部传回 CPU 再求和.
+
+但这样会产生大量 GPU → CPU 数据传输.
+
+GPU Reduction 则是在 GPU 内完成:
+
+```text
+4096
+↓
+2048
+↓
+1024
+↓
+512
+↓
+...
+↓
+1
+```
+
+这种过程可以高度并行执行, 因此通常称为 **Parallel Reduction, 并行归约**.
+
+------
+
+### 8.2 Arc Blanc 为什么需要 GPU Reduction
+
+Arc Blanc 首先在 GPU 中逐 Triangle 计算:
+
+```text
+Geometry
+Forces
+```
+
+随后并不把所有 Triangle Result 传回 CPU.
+
+而是:
+
+```text
+Triangle Results
+↓
+GPU Parallel Reduction
+↓
+Total Force
+Total Moment
+Other Global Parameters
+↓
+GPU → CPU
+↓
+Physics Solver
+```
+
+这样可以显著减少 GPU 与 CPU 之间的数据传输.
+
+这是一种非常值得借鉴的 GPU/CPU 系统设计:
+
+```text
+GPU
+大量数据
+↓
+并行计算
+↓
+GPU 内归约
+↓
+少量结果
+↓
+CPU
+```
+
+而不是:
+
+```text
+GPU
+大量数据
+↓
+Readback
+↓
+CPU 再处理
+```
+
+------
+
+## 9. FDM: 物体如何反过来影响海洋
+
+### 9.1 FDM 是什么
+
+FDM, **Finite-Difference Method**, 即**有限差分法**.
+
+核心思想是:
+
+> 将连续空间划分成离散网格, 使用相邻格点之间的差值近似微分.
+
+例如局部水面:
+
+```text
+●──●──●──●
+│  │  │  │
+●──●──●──●
+│  │  │  │
+●──●──●──●
+```
+
+每个 Grid Point 保存当前水面高度.
+
+下一时间步的高度根据:
+
+```text
+Current Height
+Previous Height
+Neighbor Height
+Wave Velocity
+```
+
+计算.
+
+这样就可以让扰动在 Grid 中传播成波.
+
+Arc Blanc 使用 GPU 并行更新整个 FDM Grid, 每个线程负责一个 Grid Point.
+
+需要注意:
+
+> 这里的 FDM 是对局部二维水面波动方程进行数值求解, 并不是使用 FDM 模拟完整三维 Navier-Stokes 流体.
+
+------
+
+## 10. 为什么同时需要 FFT 和 FDM
+
+FFT 和 FDM 实际上解决的是两种完全不同的问题.
+
+```text
+                 Ocean
+                   │
+       ┌───────────┴───────────┐
+       ↓                       ↓
+      FFT                     FDM
+       ↓                       ↓
+Global Ocean              Local Interaction
+大范围自然波浪              物体产生的扰动
+```
+
+如果使用 FDM 模拟整个海洋:
+
+```text
+巨大空间
+×
+高分辨率 Grid
+×
+持续更新
+```
+
+成本很高.
+
+而 FFT 非常适合生成大范围统计意义上的自然海浪.
+
+因此 Arc Blanc 使用:
+
+```text
+Global Cheap Approximation
+FFT
+
++
+
+Local Numerical Simulation
+FDM
+```
+
+可以概括成:
+
+> **大范围使用便宜的频域模型, 局部交互区域使用更昂贵的数值模拟.**
+
+这是整篇论文最值得关注的系统设计之一.
+
+------
+
+## 11. FDM 的波从哪里产生
+
+仅有 FDM 还不够.
+
+系统还需要告诉 FDM:
+
+> 船到底在哪些区域扰动了水面?
+
+Arc Blanc 首先计算:
+
+```text
+Hull Mesh
+∩
+Ocean Free Surface
+↓
+Intersection Polygon
+```
+
+也就是船体与当前自由水面的交线.
+
+然后:
+
+```text
+Intersection Polygon
+↓
+Transform To Local FDM Grid
+↓
+Point In Polygon
+↓
+Wave Generation Mask
+↓
+FDM
+```
+
+Mask 中保存船体影响区域对应的水面高度变化.
+
+而且这个 Mask 并不是简单的圆形或者 Box.
+
+它来源于:
+
+```text
+真实 Hull
++
+当前 Ocean Surface
+```
+
+的几何关系.
+
+因此不同船体形状可以自然产生不同的 Interaction Region.
+
+------
+
+## 12. 完整的数据闭环
+
+整个 Arc Blanc 最终形成:
+
+```text
+        Tessendorf / FFT
+              ↓
+       Ocean Free Surface
+       Height + Velocity
+              ↓
+        Fluid → Solid
+              ↓
+         Total Forces
+              ↓
+        Physics Solver
+              ↓
+         Solid Motion
+              ↓
+        Solid → Fluid
+              ↓
+     Intersection Polygon
+              ↓
+       Generation Mask
+              ↓
+             FDM
+              ↓
+      Interaction Waves
+              ↓
+       Ocean Free Surface
+```
+
+也就是说:
+
+```text
+Ocean
+↓
+Boat
+↓
+Ocean
+↓
+Boat
+...
+```
+
+每一个 Simulation Step 都会影响后续 Simulation Step.
+
+------
+
+## 13. 性能
+
+论文测试中, 单物体场景主要 GPU 模拟耗时约为:
+
+| 模块             | GPU 时间 |
+| ---------------- | -------- |
+| Tessendorf Ocean | 1.551 ms |
+| Fluid → Solid    | 1.531 ms |
+| Solid → Fluid    | 0.338 ms |
+| Total            | 3.414 ms |
+
+十个 Solid 的测试中, 总计约 4135 个 Triangle, GPU 总时间约为 12.297 ms.
+
+因此这并不是一个"几乎免费"的海洋系统.
+
+更准确地说:
+
+> 它证明了这一整套双向海洋模拟可以在桌面 GPU 上达到实时级别.
+
+------
+
+## 14. 我认为最值得关注的部分
+
+我认为 Arc Blanc 真正值得参考的并不是某一个独立公式, 而是它的**系统拆分方式**.
+
+第一点是:
+
+```text
+Global Simulation
++
+Local Simulation
+```
+
+大范围自然海浪交给 FFT, 局部复杂交互交给 FDM.
+
+这比寻找一种算法同时解决所有尺度的问题更加适合实时系统.
+
+第二点是 GPU First 的数据架构:
+
+```text
+GPU Generate
+↓
+GPU Compute
+↓
+GPU Reduce
+↓
+Minimum Readback
+↓
+CPU Physics
+```
+
+GPU 上产生的大规模数据尽可能留在 GPU 内部.
+
+只有 Physics Solver 真正需要的最终结果才进入 CPU.
+
+第三点是 Geometry 被明确作为不同系统之间的接口:
+
+```text
+Hull Mesh
+↓
+Triangle Geometry
+↓
+Fluid → Solid
+```
+
+以及:
+
+```text
+Hull / Surface Intersection
+↓
+Polygon
+↓
+Mask
+↓
+Solid → Fluid
+```
+
+也就是说, 系统不是直接让"船"和"水"两个复杂模块互相访问内部状态, 而是生成明确的中间几何表示.
+
+第四点是 Arc Blanc 并不追求完整 CFD.
+
+它不断使用:
+
+```text
+Approximation
+Sampling
+Interpolation
+Local Simulation
+GPU Parallelism
+```
+
+把原本无法实时解决的问题转换成可控的近似问题.
+
+这非常符合实时图形系统的工程思路.
+
+------
+
+## 15. 如果实现 Unity 版本, 建议的系统边界
+
+后续如果以 Arc Blanc 为参考实现 Unity 版本, 不建议一次实现完整框架.
+
+可以按照以下依赖关系逐步推进:
+
+| 阶段    | 系统                   | 首要验证目标                         |
+| ------- | ---------------------- | ------------------------------------ |
+| Phase 1 | FFT Ocean              | Height / Displacement 正确           |
+| Phase 2 | Ocean Cascade          | 大、中、小尺度海浪组合正确           |
+| Phase 3 | Water Velocity         | 可以查询任意位置和深度的水流速度     |
+| Phase 4 | Fluid → Solid          | 简单代理 Mesh 可以获得稳定浮力和阻力 |
+| Phase 5 | GPU Reduction          | GPU 只向 CPU 输出最终 Physics 数据   |
+| Phase 6 | Local FDM              | 独立局部水面扰动能够传播             |
+| Phase 7 | Hull Intersection Mask | 根据船体实际形状生成 FDM 输入        |
+| Phase 8 | Full Coupling          | FFT、Physics、FDM 构成完整反馈闭环   |
+
+对于 Unity, 可以初步对应为:
+
+```text
+ComputeShader
+├── Ocean Spectrum
+├── FFT / IFFT
+├── Ocean Output
+├── Water Velocity
+├── Hull Geometry
+├── Force Calculation
+├── GPU Reduction
+├── Interaction Mask
+└── FDM
+
+GPU Resources
+├── RenderTexture
+└── GraphicsBuffer
+
+CPU
+├── System Configuration
+├── Scheduling
+└── Rigidbody / Physics Integration
+```
+
+其中真正需要提前验证的风险之一是:
+
+```text
+GPU Reduction
+↓
+GPU → CPU
+↓
+Unity Physics
+```
+
+之间的同步策略.
+
+如果同步 Readback, 可能造成 GPU/CPU Stall.
+
+如果使用 AsyncGPUReadback, 又需要接受至少一定程度的状态延迟, 并设计 Simulation State、时间步和 Physics Integration 之间的关系.
+
+因此这一部分在 Unity 版本中不应被单纯理解成一个 API 调用问题, 而应该作为独立的系统边界设计.
+
+------
+
+## 16. 总结
+
+Arc Blanc 可以压缩成下面这一套结构:
+
+```text
+FFT
+负责整个海洋
+
+↓
+
+Water Height + Velocity
+
+↓
+
+GPU Triangle Calculation
+负责水对船的作用
+
+↓
+
+GPU Reduction
+压缩 GPU 计算结果
+
+↓
+
+CPU Physics
+更新船体运动
+
+↓
+
+Hull / Water Intersection
+
+↓
+
+Mask
+
+↓
+
+FDM
+负责船附近的互动波
+
+↓
+
+重新加入 Ocean Surface
+```
+
+它最有价值的地方不是"如何画一个漂亮的海", 而是给出了一套完整的:
+
+> **大尺度海洋 + 水下速度场 + 刚体受力 + 局部互动波 + GPU/CPU 数据流**
+
+的实时系统架构.
+
+因此如果需要开发一个 Unity 实时海洋系统, Arc Blanc 非常适合作为整体架构参考.
+
+它并不意味着 Unity 版本需要完全复制论文实现.
+
+更合适的方式是保留论文的核心分层:
+
+```text
+Global FFT
++
+Fluid → Solid
++
+Local FDM
++
+GPU Reduction
+```
+
+然后逐模块验证、替换和优化.
+
+这样即使最终某个模块没有采用论文算法, 整个系统仍然可以保持清晰的职责边界.
+
+------
+
+## 参考资料
+
+1. David Algis, Bérenger Bramas, Emmanuelle Darles, Lilian Aveneau.
+   **Arc Blanc: a real time ocean simulation framework.**
+   Journal of Computer Graphics Techniques, Vol.14, No.1, 2025.
+   论文页面:
+   https://jcgt.org/published/0014/01/05/
+2. Arc Blanc, JCGT PDF:
+   https://jcgt.org/published/0014/01/05/paper.pdf
+3. Arc Blanc, arXiv:
+   https://arxiv.org/abs/2503.03326
+4. Jerry Tessendorf.
+   **Simulating Ocean Water.**
+   Tessendorf Ocean 是现代实时 FFT Ocean 的经典基础方法之一.
+   https://www.researchgate.net/publication/264839743_Simulating_Ocean_Water
