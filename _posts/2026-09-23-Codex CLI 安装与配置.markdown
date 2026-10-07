@@ -1,0 +1,731 @@
+---
+layout: post
+title: "Codex CLI 安装与配置"
+categories: [Codex, 工具]
+tags: Codex CLI OpenAI 代理 Windows AI Agent
+math: false
+
+
+---
+
+# Codex CLI 安装与配置
+
+> 适用场景：Windows 原生 PowerShell；本地 HTTP 代理 `127.0.0.1:10809`；SOCKS5 代理 `127.0.0.1:10808`；希望 Codex 安装到非系统盘，便于重装系统后恢复。
+>
+> 本文按我们实际走通的流程整理。示例中 Codex CLI 实测版本为 `0.155.1`，以后重新安装时版本可能更新。
+
+## 0. 最终目录结构
+
+建议把工具统一放在：
+
+```text
+D:\Dev\Tools\
+├── bin\
+│   ├── codex-install.cmd
+│   ├── codex-proxy.cmd
+│   └── chatgpt-proxy.cmd
+│
+└── Codex\
+    ├── bin\
+    │   └── codex.exe
+    └── home\
+```
+
+其中：
+
+- `D:\Dev\Tools\bin`：统一放启动脚本，并加入 PATH。
+- `D:\Dev\Tools\Codex\bin`：Codex CLI 本体。
+- `D:\Dev\Tools\Codex\home`：Codex 配置、登录状态、会话等本地数据。
+- 项目自己的 `AGENTS.md` 应该放在 Git 仓库中，而不是放进 `CODEX_HOME`。
+
+官方参考：
+
+- [Codex / OpenAI Developers](https://developers.openai.com/learn/codex?utm_source=chatgpt.com)
+- [Codex CLI 自定义与外部编辑器](https://developers.openai.com/docs/cli-customization)
+
+------
+
+# 1. 创建目录
+
+在 PowerShell 中执行：
+
+```powershell
+New-Item -ItemType Directory -Force "D:\Dev\Tools\bin"
+New-Item -ItemType Directory -Force "D:\Dev\Tools\Codex\bin"
+New-Item -ItemType Directory -Force "D:\Dev\Tools\Codex\home"
+```
+
+确认：
+
+```
+Get-ChildItem "D:\Dev\Tools"
+```
+
+------
+
+# 2. 把统一工具目录加入 PATH
+
+只需要把：
+
+```
+D:\Dev\Tools\bin
+```
+
+加入用户 PATH。
+
+可以使用 Windows：
+
+```
+设置
+→ 系统
+→ 系统信息
+→ 高级系统设置
+→ 环境变量
+→ 用户变量 Path
+→ 新建
+→ D:\Dev\Tools\bin
+```
+
+完成后**重新打开一个 PowerShell**，验证：
+
+```powershell
+$env:Path -split ';' | Where-Object { $_ -eq 'D:\Dev\Tools\bin' }
+```
+
+期望：
+
+```
+D:\Dev\Tools\bin
+```
+
+> 不建议把每个工具自己的 `bin` 都塞进 PATH。统一只暴露 `D:\Dev\Tools\bin`，后续通过 wrapper 启动。
+
+------
+
+# 3. 确认代理工作正常
+
+本机代理：
+
+```
+HTTP : 127.0.0.1:10809
+SOCKS: 127.0.0.1:10808
+```
+
+先显式测试 HTTP 代理：
+
+```powershell
+Invoke-WebRequest `
+    -UseBasicParsing `
+    -Uri "https://releases.openai.com/codex/channels/latest" `
+    -Proxy "http://127.0.0.1:10809"
+```
+
+期望：
+
+```
+StatusCode : 200
+```
+
+## 3.1 Windows PowerShell 的一个坑
+
+仅设置：
+
+```powershell
+$env:HTTP_PROXY="http://127.0.0.1:10809"
+$env:HTTPS_PROXY="http://127.0.0.1:10809"
+```
+
+并不能保证 Windows PowerShell 5.1 的 `Invoke-WebRequest` 自动使用代理。
+
+我们实际测试过：
+
+```powershell
+Invoke-WebRequest `
+    -UseBasicParsing `
+    -Uri "https://releases.openai.com/codex/channels/latest"
+```
+
+仍然返回 `403`。
+
+因此安装脚本中还需要显式配置 .NET 默认 WebProxy：
+
+```powershell
+$proxy = New-Object System.Net.WebProxy("http://127.0.0.1:10809")
+[System.Net.WebRequest]::DefaultWebProxy = $proxy
+```
+
+验证：
+
+```powershell
+$proxy = New-Object System.Net.WebProxy("http://127.0.0.1:10809")
+[System.Net.WebRequest]::DefaultWebProxy = $proxy
+
+Invoke-WebRequest `
+    -UseBasicParsing `
+    -Uri "https://releases.openai.com/codex/channels/latest"
+```
+
+期望：
+
+```
+StatusCode : 200
+```
+
+------
+
+# 4. 创建 Codex 安装脚本
+
+创建：
+
+```
+D:\Dev\Tools\bin\codex-install.cmd
+```
+
+完整脚本见本文附录 A。
+
+它负责：
+
+1. 配置安装进程自己的代理。
+2. 设置 `CODEX_INSTALL_DIR`。
+3. 设置 `CODEX_HOME`。
+4. 设置 PowerShell DefaultWebProxy。
+5. 调用官方 `install.ps1`。
+6. 安装失败时保留窗口，方便看报错。
+
+官方安装脚本地址：
+
+[Codex 官方 PowerShell 安装脚本](https://chatgpt.com/codex/install.ps1)
+
+------
+
+# 5. 执行安装
+
+在 PowerShell 中：
+
+```
+codex-install
+```
+
+成功时会看到类似：
+
+```
+==> Installing Codex CLI
+==> Detected platform: Windows (x64)
+==> Resolved version: 0.155.1
+==> Downloading Codex CLI
+Codex CLI 0.155.1 installed successfully.
+Start Codex now? [y/N]:
+```
+
+这里建议先按 Enter，选择默认 `N`。
+
+因为我们还要配置正式的代理启动入口。
+
+------
+
+# 6. 验证 Codex 本体安装位置
+
+直接执行：
+
+```
+D:\Dev\Tools\Codex\bin\codex.exe --version
+```
+
+实测：
+
+```
+codex-cli 0.155.1
+```
+
+如果当前 PowerShell 里直接输入 `codex` 找不到，不代表安装失败。官方安装器可能只更新了“未来 PowerShell 会话”的 PATH。
+
+我们日常不依赖这个 PATH，而使用 `codex-proxy.cmd`。
+
+------
+
+# 7. 创建日常启动脚本
+
+创建：
+
+```
+D:\Dev\Tools\bin\codex-proxy.cmd
+```
+
+完整脚本见本文附录 B。
+
+它负责：
+
+```
+HTTP_PROXY
+HTTPS_PROXY
+ALL_PROXY
+NO_PROXY
+CODEX_HOME
+VISUAL / EDITOR
+```
+
+然后启动：
+
+```
+D:\Dev\Tools\Codex\bin\codex.exe
+```
+
+## 7.1 验证 wrapper
+
+```
+codex-proxy --version
+```
+
+期望：
+
+```
+codex-cli 0.155.1
+```
+
+------
+
+# 8. 第一次登录
+
+运行：
+
+```
+codex-proxy
+```
+
+出现：
+
+```
+1. Sign in with ChatGPT
+2. Sign in with Device Code
+3. Provide your own API key
+```
+
+如果要使用 ChatGPT Plus / Pro 套餐包含的 Codex 用量，选择：
+
+```
+1. Sign in with ChatGPT
+```
+
+浏览器会打开 OAuth 登录页。
+
+如果未自动打开，就复制终端给出的 `https://auth.openai.com/...` 地址到浏览器。
+
+登录完成后回到终端，期望：
+
+```
+✓ Signed in with your ChatGPT account
+```
+
+> OAuth 最后会回调 `localhost`。因此启动脚本中的：
+>
+> ```
+> NO_PROXY=localhost,127.0.0.1,.local
+> ```
+>
+> 应保留。
+
+------
+
+# 9. 不要在用户 Home 目录直接开始工作
+
+如果你从：
+
+```
+C:\Users\ASUS
+```
+
+启动 Codex，它会问：
+
+```
+Do you trust the contents of this directory?
+```
+
+这时建议：
+
+```
+2. No, quit
+```
+
+因为这里不是工程仓库。
+
+------
+
+# 10. 在真正的 Git 仓库根目录启动
+
+例如工程：
+
+```
+E:\Projects\projectOne
+```
+
+执行：
+
+```
+cd "E:\Projects\projectOne"
+codex-proxy
+```
+
+再次看到：
+
+```
+Do you trust the contents of this directory?
+```
+
+这次选择：
+
+```
+1. Yes, continue
+```
+
+因为这里就是自己的工程仓库。
+
+------
+
+# 11. 配置 Windows Codex Sandbox
+
+首次进入时可能看到：
+
+```
+1. Set up default sandbox (requires Administrator permissions)
+2. Use non-admin sandbox
+3. Quit
+```
+
+我们实际采用：
+
+```
+1. Set up default sandbox
+```
+
+允许一次 Windows UAC 管理员授权。
+
+完成后：
+
+```
+Sandbox ready
+Codex can now safely edit files and execute commands in your computer
+```
+
+## 11.1 Sandbox Service
+
+安装完成后，任务管理器里可能长期存在：
+
+```
+codex-windows-sandbox-service.exe
+```
+
+查询：
+
+```powershell
+Get-Service | Where-Object {
+    $_.Name -like '*codex*' -or
+    $_.DisplayName -like '*codex*'
+} | Format-List Name,DisplayName,Status,StartType
+```
+
+我们实测得到：
+
+```
+Name        : CodexSandboxService.OpenAI.Codex
+DisplayName : ChatGPT
+Status      : Running
+StartType   : Automatic
+```
+
+这是正常 Windows Service，不是 CLI “没退出干净”。
+
+**日常不需要结束它，也不建议在任务管理器里强杀。**
+
+------
+
+# 12. 验证 AGENTS.md 是否按层级加载
+
+如果仓库结构类似：
+
+```
+projectOne\
+├── AGENTS.md
+├── Packages\
+│   └── com.packagename.packagename\
+│       └── AGENTS.md
+└── ...
+```
+
+第一次正式工作前建议做一次只读验证：
+
+```
+不要修改任何文件。
+
+告诉我以下目录适用了哪些 AGENTS.md 指令文件:
+
+Packages/com.packagename.packagename
+
+分别总结每一层 AGENTS.md 中你加载到的重要规则。
+
+暂时不要分析代码库。
+```
+
+Codex 应该能够识别：
+
+```
+Root AGENTS.md
+Package AGENTS.md
+```
+
+并说明“更具体的 Package 规则覆盖同事项下更通用的 Root 规则”。
+
+------
+
+# 13. 配置长 Prompt 外部编辑器
+
+Codex TUI 中按：
+
+```
+Ctrl+G
+```
+
+可以打开外部编辑器。
+
+如果提示：
+
+```
+Cannot open external editor: set $VISUAL or $EDITOR before starting Codex.
+```
+
+说明还没有配置编辑器。
+
+我们使用 VS Code，并在 `codex-proxy.cmd` 中加入：
+
+```
+set "VISUAL=code --wait"
+set "EDITOR=code --wait"
+```
+
+先确认：
+
+```powershell
+Get-Command code -All
+```
+
+实测可找到：
+
+```
+D:\Program Files\Microsoft VS Code\bin\code.cmd
+```
+
+重启 Codex 后：
+
+```
+Ctrl+G
+→ VS Code 打开 Codex 临时 .md 文件
+→ 编辑 Prompt
+→ Ctrl+S 保存
+→ Ctrl+W 关闭临时标签
+→ Prompt 返回 Codex TUI
+→ 检查无误后 Enter 发送
+```
+
+`--wait` 必须保留，否则 Codex 可能认为编辑器已经提前结束。
+
+官方参考：
+
+[Codex CLI 自定义：Prompt editor](https://developers.openai.com/docs/cli-customization)
+
+------
+
+# 14. 退出与恢复会话
+
+正常退出可以使用 TUI 的退出命令；退出时 Codex 会显示 Session ID，例如：
+
+```
+To continue this session, run:
+codex resume 01a0c86d-...
+```
+
+因为我们日常用 wrapper，所以恢复时：
+
+```
+codex-proxy resume
+```
+
+或者精确恢复：
+
+```
+codex-proxy resume <SESSION_ID>
+```
+
+例如：
+
+```
+codex-proxy resume 01a0c86d-2d03-70e1-87f8-862205e062c9
+```
+
+更完整的会话命令见《Codex CLI 常用命令与会话管理》。
+
+------
+
+# 15. 查看 Codex 用量
+
+在 TUI：
+
+```
+/status
+```
+
+可以看到：
+
+```
+Model
+Directory
+Permissions
+Agents.md
+Account
+Session
+5h limit
+Weekly limit
+Luna Reserve Weekly limit
+```
+
+我们实测过：
+
+```
+5h limit:                  100% left
+Weekly limit:               93% left
+Luna Reserve Weekly limit: 100% left
+```
+
+注意：
+
+- Session 退出时显示的 token 数，不等价于套餐剩余比例。
+- 套餐用量以 `/status` 或 Usage 页面为准。
+- `Luna Reserve Weekly limit` 是单独显示的 Luna 备用周额度，不应和主 Weekly limit 混为一个池。
+
+------
+
+# 16. 安装完成后的日常使用方式
+
+进入工程：
+
+```
+cd "E:\Projects\projectOne"
+```
+
+启动：
+
+```
+codex-proxy
+```
+
+长 Prompt：
+
+```
+Ctrl+G
+```
+
+查看状态：
+
+```
+/status
+```
+
+恢复旧会话：
+
+```
+/resume
+```
+
+或 Shell：
+
+```
+codex-proxy resume
+```
+
+------
+
+# 附录 A：codex-install.cmd
+
+```
+@echo off
+setlocal
+
+set "CODEX_INSTALL_DIR=D:\Dev\Tools\Codex\bin"
+set "CODEX_HOME=D:\Dev\Tools\Codex\home"
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$proxy = New-Object System.Net.WebProxy('http://127.0.0.1:10809');" ^
+  "[System.Net.WebRequest]::DefaultWebProxy = $proxy;" ^
+  "$env:CODEX_INSTALL_DIR='D:\Dev\Tools\Codex\bin';" ^
+  "$env:CODEX_HOME='D:\Dev\Tools\Codex\home';" ^
+  "$env:HTTP_PROXY='http://127.0.0.1:10809';" ^
+  "$env:HTTPS_PROXY='http://127.0.0.1:10809';" ^
+  "$env:ALL_PROXY='socks5://127.0.0.1:10808';" ^
+  "$env:NO_PROXY='localhost,127.0.0.1,.local';" ^
+  "irm 'https://chatgpt.com/codex/install.ps1' | iex"
+
+set "EXIT_CODE=%ERRORLEVEL%"
+
+echo.
+echo ========================================
+echo Codex installer exit code: %EXIT_CODE%
+echo ========================================
+echo.
+
+if "%EXIT_CODE%"=="0" (
+    echo Installation command completed successfully.
+) else (
+    echo Installation command reported an error.
+)
+
+echo.
+pause
+
+exit /b %EXIT_CODE%
+```
+
+------
+
+# 附录 B：codex-proxy.cmd
+
+```
+@echo off
+setlocal
+
+set "HTTP_PROXY=http://127.0.0.1:10809"
+set "HTTPS_PROXY=http://127.0.0.1:10809"
+set "ALL_PROXY=socks5://127.0.0.1:10808"
+set "NO_PROXY=localhost,127.0.0.1,.local"
+
+set "CODEX_HOME=D:\Dev\Tools\Codex\home"
+
+rem External editor used by Codex Ctrl+G.
+set "VISUAL=code --wait"
+set "EDITOR=code --wait"
+
+"D:\Dev\Tools\Codex\bin\codex.exe" %*
+```
+
+------
+
+# 附录 C：安装失败时的代理诊断
+
+显式代理测试：
+
+```powershell
+Invoke-WebRequest `
+    -UseBasicParsing `
+    -Uri "https://releases.openai.com/codex/channels/latest" `
+    -Proxy "http://127.0.0.1:10809"
+```
+
+默认 WebProxy 测试：
+
+```powershell
+$proxy = New-Object System.Net.WebProxy("http://127.0.0.1:10809")
+[System.Net.WebRequest]::DefaultWebProxy = $proxy
+
+Invoke-WebRequest `
+    -UseBasicParsing `
+    -Uri "https://releases.openai.com/codex/channels/latest"
+```
+
+如果第一条 `200`、第二条未设置 DefaultWebProxy 时失败，说明 Windows PowerShell 没有自动采用 `HTTP_PROXY/HTTPS_PROXY` 环境变量。

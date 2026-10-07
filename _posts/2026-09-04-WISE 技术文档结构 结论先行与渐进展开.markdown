@@ -8,9 +8,9 @@ math: false
 
 ---
 
-  # WISE 技术文档结构: 结论先行与渐进展开
+# WISE 技术文档结构: 结论先行与渐进展开
 
-  ## 1. 结论
+## 1. 结论
 
   技术文档默认采用 `WISE` 结构:
 
@@ -48,7 +48,7 @@ math: false
 
 ------
 
-  ## 2. 为什么采用这种结构
+## 2. 为什么采用这种结构
 
   工程文档通常承担两种不同职责:
 
@@ -85,9 +85,9 @@ math: false
 
 ------
 
-  ## 3. WISE 四个层级分别解决什么问题
+## 3. WISE 四个层级分别解决什么问题
 
-  ### W — What
+### W — What
 
   首先回答:
 
@@ -105,7 +105,7 @@ math: false
 
   读者看到这里已经能够做出基本的工程判断.
 
-  ### I — Insight
+### I — Insight
 
   解释为什么得到这个结论.
 
@@ -120,7 +120,7 @@ math: false
 
   这一层只建立主要因果关系, 不展开所有细节.
 
-  ### S — System
+### S — System
 
   继续解释:
 
@@ -143,7 +143,7 @@ math: false
   适用范围
   ```
 
-  ### E — Evidence
+### E — Evidence
 
   最后提供:
 
@@ -167,7 +167,7 @@ math: false
 
 ------
 
-  ## 4. 核心思想: Progressive Depth
+## 4. 核心思想: Progressive Depth
 
   可以把 WISE 理解为一种信息深度的逐级增加:
 
@@ -199,7 +199,7 @@ math: false
 
 ------
 
-  ## 5. 实际写作原则
+## 5. 实际写作原则
 
   采用 WISE 时, 还需要遵守几个原则:
 
@@ -236,7 +236,7 @@ math: false
 
 ------
 
-  ## 6. 最终目标
+## 6. 最终目标
 
   WISE 追求的不是“越短越好”, 也不是“越完整越好”.
 
@@ -258,13 +258,13 @@ math: false
 
 ------
 
-  ## 7. Evidence: 相关资料
+## 7. Evidence: 相关资料
 
   WISE 本身是本文采用的工程文档组织约定, 不是某一篇文献提出的固定模型.
 
   其设计可以参考以下几个相近思想:
 
-  ### 7.1 Scannable Content
+### 7.1 Scannable Content
 
   Microsoft Style Guide 强调重要信息前置, 并通过标题、列表、短段落等方式提高技术内容的可扫描性.
 
@@ -272,7 +272,7 @@ math: false
 
   [Microsoft Style Guide - Scannable content](https://learn.microsoft.com/en-us/style-guide/scannable-content/)
 
-  ### 7.2 Progressive Disclosure
+### 7.2 Progressive Disclosure
 
   Nielsen Norman Group 的 `Progressive Disclosure` 讨论如何首先提供重要和常用信息, 再根据需要逐步暴露更复杂的信息, 从而降低认知负担.
 
@@ -282,7 +282,7 @@ math: false
 
   [Nielsen Norman Group - Progressive Disclosure](https://www.nngroup.com/articles/progressive-disclosure/)
 
-  ### 7.3 Inverted Pyramid
+### 7.3 Inverted Pyramid
 
   `Inverted Pyramid`, 即“倒金字塔结构”, 强调把最重要的信息和结论放在前面, 再逐步补充依据、解释和细节.
 
@@ -294,7 +294,7 @@ math: false
 
 ------
 
-  ## 8. 总结
+## 8. 总结
 
   WISE 的完整结构是:
 

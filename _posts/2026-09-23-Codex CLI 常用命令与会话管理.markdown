@@ -1,0 +1,748 @@
+---
+layout: post
+title: "Codex CLI 常用命令与会话管理"
+categories: [Codex, 工具]
+tags: Codex CLI ChatGPT 开发工具 常用命令 重命名 删除 恢复 AI Agent
+math: false
+
+
+---
+
+# Codex CLI 常用命令与会话管理
+
+> 本文优先记录当前实际用到、实际验证过的命令；后半部分补充常见扩展命令。
+>
+> 示例环境：
+>
+> ```
+> Codex CLI 0.155.1
+> Windows PowerShell
+> 启动 wrapper: codex-proxy.cmd
+> ```
+>
+> Codex CLI 更新后，命令可能增加或调整。TUI 内直接输入 `/` 可以查看当前版本实际支持的命令面板。
+
+官方参考：
+
+- [Codex / OpenAI Developers](https://developers.openai.com/learn/codex?utm_source=chatgpt.com)
+- [Codex CLI 自定义](https://developers.openai.com/docs/cli-customization)
+- [Codex 基础配置](https://developers.openai.com/docs/config-file/config-basic)
+
+------
+
+# 1. 最常用命令
+
+## 1.1 启动 Codex
+
+进入工程根目录：
+
+```
+cd "E:\Projects\projectOne"
+```
+
+启动：
+
+```
+codex-proxy
+```
+
+`codex-proxy.cmd` 会自动处理：
+
+```
+HTTP_PROXY
+HTTPS_PROXY
+ALL_PROXY
+NO_PROXY
+CODEX_HOME
+VISUAL
+EDITOR
+```
+
+------
+
+## 1.2 查看当前状态
+
+TUI：
+
+```
+/status
+```
+
+常见信息：
+
+```
+Model
+Model provider
+Directory
+Permissions
+Agents.md
+Account
+Collaboration mode
+Session
+5h limit
+Weekly limit
+Luna Reserve Weekly limit
+```
+
+这是判断当前工程目录、模型、权限、AGENTS、会话 ID 和套餐用量最直接的入口。
+
+------
+
+## 1.3 查看 / 切换模型
+
+```
+/model
+```
+
+当前 TUI 顶部也会显示模型。
+
+例如我们实际使用过：
+
+```
+gpt-6-astra
+reasoning low
+```
+
+------
+
+## 1.4 恢复旧会话
+
+TUI 内：
+
+```
+/resume
+```
+
+Shell 外：
+
+```
+codex-proxy resume
+```
+
+指定 Session ID：
+
+```
+codex-proxy resume <SESSION_ID>
+```
+
+例如：
+
+```
+codex-proxy resume 01a0c86d-2d03-70e1-87f8-862205e062c9
+```
+
+查看更多历史会话：
+
+```
+codex-proxy resume --all
+```
+
+------
+
+## 1.5 新建会话
+
+TUI：
+
+```
+/new
+```
+
+适合在目标已经明显变化时新开一个干净上下文。
+
+------
+
+## 1.6 重命名当前会话
+
+TUI：
+
+```
+/rename 新名字
+```
+
+例如：
+
+```
+/rename [类别] 标题
+```
+
+我们已实际确认该功能可用。
+
+建议标题写“结果/任务”，不要用第一句 Prompt 当长期标题。
+
+------
+
+## 1.7 删除当前会话
+
+TUI：
+
+```
+/delete
+```
+
+我们已实际确认可正常删除。
+
+删除属于不可逆操作，重要会话建议先归档。
+
+------
+
+## 1.8 归档会话
+
+TUI：
+
+```
+/archive
+```
+
+适合“已经完成，但以后可能要查”的任务。
+
+Shell 也可以按 ID / 名称进行会话管理：
+
+```
+codex-proxy archive <SESSION_ID或SESSION_NAME>
+```
+
+恢复归档：
+
+```
+codex-proxy unarchive <SESSION_ID或SESSION_NAME>
+```
+
+删除：
+
+```
+codex-proxy delete <SESSION_ID或SESSION_NAME>
+```
+
+------
+
+## 1.9 长 Prompt：外部编辑器
+
+按：
+
+```
+Ctrl+G
+```
+
+Codex 会打开 `VISUAL` / `EDITOR` 指定的编辑器。
+
+我们的 `codex-proxy.cmd` 配置为：
+
+```
+set "VISUAL=code --wait"
+set "EDITOR=code --wait"
+```
+
+实际流程：
+
+```
+Ctrl+G
+→ VS Code 打开临时 .md
+→ 粘贴 / 编辑长 Prompt
+→ Ctrl+S
+→ Ctrl+W
+→ 内容回到 Codex
+→ 检查
+→ Enter
+```
+
+这可以避免 Windows Terminal / TUI 粘贴多行内容时，空行被误当成 Enter 提交。
+
+------
+
+## 1.10 查看用量
+
+TUI：
+
+```
+/status
+```
+
+Codex 有时也会提示：
+
+```
+/usage
+```
+
+用于套餐 usage / reset 相关操作。
+
+> 如果界面显示：
+>
+> ```
+> You have N usage limit resets available. Run /usage to use one.
+> ```
+>
+> 这里的 reset 不是“剩余 N 次提问”。
+
+------
+
+# 2. 会话生命周期建议
+
+推荐：
+
+```
+一个明确开发目标
+→ 一个主会话
+```
+
+目标未变，但上下文太长：
+
+```
+/compact
+```
+
+目标明显分叉：
+
+```
+/fork
+```
+
+完全不同的新任务：
+
+```
+/new
+```
+
+旧任务完成：
+
+```
+/rename
+→ /archive
+```
+
+确认完全不需要：
+
+```
+/delete
+```
+
+------
+
+# 3. `/compact`
+
+```
+/compact
+```
+
+用途：
+
+> 压缩过长的聊天上下文，同时保留继续工作的关键信息。
+
+适合：
+
+```
+同一个功能持续开发很久
+上下文越来越大
+但目标没有改变
+```
+
+不适合：
+
+```
+任务已经完全换方向
+```
+
+任务换方向时更推荐 `/new` 或 `/fork`。
+
+------
+
+# 4. `/fork`
+
+```
+/fork
+```
+
+用途：
+
+> 基于当前历史记录派生一个新的主聊天。
+
+适合：
+
+```
+当前分析已经很有价值
+但是想沿两种方案分别尝试
+```
+
+例如：
+
+```
+当前会话:
+URP12 → URP14 migration
+
+Fork A:
+保留兼容层方案
+
+Fork B:
+完全移除旧魔改方案
+```
+
+------
+
+# 5. 权限与审批
+
+第一次启动 Windows Codex 时我们采用了默认 Sandbox：
+
+```
+Set up default sandbox
+```
+
+运行中如果 Codex 请求执行命令，会出现：
+
+```
+1. Yes, proceed
+2. Yes, and don't ask again for commands that start with ...
+3. No, and tell Codex what to do differently
+```
+
+建议：
+
+- 第一次陌生命令：选 `1`。
+- 对非常明确、稳定、低风险的固定前缀，熟悉后再考虑 `2`。
+- 超出任务范围、写错路径或修改不该改的文件：选 `3`。
+
+不要为了减少弹窗一开始就给过大的永久权限。
+
+------
+
+# 6. `/status` 的重点字段怎么读
+
+例如：
+
+```
+Model:                       gpt-6-astra (reasoning low)
+Directory:                   E:\Projects\projectOne
+Permissions:                 Workspace (Ask for approval)
+Agents.md:                   AGENTS.md
+Account:                     ... (Plus)
+Session:                     ...
+5h limit:                    ...
+Weekly limit:                ...
+Luna Reserve Weekly limit:   ...
+```
+
+重点：
+
+### Directory
+
+必须确认当前工程根目录正确。
+
+### Permissions
+
+`Workspace (Ask for approval)` 表示工作区权限 + 命令审批。
+
+### Agents.md
+
+确认项目规则被加载。
+
+### Session
+
+精确恢复会话时使用。
+
+### 5h / Weekly
+
+套餐真实 rate-limit 信息。
+
+------
+
+# 7. AGENTS.md 验证命令模板
+
+第一次进入新工程或新增 Package 级 `AGENTS.md` 后，可以直接问：
+
+```
+不要修改任何文件。
+
+告诉我以下目录适用了哪些 AGENTS.md 指令文件:
+
+Packages/com.packagename.packagename
+
+分别总结每一层 AGENTS.md 中你加载到的重要规则。
+
+暂时不要分析代码库。
+```
+
+这样可以先验证规则系统，再让 Agent 修改工程。
+
+------
+
+# 8. 只读分析模板
+
+例如：
+
+```
+不要修改任何文件。
+
+请只读分析下面这个 Package:
+
+Packages/com.packagename.packagename
+
+目标是先建立对这个 Package 的整体认识，
+暂时不要提出重构方案，也不要修改代码。
+
+请区分:
+- 实际观察到的事实
+- 推断
+- 尚未验证事项
+
+遵循当前适用的 AGENTS.md。
+```
+
+长任务建议用 `Ctrl+G` 在 VS Code 编辑。
+
+------
+
+# 9. 常见扩展命令
+
+下面这些命令适合后续逐步使用。具体以当前版本输入 `/` 后显示的命令为准。
+
+## `/plan`
+
+```
+/plan
+```
+
+用于在实现前进入 / 切换计划模式。
+
+适合：
+
+```
+先讨论架构
+先列修改范围
+先确认方案
+再实施
+```
+
+------
+
+## `/goal`
+
+Codex 新版本支持 Goal 工作流。
+
+例如：
+
+```
+/goal Reduce p95 latency below 120 ms without regressing correctness tests
+```
+
+常见：
+
+```
+/goal
+/goal pause
+/goal resume
+/goal clear
+```
+
+适合“目标明确，但达到目标需要多轮探索”的长任务。
+
+------
+
+## `/review`
+
+用于审查当前本地修改或与分支比较。
+
+适合：
+
+```
+让 Codex 在提交前检查 diff
+```
+
+------
+
+## `/fast`
+
+如果账户 / 当前版本提供，可切换快速执行模式。
+
+------
+
+## `/theme`
+
+打开 TUI 主题选择器。
+
+------
+
+## `/feedback`
+
+发送与当前 Codex 会话相关的产品反馈。
+
+------
+
+# 10. Shell 侧常用 Codex 命令
+
+查看版本：
+
+```
+codex-proxy --version
+```
+
+启动：
+
+```
+codex-proxy
+```
+
+恢复：
+
+```
+codex-proxy resume
+```
+
+指定会话：
+
+```
+codex-proxy resume <SESSION_ID>
+```
+
+列出更多历史会话：
+
+```
+codex-proxy resume --all
+```
+
+归档：
+
+```
+codex-proxy archive <SESSION_ID或SESSION_NAME>
+```
+
+取消归档：
+
+```
+codex-proxy unarchive <SESSION_ID或SESSION_NAME>
+```
+
+删除：
+
+```
+codex-proxy delete <SESSION_ID或SESSION_NAME>
+```
+
+> `rename` 当前更适合在 TUI 会话内部用 `/rename`。
+
+------
+
+# 11. Session ID 比标题更可靠
+
+标题主要服务于人类识别。
+
+重要任务建议同时保留 Session ID，例如 Codex 退出时可能显示：
+
+```
+To continue this session, run:
+codex resume 01a0c86d-...
+```
+
+即使标题显示有问题，Session ID 仍然是精确恢复会话的重要标识。
+
+------
+
+# 12. 推荐的命名规则
+
+建议：
+
+```
+[模块] 目标
+```
+
+例如：
+
+```
+[Analysis] Package Architecture Overview
+[Shadow] ReceiverMask 错误排查
+[URP14] Pipeline Migration
+[PlanarReflection] CPU Cost Investigation
+```
+
+这样 `/resume` 列表长期使用会比“第一句话自动命名”清晰很多。
+
+------
+
+# 13. 推荐的日常流程
+
+```
+cd 工程根目录
+↓
+codex-proxy
+↓
+/status
+↓
+确认 Directory / Agents / Model / Limits
+↓
+执行任务
+↓
+长 Prompt 用 Ctrl+G
+↓
+需要时 /compact
+↓
+分支方案用 /fork
+↓
+完成后 /rename
+↓
+/archive
+```
+
+------
+
+# 14. 记不住命令时
+
+最简单的方法：
+
+```
+/
+```
+
+直接打开当前版本命令面板。
+
+因为 Codex CLI 更新较快，**以当前安装版本 TUI 的 `/` 命令列表为最终准则**。
+
+------
+
+# 附录 A：当前 `codex-proxy.cmd`
+
+```
+@echo off
+setlocal
+
+set "HTTP_PROXY=http://127.0.0.1:10809"
+set "HTTPS_PROXY=http://127.0.0.1:10809"
+set "ALL_PROXY=socks5://127.0.0.1:10808"
+set "NO_PROXY=localhost,127.0.0.1,.local"
+
+set "CODEX_HOME=D:\Dev\Tools\Codex\home"
+
+set "VISUAL=code --wait"
+set "EDITOR=code --wait"
+
+"D:\Dev\Tools\Codex\bin\codex.exe" %*
+```
+
+------
+
+# 附录 B：最常用命令速查
+
+```
+/status
+/model
+/resume
+/new
+/rename <name>
+/archive
+/delete
+/compact
+/fork
+
+Ctrl+G
+```
+
+Shell：
+
+```
+codex-proxy
+codex-proxy --version
+
+codex-proxy resume
+codex-proxy resume --all
+codex-proxy resume <SESSION_ID>
+
+codex-proxy archive <SESSION_ID或SESSION_NAME>
+codex-proxy unarchive <SESSION_ID或SESSION_NAME>
+codex-proxy delete <SESSION_ID或SESSION_NAME>
+```
