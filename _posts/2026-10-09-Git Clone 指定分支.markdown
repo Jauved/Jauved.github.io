@@ -1,0 +1,145 @@
+---
+layout: post
+title: "Git Clone 指定分支"
+categories: [Git]
+tags: Git Clone Fetch Branch ShallowClone 指定分支
+math: false
+
+
+---
+
+# Git Clone 指定分支
+
+## W. 直接使用
+
+### A. 通常版 (推荐)
+
+拉取仓库, 默认检出指定分支, 后续可以正常 Fetch 其他分支.
+
+```
+git clone -b feature/example https://git.example.com/team/project.git
+```
+
+### B. 极速版 (浅克隆)
+
+只拉取指定分支的最近一层提交历史, 减少首次下载量.
+
+```
+git clone -b feature/example --depth 1 --single-branch https://git.example.com/team/project.git
+```
+
+后续需要查看其他远端分支时:
+
+```
+git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+git fetch origin
+git branch -r
+```
+
+### C. 通常版并指定本地目录名
+
+```bash
+git clone -b feature/example https://git.example.com/team/project.git project-feature
+```
+
+### D. 极速版并指定本地用户名
+
+```bash
+git clone -b feature/example --depth 1 --single-branch https://git.example.com/team/project.git project-feature
+```
+
+最后的 `project-feature` 是本地目标目录名, 可以自行指定.
+
+## I. 命令说明
+
+### 1. 通常版与极速版的区别
+
+| 对比       | 通常版           | 极速版             |
+| ---------- | ---------------- | ------------------ |
+| 默认检出   | 指定分支         | 指定分支           |
+| Git 历史   | 完整历史         | 最近一层           |
+| 远端分支   | 默认跟踪所有分支 | 默认只跟踪指定分支 |
+| 首次下载   | 较大             | 通常较小           |
+| 后续 Fetch | 所有远端分支     | 默认仅指定分支     |
+
+### 2. Clone 参数
+
+- `-b feature/example`: 指定检出的分支.
+- `--depth 1`: 浅克隆 (Shallow Clone), 将提交历史限制为指定深度.
+- `--single-branch`: 只拉取指定分支的历史.
+
+**注意:** `--depth` 默认隐含 `--single-branch`, 因此极速版中的 `--single-branch` 实际上可以省略. 这里保留是为了明确表达意图.
+
+### 3. 恢复 Fetch 范围
+
+```
+git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+```
+
+修改 Fetch Refspec, 让 `origin` 跟踪所有远端分支.
+
+```
+git fetch origin
+```
+
+按新的配置获取远端引用及所需 Git 对象.
+
+```
+git branch -r
+```
+
+列出本地已记录的远端跟踪分支.
+
+查看当前 Fetch 配置:
+
+```
+git config --get-all remote.origin.fetch
+```
+
+## S. 深入说明
+
+### 1. Depth 的含义
+
+`--depth N` 限制的是 Git 提交历史的深度, 不是文件数量或文件大小.
+
+| 参数         | 效果                       |
+| ------------ | -------------------------- |
+| `--depth 1`  | 仅获取分支最新一层提交历史 |
+| `--depth 10` | 获取最近约 10 层提交历史   |
+| `--depth 50` | 获取最近约 50 层提交历史   |
+| 不指定       | 默认获取完整历史           |
+
+例如:
+
+```
+git clone -b feature/example --depth 10 https://git.example.com/team/project.git
+```
+
+可以查看近期提交, 但更早的历史被截断. 存在 Merge 时, 实际获取的 Commit 总数不一定等于 N.
+
+**注意:** 浅克隆仍然会检出目标 Commit 的完整工作目录. 它主要减少历史数据, 不会自动减少当前版本的文件数量.
+
+### 2. 后续补充历史
+
+浅克隆后, 可以逐步加深当前仓库的历史:
+
+```
+git fetch --deepen=20 origin
+```
+
+在当前浅克隆边界基础上, 进一步获取约 20 层历史.
+
+如果需要恢复完整历史:
+
+```
+git fetch --unshallow origin
+```
+
+将浅克隆转换为完整历史仓库 (针对当前 Fetch 范围).
+
+## E. 参考资料
+
+- [Git Clone - 官方文档](https://git-scm.com/docs/git-clone)
+- [Git Fetch - 官方文档](https://git-scm.com/docs/git-fetch)
+- [Git Config - 官方文档](https://git-scm.com/docs/git-config)
+- [Git Refspec - Git Book](https://git-scm.com/book/en/v2/Git-Internals-The-Refspec)

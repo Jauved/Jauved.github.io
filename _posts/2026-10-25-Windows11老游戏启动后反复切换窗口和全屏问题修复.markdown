@@ -1,0 +1,602 @@
+---
+layout: post
+title: "Windows11老游戏启动后反复切换窗口和全屏问题修复"
+categories: [Windows, 游戏兼容性]
+tags: Windows11 老游戏 全屏闪烁 DirectDraw dgVoodoo2 Zuma Insaniquarium
+math: false
+
+
+---
+
+# Windows11老游戏启动后反复切换窗口和全屏问题修复
+
+
+
+一些较老的 Windows 游戏在 Windows 10/11 上可能出现典型的全屏兼容问题:
+
+```
+Windowed 正常
+    ↓
+Fullscreen 持续闪烁
+    ↓
+表现类似 Fullscreen <-> Desktop 反复切换
+    ↓
+Alt + Enter 返回 Windowed 后立即正常
+```
+
+本文记录一个已经实际验证有效的解决方案: 使用 `dgVoodoo2` 接管游戏原本的 DirectDraw / Old Direct3D 图形接口.
+
+已验证游戏:
+
+```
+Zuma Deluxe
+Insaniquarium! Deluxe
+```
+
+两者的全屏闪烁问题均已解决.
+
+# W - 直接使用
+
+## 1. 下载 dgVoodoo2
+
+下载普通 Release:
+
+```
+dgVoodoo2_xx_x.zip
+```
+
+不要下载:
+
+```
+*_dbg.zip
+*_dev64.zip
+dgVoodooAPI_*.zip
+Source Code
+```
+
+## 2. 复制 x86 Wrapper
+
+解压后进入:
+
+```
+MS\x86\
+```
+
+复制:
+
+```
+DDraw.dll
+D3DImm.dll
+D3D8.dll
+```
+
+## 3. 放到真正运行的游戏 EXE 目录
+
+不要默认放到 Steam 安装目录.
+
+先运行游戏, 然后:
+
+```
+Task Manager
+-> 游戏进程
+-> Right Click
+-> Open file location
+```
+
+把三个 DLL 放到真正运行的 EXE 同级目录:
+
+```
+Game\
+├─ Game.exe
+├─ DDraw.dll
+├─ D3DImm.dll
+└─ D3D8.dll
+```
+
+然后重新启动游戏, 测试 Fullscreen.
+
+## 4. 两个已验证案例
+
+### Insaniquarium! Deluxe
+
+实际运行目录:
+
+```
+C:\ProgramData\PopCap Games\Insaniquarium\
+```
+
+最终:
+
+```
+C:\ProgramData\PopCap Games\Insaniquarium\
+├─ popcapgame1.exe
+├─ DDraw.dll
+├─ D3DImm.dll
+└─ D3D8.dll
+```
+
+### Zuma Deluxe
+
+Steam 版同样会使用 `ProgramData` 中的实际游戏程序:
+
+```
+C:\ProgramData\PopCap Games\Zuma\
+```
+
+实际 EXE:
+
+```
+C:\ProgramData\PopCap Games\Zuma\popcapgame1.exe
+```
+
+处理方法相同.
+
+## 5. 回滚
+
+如果出现问题, 删除复制进去的:
+
+```
+DDraw.dll
+D3DImm.dll
+D3D8.dll
+```
+
+即可恢复原来的图形 API 路径.
+
+## 本次已验证无效的方法
+
+```
+Disable Fullscreen Optimizations
+关闭 Steam Overlay
+关闭 NVIDIA Overlay
+关闭 Xbox Game Bar
+关闭 Discord Overlay
+切换 Hardware Acceleration
+关闭 Custom Cursor
+```
+
+# I - 原理
+
+## 问题本质
+
+这类老游戏通常仍然依赖:
+
+```
+DirectDraw
+Old Direct3D
+```
+
+而实际运行环境已经变成:
+
+```
+Old Game
+    ↓
+Old DirectX API
+    ↓
+Windows 10 / Windows 11
+    ↓
+Modern GPU Driver
+```
+
+窗口模式可以正常运行, 但 Exclusive Fullscreen 涉及显示模式切换、Surface 创建、图形设备恢复以及 Focus 状态变化.
+
+问题出现后, 可以将现象近似理解为:
+
+```
+Game 请求 Fullscreen
+    ↓
+创建 / 恢复 DirectDraw Surface
+    ↓
+Fullscreen 状态异常
+    ↓
+游戏失去或者重新获取图形设备 / Focus
+    ↓
+游戏再次申请 Fullscreen
+    ↓
+再次异常
+    ↓
+循环
+```
+
+最终肉眼看到的就是:
+
+```
+Game
+Desktop
+Game
+Desktop
+Game
+Desktop
+...
+```
+
+因此下面这个现象是非常重要的判断依据:
+
+```
+Fullscreen -> 持续闪烁
+
+Alt + Enter
+
+Windowed -> 立即稳定
+```
+
+如果满足这个特征, 应该优先调查旧 DirectX / Exclusive Fullscreen 兼容问题, 而不是首先怀疑 GPU 性能或硬件稳定性.
+
+## dgVoodoo2 做了什么
+
+原来的路径:
+
+```
+Old Game
+    ↓
+DirectDraw / Old Direct3D
+    ↓
+Windows / GPU Driver
+```
+
+加入 dgVoodoo2 后:
+
+```
+Old Game
+    ↓
+DirectDraw / Old Direct3D
+    ↓
+dgVoodoo2
+    ↓
+D3D11 / D3D12
+    ↓
+Windows / GPU Driver
+```
+
+dgVoodoo2 本质上是一个 Graphics API Compatibility Wrapper.
+
+其官方说明支持:
+
+```
+DirectDraw
+D3D3
+D3D5
+D3D6
+D3D7
+D3D8
+D3D9
+```
+
+并将旧 DirectX 图形路径运行在 D3D11 / D3D12 之上.
+
+因此它解决问题的思路并不是:
+
+```
+让 Windows 更兼容旧游戏
+```
+
+而更接近:
+
+```
+不要再让旧游戏直接依赖原来的旧图形执行路径
+```
+
+由 dgVoodoo2 在旧游戏和现代图形系统之间增加一个兼容层.
+
+这也是为什么它比:
+
+```
+Windows Compatibility Mode
+Disable Fullscreen Optimizations
+```
+
+更加接近这一类问题的根源.
+
+# S - 补充说明
+
+## 1. 我们是怎么找到真正的 EXE 目录的
+
+这是本次排查过程中非常关键的一步.
+
+最开始看到的 Steam 游戏目录是:
+
+```
+F:\Steam\steamapps\common\Insaniquarium Deluxe\
+```
+
+里面也确实存在:
+
+```
+Insaniquarium.exe
+InsaniquariumDeluxe.exe
+```
+
+因此直觉上很容易认为 dgVoodoo2 应该直接放在这里.
+
+但 Steam 社区针对 Insaniquarium 的修复指南明确指出:
+
+```
+C:\ProgramData\PopCap Games\Insaniquarium
+```
+
+才是游戏实际运行的位置.
+
+指南进一步说明, Steam 目录中的程序会把真正的游戏程序临时解包到该目录运行, 类似一种早期的 DRM / Launcher 机制.
+
+之后在本机实际启动游戏, 通过:
+
+```
+Task Manager
+-> Insaniquarium
+-> Right Click
+-> Open file location
+```
+
+再次确认真正运行的是:
+
+```
+C:\ProgramData\PopCap Games\Insaniquarium\popcapgame1.exe
+```
+
+因此这个路径不是单纯依赖论坛结论, 而是:
+
+```
+社区资料提供线索
+    +
+Task Manager 本机验证
+```
+
+两边相互确认.
+
+Zuma Deluxe 也存在相同机制.
+
+相关 Steam 社区资料明确指出, Steam 安装目录中的 `Zuma.exe` 是 Self-extracting Launcher, 每次运行时都会生成并启动:
+
+```
+C:\ProgramData\PopCap Games\Zuma\popcapgame1.exe
+```
+
+因此把 dgVoodoo2 放进 Steam 安装目录并不会被真正的游戏进程加载.
+
+这也是为什么处理老游戏 Wrapper 时, 一个很实用的原则是:
+
+> 不要问"游戏安装在哪里", 而应该问"真正运行的 EXE 在哪里".
+
+## 2. 为什么 Wrapper DLL 必须放到实际 EXE 附近
+
+Windows 程序加载 DLL 时, 应用程序所在目录是重要的 DLL 搜索位置之一.
+
+因此我们希望形成:
+
+```
+popcapgame1.exe
+    ↓
+加载本地 DDraw.dll
+    ↓
+dgVoodoo2 接管 DirectDraw
+```
+
+而不是:
+
+```
+popcapgame1.exe
+    ↓
+运行目录中没有 dgVoodoo2
+    ↓
+继续使用原来的系统图形路径
+```
+
+所以即使 Steam 安装目录里已经放了 Wrapper:
+
+```
+Steam\steamapps\common\Game\
+├─ Launcher.exe
+├─ DDraw.dll
+└─ ...
+```
+
+只要真正执行的是:
+
+```
+C:\ProgramData\...\popcapgame1.exe
+```
+
+这些 DLL 就不会达到预期效果.
+
+## 3. 为什么使用 x86
+
+Wrapper DLL 的 Architecture 必须和加载它的游戏进程一致.
+
+例如:
+
+```
+32-bit Game
+    ↓
+32-bit DLL
+```
+
+因此这些老 PopCap 游戏需要使用:
+
+```
+MS\x86\
+```
+
+而不是 64-bit Wrapper.
+
+即使操作系统本身是:
+
+```
+Windows 11 x64
+```
+
+只要游戏进程是 32-bit:
+
+```
+Game.exe = x86
+```
+
+就仍然需要 x86 DLL.
+
+## 4. 为什么第一步只放 DLL
+
+社区教程中有时还会同时复制:
+
+```
+dgVoodoo.conf
+dgVoodooCpl.exe
+```
+
+并修改分辨率、Renderer、Scaling 等选项.
+
+但排查问题时, 更建议先控制变量.
+
+本文实际采用的第一步是只增加:
+
+```
+DDraw.dll
+D3DImm.dll
+D3D8.dll
+```
+
+然后重新测试原问题.
+
+这样可以非常直接地判断:
+
+```
+Original Graphics Path
+        ↓
+存在问题
+
+dgVoodoo2 Graphics Path
+        ↓
+问题消失
+```
+
+确认 Wrapper 有效以后, 再根据需要调整:
+
+```
+Resolution
+Scaling
+Aspect Ratio
+MSAA
+Borderless
+Windowed
+Renderer Backend
+```
+
+dgVoodoo2 本身也支持强制分辨率、MSAA、Windowed Appearance 和多种低分辨率 Upscaling 方式.
+
+## 5. 为什么窗口模式正常是重要线索
+
+如果 GPU、本机供电或者游戏核心逻辑本身存在严重问题, 通常不会表现为:
+
+```
+Fullscreen -> 必现问题
+Windowed   -> 立即稳定
+```
+
+而 `Alt + Enter` 又可以稳定改变故障状态.
+
+因此:
+
+```
+Fullscreen 异常
++
+Windowed 正常
++
+Alt + Enter 可以恢复
+```
+
+是一个非常有价值的定位条件.
+
+它不能百分之百证明问题一定来自 DirectDraw, 但足以把调查优先级明显提高到:
+
+```
+Exclusive Fullscreen
+Display Mode
+DirectDraw
+Old Direct3D
+Device Lost / Restore
+Focus handling
+```
+
+## 6. dgVoodoo2 不是所有老游戏问题的万能修复
+
+它非常适合调查:
+
+```
+窗口模式正常, Fullscreen 异常
+老 DirectX 游戏黑屏
+Alt + Tab 后崩溃
+切换显示模式崩溃
+进入真正的 3D 场景后崩溃
+旧 DirectDraw / Direct3D 与现代 Windows 不兼容
+```
+
+但老游戏还可能存在其他问题:
+
+```
+旧 DRM
+旧音频 API
+Codec
+CPU Timing
+多核兼容
+文件权限
+旧 Runtime
+游戏自身 Bug
+```
+
+因此更准确的理解是:
+
+> dgVoodoo2 是解决旧 Graphics API Compatibility 问题的一种高价值工具, 而不是通用游戏修复器.
+
+# E - 验证与参考
+
+## 实际验证
+
+本文方案已实际验证:
+
+```
+Zuma Deluxe
+状态: 已解决
+
+Insaniquarium! Deluxe
+状态: 已解决
+```
+
+共同故障特征:
+
+```
+Windowed 正常
+Fullscreen 持续闪烁
+Alt + Enter 返回 Windowed 后立即恢复
+```
+
+加入 dgVoodoo2 x86 Wrapper 后, Fullscreen 恢复正常.
+
+以后遇到类似问题, 可以优先使用下面的判断链:
+
+```
+Old Windows Game
+        ↓
+Windowed 正常
+        ↓
+Fullscreen 异常
+        ↓
+Alt + Enter 可以恢复
+        ↓
+检查 DirectDraw / Old Direct3D
+        ↓
+确认真正运行的 EXE
+        ↓
+尝试 dgVoodoo2
+```
+
+## 参考资料
+
+dgVoodoo2 官方项目:
+[dege-diosg/dgVoodoo2](https://github.com/dege-diosg/dgVoodoo2?utm_source=chatgpt.com)
+
+dgVoodoo2 Release:
+[dgVoodoo2 Releases](https://github.com/dege-diosg/dgVoodoo2/releases?after=v2.44&utm_source=chatgpt.com)
+
+Insaniquarium! Deluxe Steam 社区修复指南, 其中明确说明实际运行目录位于 `C:\ProgramData\PopCap Games\Insaniquarium`, 并给出了 dgVoodoo2 Wrapper 的使用方法:
+[Windows 10 Alt-Tab Crash + Steam UI Scaling Fix](https://steamcommunity.com/sharedfiles/filedetails/?id=3018221799)
+
+Zuma Deluxe Steam 社区讨论, 其中明确说明 Steam 目录中的 `Zuma.exe` 是 Launcher, 真正运行的是 `C:\ProgramData\PopCap Games\Zuma\popcapgame1.exe`:
+[Guide to get Zuma 100% compatible with modern Windows 11 OS](https://steamcommunity.com/app/3330/discussions/0/591810883669342499/)
